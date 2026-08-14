@@ -1,0 +1,66 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://github.com/bgibson72/yahr-shell/themes/schema.json",
+  "title": "Yahr Shell theme",
+  "type": "object",
+  "required": [
+    "id",
+    "name",
+    "wallpaperDir",
+    "accentRose",
+    "accentCoral",
+    "accentPink",
+    "accentPurple",
+    "accentRed",
+    "accentMaroon",
+    "accentOrange",
+    "accentYellow",
+    "accentGreen",
+    "accentTeal",
+    "accentCyan",
+    "accentSapphire",
+    "accentBlue",
+    "accentLavender",
+    "fgPrimary",
+    "fgSecondary",
+    "fgTertiary",
+    "border2",
+    "border1",
+    "border0",
+    "surface2",
+    "surface1",
+    "surface0",
+    "bgBase",
+    "bgMantle",
+    "bgCrust",
+    "glassAccent"
+  ],
+  "properties": {
+    "id": { "type": "string", "pattern": "^[a-z0-9-]+$" },
+    "name": { "type": "string" },
+    "wallpaperDir": { "type": "string" },
+    "custom": { "type": "boolean" },
+    "seed": {
+      "type": "object",
+      "description": "User-editable colors used to derive a custom palette",
+      "properties": {
+        "bg": { "type": "string" },
+        "blue": { "type": "string" },
+        "purple": { "type": "string" },
+        "pink": { "type": "string" },
+        "red": { "type": "string" },
+        "orange": { "type": "string" },
+        "yellow": { "type": "string" },
+        "green": { "type": "string" },
+        "teal": { "type": "string" }
+      }
+    }
+  },
+  "patternProperties": {
+    "^(accent|fg|border|surface|bg|glass).*$": {
+      "type": "string",
+      "pattern": "^#[0-9a-fA-F]{6,8}$"
+    }
+  },
+  "additionalProperties": true
+}

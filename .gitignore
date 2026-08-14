@@ -1,0 +1,11 @@
+# Generated / local
+*~
+*.swp
+.DS_Store
+__pycache__/
+*.pyc
+.venv/
+
+# Editor
+.idea/
+.vscode/

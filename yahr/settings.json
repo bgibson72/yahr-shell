@@ -1,0 +1,47 @@
+{
+  "general": {
+    "uiFont": "Inter",
+    "widgetOpacity": 1.0,
+    "showWidgetBorders": false,
+    "widgetBorderWidth": 1,
+    "blur": true,
+    "clockFormat24hr": false,
+    "showSeconds": false,
+    "dateFormat": "MDY",
+    "dateLong": false,
+    "showDayOfWeek": false
+  },
+  "bar": {
+    "position": "top",
+    "barSize": "small",
+    "barStyle": "single",
+    "backgroundStyle": "translucent",
+    "barOpacity": 0.7,
+    "floating": false,
+    "showBorder": false,
+    "showQuickLaunch": true,
+    "showSystemTray": true,
+    "showMediaPlayer": false,
+    "minWorkspaces": 4,
+    "workspaceStyle": "dots"
+  },
+  "dock": {
+    "enabled": true,
+    "position": "bottom",
+    "alignment": "center",
+    "floating": true,
+    "backgroundStyle": "translucent",
+    "opacity": 0.7,
+    "showBorder": false,
+    "iconSize": 48,
+    "spanFullWidth": false,
+    "pinned": []
+  },
+  "hypr": {
+    "rounding": 12,
+    "borderSize": 3
+  },
+  "screenshot": {
+    "saveLocation": "~/Pictures/Screenshots"
+  }
+}
