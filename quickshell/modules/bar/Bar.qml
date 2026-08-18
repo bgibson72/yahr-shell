@@ -2,6 +2,7 @@ import QtQuick
 import QtQuick.Layouts
 import Quickshell
 import "../../components"
+import "../.."
 
 Rectangle {
     id: bar
@@ -24,15 +25,15 @@ Rectangle {
     signal toggleControlCenter()
     signal toggleClipboard()
 
-    RowLayout {
+    Item {
         anchors.fill: parent
-        anchors.leftMargin: 8
-        anchors.rightMargin: 8
-        spacing: 8
+        anchors.leftMargin: 10
+        anchors.rightMargin: 10
 
         RowLayout {
-            spacing: 4
-            Layout.alignment: Qt.AlignVCenter
+            anchors.left: parent.left
+            anchors.verticalCenter: parent.verticalCenter
+            spacing: 6
 
             IconButton {
                 glyph: "󰣇"
@@ -45,24 +46,24 @@ Rectangle {
             }
         }
 
-        Item { Layout.fillWidth: true }
-
+        // Anchored to the bar's own center rather than the midpoint between
+        // the two side groups, so it stays fixed relative to the display
+        // regardless of how many icons end up on either side.
         Clock {
-            Layout.alignment: Qt.AlignVCenter
+            anchors.centerIn: parent
         }
 
-        Item { Layout.fillWidth: true }
-
         RowLayout {
-            spacing: 2
-            Layout.alignment: Qt.AlignVCenter
+            anchors.right: parent.right
+            anchors.verticalCenter: parent.verticalCenter
+            spacing: 4
 
             IconButton {
                 glyph: "󰉋"
                 onClicked: Quickshell.execDetached(["thunar"])
             }
             IconButton {
-                glyph: "󰘥"
+                glyph: "󰏘"
                 onClicked: bar.toggleThemeSwitcher()
             }
             IconButton {
@@ -73,6 +74,7 @@ Rectangle {
                 glyph: "󰅍"
                 onClicked: bar.toggleClipboard()
             }
+            SystemTray {}
             Audio {}
             Network {}
             Battery {}

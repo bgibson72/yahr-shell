@@ -1,4 +1,5 @@
 import QtQuick
+import ".."
 
 Rectangle {
     id: root
@@ -8,14 +9,15 @@ Rectangle {
     property int pixelSize: ThemeManager.fontSizeIcon
     signal clicked()
 
-    width: 36
-    height: 32
-    radius: 6
-    color: mouse.containsMouse ? Qt.rgba(1, 1, 1, 0.10) : "transparent"
-    border.width: mouse.containsMouse ? 1 : 0
-    border.color: Qt.rgba(1, 1, 1, 0.18)
+    width: 46
+    height: 40
+    radius: 10
+    color: "transparent"
 
-    Behavior on color { ColorAnimation { duration: 150 } }
+    scale: mouse.pressed ? ThemeManager.iconPressScale : (mouse.containsMouse ? ThemeManager.iconHoverScale : 1.0)
+    Behavior on scale {
+        SpringAnimation { spring: ThemeManager.bounceSpring; damping: ThemeManager.bounceDamping; mass: ThemeManager.bounceMass }
+    }
 
     Text {
         anchors.centerIn: parent

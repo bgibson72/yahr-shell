@@ -1,11 +1,12 @@
 import QtQuick
 import Quickshell
 import Quickshell.Io
+import "../.."
 
 Item {
     id: bat
     implicitWidth: visible ? row.implicitWidth + 12 : 0
-    implicitHeight: 32
+    implicitHeight: 40
     visible: false
     property int percent: 100
     property bool charging: false

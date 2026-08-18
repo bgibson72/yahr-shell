@@ -3,7 +3,7 @@ import QtQuick
 import Quickshell
 import Quickshell.Io
 
-QtObject {
+Item {
     id: root
 
     property string themeId: "catppuccin"
@@ -44,10 +44,10 @@ QtObject {
     readonly property color panelColor: Qt.rgba(bgBase.r, bgBase.g, bgBase.b, Settings.widgetOpacity)
     readonly property color accentBorder: Qt.rgba(accentBlue.r, accentBlue.g, accentBlue.b, 0.35)
 
-    readonly property int fontSizeSmall: Settings.barSize === "large" ? 12 : 11
-    readonly property int fontSizeNormal: Settings.barSize === "large" ? 14 : 13
-    readonly property int fontSizeLarge: Settings.barSize === "large" ? 16 : 15
-    readonly property int fontSizeIcon: Settings.barSize === "large" ? 18 : 14
+    readonly property int fontSizeSmall: Settings.barSize === "large" ? 14 : 13
+    readonly property int fontSizeNormal: Settings.barSize === "large" ? 16 : 15
+    readonly property int fontSizeLarge: Settings.barSize === "large" ? 18 : 17
+    readonly property int fontSizeIcon: Settings.barSize === "large" ? 22 : 18
     readonly property bool barLarge: Settings.barSize === "large"
     readonly property string uiFont: Settings.uiFont
     readonly property int hyprRounding: Settings.hyprRounding
@@ -55,6 +55,19 @@ QtObject {
     readonly property int widgetBorderWidth: Settings.widgetBorderWidth
     readonly property real widgetOpacity: Settings.widgetOpacity
     readonly property string workspaceStyle: Settings.workspaceStyle
+
+    // Shared "plop" bounce feel used by every clickable icon/button in the shell.
+    // Hover/press feedback is a spring-driven scale rather than a background rect.
+    // Bare glyph icons (bar/dock/tray/powermenu) get a big, dramatic pop...
+    readonly property real iconHoverScale: 1.45
+    readonly property real iconPressScale: 0.62
+    // ...while labeled buttons/rows with their own background get a more
+    // restrained bounce so they don't overlap neighbors in tight layouts.
+    readonly property real bounceHoverScale: 1.08
+    readonly property real bouncePressScale: 0.9
+    readonly property real bounceSpring: 3.0
+    readonly property real bounceDamping: 0.28
+    readonly property real bounceMass: 0.65
 
     function applyJson(data) {
         if (!data)

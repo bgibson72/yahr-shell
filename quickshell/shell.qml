@@ -55,7 +55,7 @@ ShellRoot {
             screen: modelData
             color: "transparent"
             exclusiveZone: Settings.barFloating ? 0 : implicitHeight
-            implicitHeight: Settings.barSize === "large" ? 42 : 34
+            implicitHeight: Settings.barSize === "large" ? 56 : 46
 
             WlrLayershell.namespace: "yahr-bar"
             WlrLayershell.layer: WlrLayer.Top

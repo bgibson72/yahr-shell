@@ -18,6 +18,21 @@ end
 
 _G.HYPR_THEME = theme
 
+-- Yahr settings.json — read once here, shared via _G so every module
+-- avoids its own file I/O + regex parse.
+local settings = { rounding = 12, blur = true }
+local sf = io.open(home .. "/.config/yahr/settings.json", "r")
+if sf then
+    local sc = sf:read("*a")
+    sf:close()
+    local r = sc:match('"rounding"%s*:%s*(%d+)')
+    if r then settings.rounding = tonumber(r) end
+    if sc:match('"blur"%s*:%s*false') then
+        settings.blur = false
+    end
+end
+_G.YAHR_SETTINGS = settings
+
 require("variables")
 require("monitors")
 require("autostart")

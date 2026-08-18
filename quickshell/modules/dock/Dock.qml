@@ -1,6 +1,7 @@
 import QtQuick
 import QtQuick.Layouts
 import Quickshell
+import "../.."
 
 Rectangle {
     id: dock
@@ -16,7 +17,7 @@ Rectangle {
     signal settingsRequested()
 
     readonly property int iconSize: Settings.dockIconSize
-    implicitHeight: iconSize + 16
+    implicitHeight: iconSize + 20
     implicitWidth: row.implicitWidth + 20
 
     Row {
@@ -28,9 +29,15 @@ Rectangle {
             model: Settings.dockPinnedApps
 
             Item {
+                id: dockIcon
                 required property var modelData
                 width: dock.iconSize
                 height: dock.iconSize
+
+                scale: mouseArea.pressed ? ThemeManager.iconPressScale : (mouseArea.containsMouse ? ThemeManager.iconHoverScale : 1.0)
+                Behavior on scale {
+                    SpringAnimation { spring: ThemeManager.bounceSpring; damping: ThemeManager.bounceDamping; mass: ThemeManager.bounceMass }
+                }
 
                 Image {
                     anchors.fill: parent
@@ -41,6 +48,7 @@ Rectangle {
                 }
 
                 MouseArea {
+                    id: mouseArea
                     anchors.fill: parent
                     hoverEnabled: true
                     acceptedButtons: Qt.LeftButton | Qt.RightButton
@@ -73,14 +81,23 @@ Rectangle {
         }
 
         Text {
+            id: settingsGlyph
             text: "󰒓"
             font.family: "Symbols Nerd Font"
-            font.pixelSize: 22
+            font.pixelSize: 26
             color: ThemeManager.fgSecondary
             anchors.verticalCenter: parent.verticalCenter
+
+            scale: settingsMouse.pressed ? ThemeManager.iconPressScale : (settingsMouse.containsMouse ? ThemeManager.iconHoverScale : 1.0)
+            Behavior on scale {
+                SpringAnimation { spring: ThemeManager.bounceSpring; damping: ThemeManager.bounceDamping; mass: ThemeManager.bounceMass }
+            }
+
             MouseArea {
+                id: settingsMouse
                 anchors.fill: parent
                 anchors.margins: -8
+                hoverEnabled: true
                 cursorShape: Qt.PointingHandCursor
                 onClicked: dock.settingsRequested()
             }

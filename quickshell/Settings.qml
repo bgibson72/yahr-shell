@@ -3,7 +3,7 @@ import QtQuick
 import Quickshell
 import Quickshell.Io
 
-QtObject {
+Item {
     id: root
 
     property string uiFont: "Inter"
@@ -37,7 +37,7 @@ QtObject {
     property string dockBackgroundStyle: "translucent"
     property real dockOpacity: 0.70
     property bool dockShowBorder: false
-    property int dockIconSize: 48
+    property int dockIconSize: 58
     property bool dockSpanFullWidth: false
     property var dockPinnedApps: []
 

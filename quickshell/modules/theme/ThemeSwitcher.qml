@@ -3,6 +3,7 @@ import QtQuick.Controls
 import Quickshell
 import Quickshell.Io
 import "../../components"
+import "../.."
 
 Panel {
     id: root
@@ -69,6 +70,7 @@ Panel {
             spacing: 6
 
             delegate: Rectangle {
+                id: themeRow
                 required property var modelData
                 required property int index
                 width: ListView.view.width
@@ -80,22 +82,28 @@ Panel {
                     return "transparent"
                 }
 
+                scale: themeRowMouse.pressed ? ThemeManager.bouncePressScale : 1.0
+                Behavior on scale {
+                    SpringAnimation { spring: ThemeManager.bounceSpring; damping: ThemeManager.bounceDamping; mass: ThemeManager.bounceMass }
+                }
+
                 Text {
                     anchors.centerIn: parent
-                    text: modelData.name
+                    text: themeRow.modelData.name
                     font.family: ThemeManager.uiFont
                     font.pixelSize: 13
                     color: index === root.hoverIndex ? ThemeManager.bgBase : ThemeManager.fgPrimary
                 }
 
                 MouseArea {
+                    id: themeRowMouse
                     anchors.fill: parent
                     hoverEnabled: true
                     cursorShape: Qt.PointingHandCursor
                     onEntered: root.hoverIndex = index
                     onExited: root.hoverIndex = -1
                     onClicked: {
-                        applyProc.themeId = modelData.id
+                        applyProc.themeId = themeRow.modelData.id
                         applyProc.running = true
                         root.requestClose()
                     }

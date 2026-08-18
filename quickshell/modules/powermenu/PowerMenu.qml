@@ -1,6 +1,7 @@
 import QtQuick
 import Quickshell
 import "../../components"
+import "../.."
 
 Panel {
     id: root
@@ -16,7 +17,7 @@ Panel {
         root.requestClose()
         Qt.callLater(() => {
             if (action === "lock") Quickshell.execDetached(["hyprlock"])
-            else if (action === "logout") Quickshell.execDetached(["hyprctl", "dispatch", "exit"])
+            else if (action === "logout") Quickshell.execDetached(["hyprctl", "dispatch", "hl.dsp.exit()"])
             else if (action === "suspend") Quickshell.execDetached(["systemctl", "suspend"])
             else if (action === "reboot") Quickshell.execDetached(["systemctl", "reboot"])
             else if (action === "shutdown") Quickshell.execDetached(["systemctl", "poweroff"])
@@ -36,32 +37,30 @@ Panel {
                 { icon: "󰐥", action: "shutdown", danger: true }
             ]
 
-            Rectangle {
+            Item {
+                id: btn
                 required property var modelData
-                width: 72
-                height: 72
-                radius: 12
-                color: mouse.containsMouse
-                    ? Qt.rgba((modelData.danger ? ThemeManager.accentRed.r : ThemeManager.accentBlue.r),
-                              (modelData.danger ? ThemeManager.accentRed.g : ThemeManager.accentBlue.g),
-                              (modelData.danger ? ThemeManager.accentRed.b : ThemeManager.accentBlue.b), 0.25)
-                    : "transparent"
-                border.width: mouse.containsMouse ? 1 : 0
-                border.color: Qt.rgba(ThemeManager.accentBlue.r, ThemeManager.accentBlue.g, ThemeManager.accentBlue.b, 0.5)
+                width: 80
+                height: 80
+
+                scale: mouse.pressed ? ThemeManager.iconPressScale : (mouse.containsMouse ? ThemeManager.iconHoverScale : 1.0)
+                Behavior on scale {
+                    SpringAnimation { spring: ThemeManager.bounceSpring; damping: ThemeManager.bounceDamping; mass: ThemeManager.bounceMass }
+                }
 
                 Text {
                     anchors.centerIn: parent
-                    text: modelData.icon
+                    text: btn.modelData.icon
                     font.family: "Symbols Nerd Font"
-                    font.pixelSize: 30
-                    color: ThemeManager.fgPrimary
+                    font.pixelSize: 34
+                    color: btn.modelData.danger ? ThemeManager.accentRed : ThemeManager.fgPrimary
                 }
                 MouseArea {
                     id: mouse
                     anchors.fill: parent
                     hoverEnabled: true
                     cursorShape: Qt.PointingHandCursor
-                    onClicked: root.go(modelData.action)
+                    onClicked: root.go(btn.modelData.action)
                 }
             }
         }

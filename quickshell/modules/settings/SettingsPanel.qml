@@ -4,6 +4,7 @@ import QtQuick.Layouts
 import Quickshell
 import Quickshell.Io
 import "../../components"
+import "../.."
 
 Panel {
     id: root
@@ -89,10 +90,6 @@ Panel {
         onExited: themeList.running = true
     }
 
-    function hexField(label, prop) {
-        return label
-    }
-
     ColumnLayout {
         anchors.fill: parent
         anchors.margins: 16
@@ -109,10 +106,22 @@ Panel {
                 Layout.fillWidth: true
             }
             Text {
+                id: closeGlyph
                 text: "✕"
                 color: ThemeManager.fgSecondary
                 font.pixelSize: 16
-                MouseArea { anchors.fill: parent; anchors.margins: -6; onClicked: root.requestClose() }
+                scale: closeMouse.pressed ? ThemeManager.iconPressScale : (closeMouse.containsMouse ? ThemeManager.iconHoverScale : 1.0)
+                Behavior on scale {
+                    SpringAnimation { spring: ThemeManager.bounceSpring; damping: ThemeManager.bounceDamping; mass: ThemeManager.bounceMass }
+                }
+                MouseArea {
+                    id: closeMouse
+                    anchors.fill: parent
+                    anchors.margins: -6
+                    hoverEnabled: true
+                    cursorShape: Qt.PointingHandCursor
+                    onClicked: root.requestClose()
+                }
             }
         }
 
@@ -129,23 +138,32 @@ Panel {
                     { id: "about", label: "About" }
                 ]
                 Rectangle {
+                    id: tabBtn
                     required property var modelData
                     width: tabLabel.implicitWidth + 16
                     height: 28
                     radius: 6
                     color: root.tab === modelData.id ? ThemeManager.accentBlue : ThemeManager.surface1
+
+                    scale: tabMouse.pressed ? ThemeManager.bouncePressScale : (tabMouse.containsMouse ? ThemeManager.bounceHoverScale : 1.0)
+                    Behavior on scale {
+                        SpringAnimation { spring: ThemeManager.bounceSpring; damping: ThemeManager.bounceDamping; mass: ThemeManager.bounceMass }
+                    }
+
                     Text {
                         id: tabLabel
                         anchors.centerIn: parent
-                        text: modelData.label
-                        color: root.tab === modelData.id ? ThemeManager.bgBase : ThemeManager.fgPrimary
+                        text: tabBtn.modelData.label
+                        color: root.tab === tabBtn.modelData.id ? ThemeManager.bgBase : ThemeManager.fgPrimary
                         font.family: ThemeManager.uiFont
                         font.pixelSize: 12
                     }
                     MouseArea {
+                        id: tabMouse
                         anchors.fill: parent
+                        hoverEnabled: true
                         cursorShape: Qt.PointingHandCursor
-                        onClicked: root.tab = modelData.id
+                        onClicked: root.tab = tabBtn.modelData.id
                     }
                 }
             }
@@ -211,6 +229,7 @@ Panel {
                     Repeater {
                         model: root.themes
                         Rectangle {
+                            id: themeCard
                             required property var modelData
                             width: 170
                             height: 56
@@ -218,18 +237,24 @@ Panel {
                             color: modelData.active ? Qt.rgba(ThemeManager.accentBlue.r, ThemeManager.accentBlue.g, ThemeManager.accentBlue.b, 0.3) : ThemeManager.surface0
                             border.width: 1
                             border.color: modelData.active ? ThemeManager.accentBlue : ThemeManager.border0
+
+                            scale: themeCardMouse.pressed ? ThemeManager.bouncePressScale : (themeCardMouse.containsMouse ? ThemeManager.bounceHoverScale : 1.0)
+                            Behavior on scale {
+                                SpringAnimation { spring: ThemeManager.bounceSpring; damping: ThemeManager.bounceDamping; mass: ThemeManager.bounceMass }
+                            }
+
                             Column {
                                 anchors.centerIn: parent
                                 spacing: 2
                                 Text {
-                                    text: modelData.name
+                                    text: themeCard.modelData.name
                                     color: ThemeManager.fgPrimary
                                     font.family: ThemeManager.uiFont
                                     font.pixelSize: 13
                                     anchors.horizontalCenter: parent.horizontalCenter
                                 }
                                 Text {
-                                    visible: modelData.custom
+                                    visible: themeCard.modelData.custom
                                     text: "custom"
                                     color: ThemeManager.fgTertiary
                                     font.pixelSize: 10
@@ -237,15 +262,17 @@ Panel {
                                 }
                             }
                             MouseArea {
+                                id: themeCardMouse
                                 anchors.fill: parent
+                                hoverEnabled: true
                                 acceptedButtons: Qt.LeftButton | Qt.RightButton
                                 onClicked: mouse => {
-                                    if (mouse.button === Qt.RightButton && modelData.custom) {
-                                        deleteTheme.themeId = modelData.id
+                                    if (mouse.button === Qt.RightButton && themeCard.modelData.custom) {
+                                        deleteTheme.themeId = themeCard.modelData.id
                                         deleteTheme.running = true
                                         return
                                     }
-                                    applyTheme.themeId = modelData.id
+                                    applyTheme.themeId = themeCard.modelData.id
                                     applyTheme.running = true
                                 }
                             }
@@ -289,8 +316,12 @@ Panel {
                         height: 32
                         radius: 6
                         color: ThemeManager.accentBlue
+                        scale: saveMouse.pressed ? ThemeManager.bouncePressScale : (saveMouse.containsMouse ? ThemeManager.bounceHoverScale : 1.0)
+                        Behavior on scale {
+                            SpringAnimation { spring: ThemeManager.bounceSpring; damping: ThemeManager.bounceDamping; mass: ThemeManager.bounceMass }
+                        }
                         Text { anchors.centerIn: parent; text: "Save & Apply"; color: ThemeManager.bgBase; font.pixelSize: 12 }
-                        MouseArea { anchors.fill: parent; onClicked: saveTheme.running = true }
+                        MouseArea { id: saveMouse; anchors.fill: parent; hoverEnabled: true; cursorShape: Qt.PointingHandCursor; onClicked: saveTheme.running = true }
                     }
                 }
             }
@@ -310,9 +341,16 @@ Panel {
                 height: 32
                 radius: 6
                 color: ThemeManager.accentBlue
+                scale: browseMouse.pressed ? ThemeManager.bouncePressScale : (browseMouse.containsMouse ? ThemeManager.bounceHoverScale : 1.0)
+                Behavior on scale {
+                    SpringAnimation { spring: ThemeManager.bounceSpring; damping: ThemeManager.bounceDamping; mass: ThemeManager.bounceMass }
+                }
                 Text { anchors.centerIn: parent; text: "Browse wallpapers"; color: ThemeManager.bgBase }
                 MouseArea {
+                    id: browseMouse
                     anchors.fill: parent
+                    hoverEnabled: true
+                    cursorShape: Qt.PointingHandCursor
                     onClicked: {
                         root.requestClose()
                         Quickshell.execDetached(["qs", "ipc", "call", "yahr", "toggleWallpaper"])
@@ -335,22 +373,30 @@ Panel {
                 Repeater {
                     model: [0, 4, 8, 12, 16, 20]
                     Rectangle {
+                        id: roundBtn
                         required property int modelData
                         width: 40
                         height: 28
                         radius: 6
                         color: Settings.hyprRounding === modelData ? ThemeManager.accentBlue : ThemeManager.surface1
+                        scale: roundMouse.pressed ? ThemeManager.bouncePressScale : (roundMouse.containsMouse ? ThemeManager.bounceHoverScale : 1.0)
+                        Behavior on scale {
+                            SpringAnimation { spring: ThemeManager.bounceSpring; damping: ThemeManager.bounceDamping; mass: ThemeManager.bounceMass }
+                        }
                         Text {
                             anchors.centerIn: parent
-                            text: modelData
-                            color: Settings.hyprRounding === modelData ? ThemeManager.bgBase : ThemeManager.fgPrimary
+                            text: roundBtn.modelData
+                            color: Settings.hyprRounding === roundBtn.modelData ? ThemeManager.bgBase : ThemeManager.fgPrimary
                         }
                         MouseArea {
+                            id: roundMouse
                             anchors.fill: parent
+                            hoverEnabled: true
+                            cursorShape: Qt.PointingHandCursor
                             onClicked: {
-                                Settings.hyprRounding = modelData
+                                Settings.hyprRounding = roundBtn.modelData
                                 Settings.save()
-                                Quickshell.execDetached(["hyprctl", "keyword", "decoration:rounding", `${modelData}`])
+                                Quickshell.execDetached(["hyprctl", "keyword", "decoration:rounding", `${roundBtn.modelData}`])
                             }
                         }
                     }
@@ -392,11 +438,18 @@ Panel {
             anchors.verticalCenter: parent.verticalCenter
         }
         Rectangle {
+            id: toggleTrack
             width: 42
             height: 22
             radius: 11
             color: checked ? ThemeManager.accentBlue : ThemeManager.surface2
             anchors.verticalCenter: parent.verticalCenter
+
+            scale: toggleMouse.pressed ? ThemeManager.bouncePressScale : (toggleMouse.containsMouse ? ThemeManager.bounceHoverScale : 1.0)
+            Behavior on scale {
+                SpringAnimation { spring: ThemeManager.bounceSpring; damping: ThemeManager.bounceDamping; mass: ThemeManager.bounceMass }
+            }
+
             Rectangle {
                 width: 18
                 height: 18
@@ -407,10 +460,13 @@ Panel {
                 Behavior on x { NumberAnimation { duration: 120 } }
             }
             MouseArea {
+                id: toggleMouse
                 anchors.fill: parent
+                hoverEnabled: true
+                cursorShape: Qt.PointingHandCursor
                 onClicked: {
-                    parent.parent.checked = !parent.parent.checked
-                    parent.parent.toggled()
+                    toggleTrack.parent.checked = !toggleTrack.parent.checked
+                    toggleTrack.parent.toggled()
                 }
             }
         }

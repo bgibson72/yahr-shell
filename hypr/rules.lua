@@ -1,14 +1,6 @@
 -- Window and layer rules
 
-local blur_enabled = true
-local sf = io.open(os.getenv("HOME") .. "/.config/yahr/settings.json", "r")
-if sf then
-    local sc = sf:read("*a")
-    sf:close()
-    if sc:match('"blur"%s*:%s*false') then
-        blur_enabled = false
-    end
-end
+local blur_enabled = YAHR_SETTINGS.blur
 
 hl.layer_rule({ match = { namespace = "^quickshell" }, blur = blur_enabled })
 hl.layer_rule({ match = { namespace = "^mako" }, blur = blur_enabled })

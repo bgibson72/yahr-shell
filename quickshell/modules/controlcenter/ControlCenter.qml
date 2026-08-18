@@ -2,6 +2,7 @@ import QtQuick
 import Quickshell
 import Quickshell.Io
 import "../../components"
+import "../.."
 
 Panel {
     id: root
@@ -118,24 +119,34 @@ Panel {
                     { label: "BT", cmd: ["blueman-manager"] }
                 ]
                 Rectangle {
+                    id: ccBtn
                     required property var modelData
                     width: 88
                     height: 36
                     radius: 8
-                    color: ThemeManager.surface1
+                    color: ccMouse.containsMouse ? ThemeManager.surface2 : ThemeManager.surface1
+
+                    scale: ccMouse.pressed ? ThemeManager.bouncePressScale : (ccMouse.containsMouse ? ThemeManager.bounceHoverScale : 1.0)
+                    Behavior on scale {
+                        SpringAnimation { spring: ThemeManager.bounceSpring; damping: ThemeManager.bounceDamping; mass: ThemeManager.bounceMass }
+                    }
+                    Behavior on color { ColorAnimation { duration: 150 } }
+
                     Text {
                         anchors.centerIn: parent
-                        text: modelData.label
+                        text: ccBtn.modelData.label
                         color: ThemeManager.fgPrimary
                         font.family: ThemeManager.uiFont
                         font.pixelSize: 12
                     }
                     MouseArea {
+                        id: ccMouse
                         anchors.fill: parent
+                        hoverEnabled: true
                         cursorShape: Qt.PointingHandCursor
                         onClicked: {
-                            Quickshell.execDetached(modelData.cmd)
-                            if (modelData.label === "Mute")
+                            Quickshell.execDetached(ccBtn.modelData.cmd)
+                            if (ccBtn.modelData.label === "Mute")
                                 volProc.running = true
                         }
                     }

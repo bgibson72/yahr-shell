@@ -1,16 +1,7 @@
 -- Look and feel. Colors come from HYPR_THEME (hypr/theme.lua).
 
 local theme = HYPR_THEME
-local rounding = 12
-
-local settingsPath = os.getenv("HOME") .. "/.config/yahr/settings.json"
-local sf = io.open(settingsPath, "r")
-if sf then
-    local sc = sf:read("*a")
-    sf:close()
-    local r = sc:match('"rounding"%s*:%s*(%d+)')
-    if r then rounding = tonumber(r) end
-end
+local rounding = YAHR_SETTINGS.rounding
 
 hl.config({
     general = {

@@ -3,6 +3,7 @@ import QtQuick.Controls
 import Quickshell
 import Quickshell.Io
 import "../../components"
+import "../.."
 
 Panel {
     id: root
@@ -117,9 +118,18 @@ Panel {
                 font.pixelSize: 20
                 color: ThemeManager.fgSecondary
                 anchors.verticalCenter: parent.verticalCenter
+
+                scale: launcherSettingsMouse.pressed ? ThemeManager.iconPressScale : (launcherSettingsMouse.containsMouse ? ThemeManager.iconHoverScale : 1.0)
+                Behavior on scale {
+                    SpringAnimation { spring: ThemeManager.bounceSpring; damping: ThemeManager.bounceDamping; mass: ThemeManager.bounceMass }
+                }
+
                 MouseArea {
+                    id: launcherSettingsMouse
                     anchors.fill: parent
                     anchors.margins: -6
+                    hoverEnabled: true
+                    cursorShape: Qt.PointingHandCursor
                     onClicked: root.openSettings()
                 }
             }
@@ -135,6 +145,7 @@ Panel {
             spacing: 4
 
             delegate: Rectangle {
+                id: appRow
                 required property int index
                 required property string appName
                 required property string appDescription
@@ -143,6 +154,11 @@ Panel {
                 height: 52
                 radius: 8
                 color: index === root.selectedIndex ? Qt.rgba(ThemeManager.accentBlue.r, ThemeManager.accentBlue.g, ThemeManager.accentBlue.b, 0.25) : "transparent"
+
+                scale: rowMouse.pressed ? ThemeManager.bouncePressScale : 1.0
+                Behavior on scale {
+                    SpringAnimation { spring: ThemeManager.bounceSpring; damping: ThemeManager.bounceDamping; mass: ThemeManager.bounceMass }
+                }
 
                 Row {
                     anchors.fill: parent
@@ -175,8 +191,10 @@ Panel {
                 }
 
                 MouseArea {
+                    id: rowMouse
                     anchors.fill: parent
                     hoverEnabled: true
+                    cursorShape: Qt.PointingHandCursor
                     onEntered: root.selectedIndex = index
                     onClicked: root.launch(index)
                 }

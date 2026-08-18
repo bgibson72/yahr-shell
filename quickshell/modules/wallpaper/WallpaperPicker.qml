@@ -3,6 +3,7 @@ import QtQuick.Controls
 import Quickshell
 import Quickshell.Io
 import "../../components"
+import "../.."
 
 Panel {
     id: root
@@ -53,23 +54,32 @@ Panel {
                     { label: "All", value: false }
                 ]
                 Rectangle {
+                    id: filterBtn
                     required property var modelData
                     width: 72
                     height: 28
                     radius: 6
                     color: root.themeOnly === modelData.value ? ThemeManager.accentBlue : ThemeManager.surface1
+
+                    scale: filterMouse.pressed ? ThemeManager.bouncePressScale : (filterMouse.containsMouse ? ThemeManager.bounceHoverScale : 1.0)
+                    Behavior on scale {
+                        SpringAnimation { spring: ThemeManager.bounceSpring; damping: ThemeManager.bounceDamping; mass: ThemeManager.bounceMass }
+                    }
+
                     Text {
                         anchors.centerIn: parent
-                        text: modelData.label
-                        color: root.themeOnly === modelData.value ? ThemeManager.bgBase : ThemeManager.fgPrimary
+                        text: filterBtn.modelData.label
+                        color: root.themeOnly === filterBtn.modelData.value ? ThemeManager.bgBase : ThemeManager.fgPrimary
                         font.family: ThemeManager.uiFont
                         font.pixelSize: 12
                     }
                     MouseArea {
+                        id: filterMouse
                         anchors.fill: parent
+                        hoverEnabled: true
                         cursorShape: Qt.PointingHandCursor
                         onClicked: {
-                            root.themeOnly = modelData.value
+                            root.themeOnly = filterBtn.modelData.value
                             scan.running = true
                         }
                     }
@@ -87,24 +97,32 @@ Panel {
             model: root.images
 
             delegate: Item {
+                id: wallpaperThumb
                 required property var modelData
                 width: grid.cellWidth
                 height: grid.cellHeight
 
+                scale: thumbMouse.pressed ? ThemeManager.bouncePressScale : (thumbMouse.containsMouse ? 1.05 : 1.0)
+                Behavior on scale {
+                    SpringAnimation { spring: ThemeManager.bounceSpring; damping: ThemeManager.bounceDamping; mass: ThemeManager.bounceMass }
+                }
+
                 Image {
                     anchors.fill: parent
                     anchors.margins: 6
-                    source: "file://" + modelData
+                    source: "file://" + wallpaperThumb.modelData
                     fillMode: Image.PreserveAspectCrop
                     asynchronous: true
                 }
 
                 MouseArea {
+                    id: thumbMouse
                     anchors.fill: parent
+                    hoverEnabled: true
                     cursorShape: Qt.PointingHandCursor
                     onClicked: {
-                        Quickshell.execDetached(["swww", "img", modelData, "--transition-type", "fade"])
-                        Quickshell.execDetached(["sh", "-c", `echo '${modelData}' > "$HOME/.config/yahr/last-wallpaper"`])
+                        Quickshell.execDetached(["swww", "img", wallpaperThumb.modelData, "--transition-type", "fade"])
+                        Quickshell.execDetached(["sh", "-c", `echo '${wallpaperThumb.modelData}' > "$HOME/.config/yahr/last-wallpaper"`])
                         root.requestClose()
                     }
                 }

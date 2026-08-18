@@ -2,6 +2,7 @@ import QtQuick
 import Quickshell
 import Quickshell.Io
 import "../../components"
+import "../.."
 
 Panel {
     id: root
@@ -44,15 +45,22 @@ Panel {
             model: root.items
             spacing: 4
             delegate: Rectangle {
+                id: clipRow
                 required property var modelData
                 width: ListView.view.width
                 height: 40
                 radius: 6
                 color: mouse.containsMouse ? ThemeManager.surface1 : "transparent"
+
+                scale: mouse.pressed ? ThemeManager.bouncePressScale : 1.0
+                Behavior on scale {
+                    SpringAnimation { spring: ThemeManager.bounceSpring; damping: ThemeManager.bounceDamping; mass: ThemeManager.bounceMass }
+                }
+
                 Text {
                     anchors.fill: parent
                     anchors.margins: 8
-                    text: modelData
+                    text: clipRow.modelData
                     elide: Text.ElideRight
                     color: ThemeManager.fgPrimary
                     font.family: ThemeManager.uiFont
@@ -65,7 +73,7 @@ Panel {
                     hoverEnabled: true
                     cursorShape: Qt.PointingHandCursor
                     onClicked: {
-                        Quickshell.execDetached(["sh", "-c", `cliphist decode ${JSON.stringify(modelData.split("\t")[0])} | wl-copy`])
+                        Quickshell.execDetached(["sh", "-c", `cliphist decode ${JSON.stringify(clipRow.modelData.split("\t")[0])} | wl-copy`])
                         root.requestClose()
                     }
                 }
