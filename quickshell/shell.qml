@@ -346,7 +346,11 @@ ShellRoot {
         }
 
         InfoPanel {
-            anchors.centerIn: parent
+            anchors.top: parent.top
+            anchors.horizontalCenter: parent.horizontalCenter
+            anchors.topMargin: (Settings.barFloating ? 6 : 0) + ThemeManager.barPillOffset + ThemeManager.barHeight + 8
+            slideOffsetY: -110
+            entranceScale: 0.8
             isVisible: root.infoPanelVisible
             onRequestClose: root.infoPanelVisible = false
         }

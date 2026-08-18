@@ -75,10 +75,12 @@ Item {
 
     // Anchored to the pill's own center and the screen's horizontal
     // center, so it stays fixed relative to the display regardless of
-    // how many icons end up on either side.
+    // how many icons end up on either side. Doubles as the opener for the
+    // Calendar/Weather/System info panel, so there's no separate icon for it.
     Clock {
         anchors.horizontalCenter: parent.horizontalCenter
         anchors.verticalCenter: barBg.verticalCenter
+        onClicked: bar.toggleInfoPanel()
     }
 
     RowLayout {
@@ -99,15 +101,11 @@ Item {
             glyph: "󰸉"
             onClicked: bar.toggleWallpaper()
         }
-        IconButton {
-            glyph: "󰅍"
-            onClicked: bar.toggleClipboard()
-        }
-        IconButton {
-            glyph: "󰃭"
-            onClicked: bar.toggleInfoPanel()
-        }
-        SystemTray {}
+            IconButton {
+                glyph: "󰅍"
+                onClicked: bar.toggleClipboard()
+            }
+            SystemTray {}
         UpdateChecker {}
         Audio {}
         Network {}

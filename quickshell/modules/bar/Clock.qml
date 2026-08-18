@@ -6,12 +6,27 @@ Item {
     implicitWidth: clockText.implicitWidth + 16
     implicitHeight: parent ? parent.height : 28
 
+    signal clicked()
+
     Text {
         id: clockText
         anchors.centerIn: parent
         font.family: ThemeManager.uiFont
         font.pixelSize: ThemeManager.fontSizeNormal
         color: ThemeManager.fgPrimary
+
+        scale: clockMouse.pressed ? ThemeManager.bouncePressScale : (clockMouse.containsMouse ? ThemeManager.bounceHoverScale : 1.0)
+        Behavior on scale {
+            SpringAnimation { spring: ThemeManager.bounceSpring; damping: ThemeManager.bounceDamping; mass: ThemeManager.bounceMass }
+        }
+    }
+
+    MouseArea {
+        id: clockMouse
+        anchors.fill: parent
+        hoverEnabled: true
+        cursorShape: Qt.PointingHandCursor
+        onClicked: clockArea.clicked()
     }
 
     Timer {
