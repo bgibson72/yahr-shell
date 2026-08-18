@@ -62,7 +62,12 @@ Item {
     // much screen space Hyprland reserves for the bar.
     readonly property int barHeight: Settings.barSize === "large" ? 56 : 46
     readonly property int archIconSize: Math.round(barHeight * 2.2)
-    readonly property int barWindowHeight: archIconSize + 30
+    // The Arch icon sits flush against the very top of its window (so its
+    // tip touches the true top of the screen); the pill is pushed down from
+    // that same top edge so the icon still pokes out above/below it by an
+    // even amount. Only a little slack is left at the bottom for hover growth.
+    readonly property real barPillOffset: (archIconSize - barHeight) / 2
+    readonly property int barWindowHeight: archIconSize + 18
     readonly property real archIconHoverScale: 1.1
     readonly property real archIconPressScale: 0.94
     readonly property bool showWidgetBorders: Settings.showWidgetBorders

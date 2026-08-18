@@ -156,7 +156,7 @@ ShellRoot {
         AppLauncher {
             anchors.top: parent.top
             anchors.left: parent.left
-            anchors.topMargin: (Settings.barFloating ? 6 : 0) + (ThemeManager.barWindowHeight + ThemeManager.barHeight) / 2 + 8
+            anchors.topMargin: (Settings.barFloating ? 6 : 0) + ThemeManager.barPillOffset + ThemeManager.barHeight + 8
             anchors.leftMargin: Settings.barFloating ? 14 : 10
             isVisible: root.launcherVisible
             onRequestClose: root.launcherVisible = false
