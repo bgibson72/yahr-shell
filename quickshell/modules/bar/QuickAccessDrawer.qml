@@ -58,8 +58,11 @@ Item {
             Layout.preferredHeight: 40
             clip: true
 
+            // Springy overshoot on the reveal width gives the slide its own
+            // little bounce, on top of each icon plopping in individually
+            // below.
             Behavior on Layout.preferredWidth {
-                NumberAnimation { duration: 220; easing.type: Easing.OutCubic }
+                NumberAnimation { duration: 300; easing.type: Easing.OutBack; easing.overshoot: 1.2 }
             }
 
             RowLayout {
@@ -68,17 +71,65 @@ Item {
                 anchors.verticalCenter: parent.verticalCenter
                 spacing: 0
 
-                IconButton {
-                    glyph: "\uf489"
-                    onClicked: Quickshell.execDetached(["kitty"])
+                Item {
+                    width: 46
+                    height: 40
+                    scale: drawer.expanded ? 1.0 : 0.4
+                    opacity: drawer.expanded ? 1.0 : 0.0
+                    Behavior on scale {
+                        SequentialAnimation {
+                            PauseAnimation { duration: drawer.expanded ? 0 : 0 }
+                            SpringAnimation { spring: ThemeManager.bounceSpring; damping: ThemeManager.bounceDamping; mass: ThemeManager.bounceMass }
+                        }
+                    }
+                    Behavior on opacity {
+                        NumberAnimation { duration: 140 }
+                    }
+                    IconButton {
+                        anchors.fill: parent
+                        glyph: "\uf489"
+                        onClicked: Quickshell.execDetached(["kitty"])
+                    }
                 }
-                IconButton {
-                    glyph: "\uf269"
-                    onClicked: Quickshell.execDetached(["firefox"])
+                Item {
+                    width: 46
+                    height: 40
+                    scale: drawer.expanded ? 1.0 : 0.4
+                    opacity: drawer.expanded ? 1.0 : 0.0
+                    Behavior on scale {
+                        SequentialAnimation {
+                            PauseAnimation { duration: drawer.expanded ? 40 : 0 }
+                            SpringAnimation { spring: ThemeManager.bounceSpring; damping: ThemeManager.bounceDamping; mass: ThemeManager.bounceMass }
+                        }
+                    }
+                    Behavior on opacity {
+                        NumberAnimation { duration: 140 }
+                    }
+                    IconButton {
+                        anchors.fill: parent
+                        glyph: "\uf269"
+                        onClicked: Quickshell.execDetached(["firefox"])
+                    }
                 }
-                IconButton {
-                    glyph: "\uf030"
-                    onClicked: drawer.toggleScreenshot()
+                Item {
+                    width: 46
+                    height: 40
+                    scale: drawer.expanded ? 1.0 : 0.4
+                    opacity: drawer.expanded ? 1.0 : 0.0
+                    Behavior on scale {
+                        SequentialAnimation {
+                            PauseAnimation { duration: drawer.expanded ? 80 : 0 }
+                            SpringAnimation { spring: ThemeManager.bounceSpring; damping: ThemeManager.bounceDamping; mass: ThemeManager.bounceMass }
+                        }
+                    }
+                    Behavior on opacity {
+                        NumberAnimation { duration: 140 }
+                    }
+                    IconButton {
+                        anchors.fill: parent
+                        glyph: "\uf030"
+                        onClicked: drawer.toggleScreenshot()
+                    }
                 }
             }
         }
