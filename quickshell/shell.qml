@@ -13,6 +13,7 @@ import "modules/settings"
 import "modules/theme"
 import "modules/wallpaper"
 import "modules/clipboard"
+import "modules/screenshot"
 
 ShellRoot {
     id: root
@@ -27,6 +28,7 @@ ShellRoot {
     property bool themeLoadingVisible: false
     property string themeLoadingName: ""
     property bool dockAppPickerVisible: false
+    property bool screenshotVisible: false
 
     function hideOverlays() {
         launcherVisible = false
@@ -37,6 +39,7 @@ ShellRoot {
         controlCenterVisible = false
         clipboardVisible = false
         dockAppPickerVisible = false
+        screenshotVisible = false
     }
 
     IpcHandler {
@@ -49,6 +52,7 @@ ShellRoot {
         function toggleControlCenter() { root.controlCenterVisible = !root.controlCenterVisible }
         function toggleClipboard() { root.clipboardVisible = !root.clipboardVisible }
         function toggleDockAppPicker() { root.dockAppPickerVisible = !root.dockAppPickerVisible }
+        function toggleScreenshot() { root.screenshotVisible = !root.screenshotVisible }
     }
 
     Variants {
@@ -88,6 +92,7 @@ ShellRoot {
                 onToggleWallpaper: root.wallpaperVisible = !root.wallpaperVisible
                 onToggleControlCenter: root.controlCenterVisible = !root.controlCenterVisible
                 onToggleClipboard: root.clipboardVisible = !root.clipboardVisible
+                onToggleScreenshot: root.screenshotVisible = !root.screenshotVisible
             }
         }
     }
@@ -230,6 +235,26 @@ ShellRoot {
             onRequestClose: root.settingsVisible = false
             onThemeApplyStarted: name => { root.themeLoadingName = name; root.themeLoadingVisible = true }
             onThemeApplyFinished: root.themeLoadingVisible = false
+        }
+    }
+
+    PanelWindow {
+        visible: root.screenshotVisible
+        color: "transparent"
+        exclusiveZone: 0
+        WlrLayershell.layer: WlrLayer.Overlay
+        WlrLayershell.keyboardFocus: WlrKeyboardFocus.OnDemand
+        anchors { top: true; left: true; right: true; bottom: true }
+
+        MouseArea {
+            anchors.fill: parent
+            onClicked: root.screenshotVisible = false
+        }
+
+        ScreenshotPicker {
+            anchors.centerIn: parent
+            isVisible: root.screenshotVisible
+            onRequestClose: root.screenshotVisible = false
         }
     }
 

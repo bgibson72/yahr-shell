@@ -45,6 +45,8 @@ Item {
     property int hyprRounding: 12
     property int hyprBorderSize: 3
     property string screenshotDir: "~/Pictures/Screenshots"
+    property bool screenshotSaveToDisk: true
+    property bool screenshotCopyToClipboard: true
 
     readonly property string settingsPath: `${Quickshell.env("HOME")}/.config/yahr/settings.json`
 
@@ -94,7 +96,9 @@ Item {
                 borderSize: hyprBorderSize
             },
             screenshot: {
-                saveLocation: screenshotDir
+                saveLocation: screenshotDir,
+                saveToDisk: screenshotSaveToDisk,
+                copyToClipboard: screenshotCopyToClipboard
             }
         }
     }
@@ -147,6 +151,8 @@ Item {
 
         const s = data.screenshot || {}
         if (s.saveLocation !== undefined) screenshotDir = s.saveLocation
+        if (s.saveToDisk !== undefined) screenshotSaveToDisk = s.saveToDisk
+        if (s.copyToClipboard !== undefined) screenshotCopyToClipboard = s.copyToClipboard
     }
 
     function save() {

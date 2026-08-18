@@ -11,6 +11,8 @@ Item {
     id: drawer
     visible: Settings.showQuickLaunch
 
+    signal toggleScreenshot()
+
     property bool expanded: false
     readonly property int chevronSize: 32
 
@@ -73,6 +75,10 @@ Item {
                 IconButton {
                     glyph: "\uf269"
                     onClicked: Quickshell.execDetached(["firefox"])
+                }
+                IconButton {
+                    glyph: "\uf030"
+                    onClicked: drawer.toggleScreenshot()
                 }
             }
         }

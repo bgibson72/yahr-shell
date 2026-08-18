@@ -24,6 +24,7 @@ Rectangle {
     signal toggleWallpaper()
     signal toggleControlCenter()
     signal toggleClipboard()
+    signal toggleScreenshot()
 
     Item {
         anchors.fill: parent
@@ -47,7 +48,9 @@ Rectangle {
 
             MediaPlayer {}
 
-            QuickAccessDrawer {}
+            QuickAccessDrawer {
+                onToggleScreenshot: bar.toggleScreenshot()
+            }
         }
 
         // Anchored to the bar's own center rather than the midpoint between
