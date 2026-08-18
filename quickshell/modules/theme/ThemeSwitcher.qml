@@ -91,12 +91,26 @@ Panel {
                     SpringAnimation { spring: ThemeManager.bounceSpring; damping: ThemeManager.bounceDamping; mass: ThemeManager.bounceMass }
                 }
 
-                Text {
-                    anchors.centerIn: parent
-                    text: themeRow.modelData.name
-                    font.family: ThemeManager.uiFont
-                    font.pixelSize: 13
-                    color: index === root.hoverIndex ? ThemeManager.bgBase : ThemeManager.fgPrimary
+                Row {
+                    anchors.left: parent.left
+                    anchors.leftMargin: 12
+                    anchors.verticalCenter: parent.verticalCenter
+                    spacing: 10
+
+                    ThemePreview {
+                        anchors.verticalCenter: parent.verticalCenter
+                        themeId: themeRow.modelData.id
+                        implicitWidth: 56
+                        implicitHeight: 16
+                    }
+
+                    Text {
+                        anchors.verticalCenter: parent.verticalCenter
+                        text: themeRow.modelData.name
+                        font.family: ThemeManager.uiFont
+                        font.pixelSize: 13
+                        color: index === root.hoverIndex ? ThemeManager.bgBase : ThemeManager.fgPrimary
+                    }
                 }
 
                 MouseArea {

@@ -26,6 +26,7 @@ ShellRoot {
     property bool clipboardVisible: false
     property bool themeLoadingVisible: false
     property string themeLoadingName: ""
+    property bool dockAppPickerVisible: false
 
     function hideOverlays() {
         launcherVisible = false
@@ -35,6 +36,7 @@ ShellRoot {
         wallpaperVisible = false
         controlCenterVisible = false
         clipboardVisible = false
+        dockAppPickerVisible = false
     }
 
     IpcHandler {
@@ -46,6 +48,7 @@ ShellRoot {
         function toggleWallpaper() { root.wallpaperVisible = !root.wallpaperVisible }
         function toggleControlCenter() { root.controlCenterVisible = !root.controlCenterVisible }
         function toggleClipboard() { root.clipboardVisible = !root.clipboardVisible }
+        function toggleDockAppPicker() { root.dockAppPickerVisible = !root.dockAppPickerVisible }
     }
 
     Variants {
@@ -122,6 +125,7 @@ ShellRoot {
             Dock {
                 anchors.centerIn: parent
                 onSettingsRequested: root.settingsVisible = !root.settingsVisible
+                onAppPickerRequested: root.dockAppPickerVisible = !root.dockAppPickerVisible
             }
         }
     }
@@ -226,6 +230,26 @@ ShellRoot {
             onRequestClose: root.settingsVisible = false
             onThemeApplyStarted: name => { root.themeLoadingName = name; root.themeLoadingVisible = true }
             onThemeApplyFinished: root.themeLoadingVisible = false
+        }
+    }
+
+    PanelWindow {
+        visible: root.dockAppPickerVisible
+        color: "transparent"
+        exclusiveZone: 0
+        WlrLayershell.layer: WlrLayer.Overlay
+        WlrLayershell.keyboardFocus: WlrKeyboardFocus.OnDemand
+        anchors { top: true; left: true; right: true; bottom: true }
+
+        MouseArea {
+            anchors.fill: parent
+            onClicked: root.dockAppPickerVisible = false
+        }
+
+        DockAppPicker {
+            anchors.centerIn: parent
+            isVisible: root.dockAppPickerVisible
+            onRequestClose: root.dockAppPickerVisible = false
         }
     }
 

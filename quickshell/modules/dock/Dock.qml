@@ -16,6 +16,7 @@ Rectangle {
     border.color: ThemeManager.accentBorder
 
     signal settingsRequested()
+    signal appPickerRequested()
 
     readonly property int iconSize: Settings.dockIconSize
     implicitHeight: iconSize + 20
@@ -78,7 +79,15 @@ Rectangle {
             height: dock.iconSize * 0.55
             anchors.verticalCenter: parent.verticalCenter
             color: Qt.rgba(1, 1, 1, 0.15)
-            visible: Settings.dockPinnedApps && Settings.dockPinnedApps.length > 0
+        }
+
+        DockUtilityButton {
+            iconSize: dock.iconSize * 0.7
+            anchors.verticalCenter: parent.verticalCenter
+            glyph: "󰐕"
+            tooltip: "Add App"
+            dockPosition: Settings.dockPosition
+            onClicked: dock.appPickerRequested()
         }
 
         DockUtilityButton {

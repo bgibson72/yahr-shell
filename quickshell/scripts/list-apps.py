@@ -69,6 +69,7 @@ def parse_desktop(path: Path) -> dict | None:
         "icon": icon,
         "command": command,
         "terminal": terminal,
+        "desktopId": path.stem,
     }
 
 
@@ -89,7 +90,8 @@ def main() -> None:
     rows.sort(key=lambda a: a["name"].lower())
     for app in rows:
         print(
-            f"{app['name']}|{app['description']}|{app['icon']}|{app['command']}|{str(app['terminal']).lower()}"
+            f"{app['name']}|{app['description']}|{app['icon']}|{app['command']}|"
+            f"{str(app['terminal']).lower()}|{app['desktopId']}"
         )
 
 

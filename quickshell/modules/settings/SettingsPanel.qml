@@ -251,7 +251,13 @@ Panel {
 
                             Column {
                                 anchors.centerIn: parent
-                                spacing: 2
+                                spacing: 4
+                                ThemePreview {
+                                    anchors.horizontalCenter: parent.horizontalCenter
+                                    themeId: themeCard.modelData.id
+                                    implicitWidth: 120
+                                    implicitHeight: 14
+                                }
                                 Text {
                                     text: themeCard.modelData.name
                                     color: ThemeManager.fgPrimary
