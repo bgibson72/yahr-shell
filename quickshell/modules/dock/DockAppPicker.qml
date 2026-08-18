@@ -11,7 +11,6 @@ Panel {
     id: root
     width: 380
     height: 480
-    property bool isVisible: false
     property string searchText: ""
 
     signal requestClose()

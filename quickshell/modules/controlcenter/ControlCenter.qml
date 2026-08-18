@@ -8,7 +8,8 @@ Panel {
     id: root
     width: 320
     height: 280
-    property bool isVisible: false
+    slideOffsetX: 50
+    slideOffsetY: -36
     property int volume: 50
     property bool muted: false
     property int brightness: 50

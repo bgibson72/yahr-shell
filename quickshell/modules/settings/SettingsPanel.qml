@@ -10,7 +10,6 @@ Panel {
     id: root
     width: 780
     height: 620
-    property bool isVisible: false
     property string tab: "theme"
     property var themes: []
     property string seedBg: "#1e1e2e"

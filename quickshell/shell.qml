@@ -72,7 +72,7 @@ ShellRoot {
             screen: modelData
             color: "transparent"
             exclusiveZone: Settings.barFloating ? 0 : implicitHeight
-            implicitHeight: Settings.barSize === "large" ? 56 : 46
+            implicitHeight: ThemeManager.barWindowHeight
 
             WlrLayershell.namespace: "yahr-bar"
             WlrLayershell.layer: WlrLayer.Top
@@ -154,7 +154,10 @@ ShellRoot {
         anchors { top: true; left: true; right: true; bottom: true }
 
         AppLauncher {
-            anchors.centerIn: parent
+            anchors.top: parent.top
+            anchors.left: parent.left
+            anchors.topMargin: (Settings.barFloating ? 6 : 0) + (ThemeManager.barWindowHeight + ThemeManager.barHeight) / 2 + 8
+            anchors.leftMargin: Settings.barFloating ? 14 : 10
             isVisible: root.launcherVisible
             onRequestClose: root.launcherVisible = false
             onOpenSettings: {

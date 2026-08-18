@@ -9,7 +9,6 @@ Panel {
     id: root
     width: 820
     height: 560
-    property bool isVisible: false
     property bool themeOnly: true
     property var images: []
     signal requestClose()

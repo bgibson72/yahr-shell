@@ -55,6 +55,16 @@ Item {
     readonly property int hyprShadowRange: Settings.hyprShadowRange
     readonly property int hyprShadowAlpha: Settings.hyprShadowAlpha
     readonly property bool hyprShadowUseAccent: Settings.hyprShadowUseAccent
+
+    // The bar's own visual/reserved height. Kept separate from the bar
+    // window's actual surface height (barWindowHeight) so icons like the
+    // Arch logo button can spill above/below the pill without changing how
+    // much screen space Hyprland reserves for the bar.
+    readonly property int barHeight: Settings.barSize === "large" ? 56 : 46
+    readonly property int barWindowHeight: barHeight + 46
+    readonly property int archIconSize: barHeight + 24
+    readonly property real archIconHoverScale: 1.15
+    readonly property real archIconPressScale: 0.92
     readonly property bool showWidgetBorders: Settings.showWidgetBorders
     readonly property int widgetBorderWidth: Settings.widgetBorderWidth
     readonly property real widgetOpacity: Settings.widgetOpacity

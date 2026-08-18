@@ -7,7 +7,6 @@ Panel {
     id: root
     width: 520
     height: 110
-    property bool isVisible: false
     signal requestClose()
 
     focus: true

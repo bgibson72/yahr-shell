@@ -4,18 +4,11 @@ import Quickshell
 import "../../components"
 import "../.."
 
-Rectangle {
+// Root is a plain Item (not the visual bar surface) so the bar window can be
+// taller than the pill itself, letting the Arch logo button spill above and
+// below the bar's edges. barBg below is the actual pill.
+Item {
     id: bar
-    color: {
-        if (Settings.barBackgroundStyle === "transparent")
-            return "transparent"
-        if (Settings.barBackgroundStyle === "opaque")
-            return ThemeManager.bgBase
-        return Qt.rgba(ThemeManager.bgBase.r, ThemeManager.bgBase.g, ThemeManager.bgBase.b, Settings.barOpacity)
-    }
-    radius: Settings.barFloating ? ThemeManager.hyprRounding : 0
-    border.width: Settings.barShowBorder ? 1 : 0
-    border.color: ThemeManager.accentBorder
 
     signal toggleLauncher()
     signal togglePowerMenu()
@@ -26,6 +19,24 @@ Rectangle {
     signal toggleClipboard()
     signal toggleScreenshot()
     signal toggleInfoPanel()
+
+    Rectangle {
+        id: barBg
+        anchors.left: parent.left
+        anchors.right: parent.right
+        anchors.verticalCenter: parent.verticalCenter
+        height: ThemeManager.barHeight
+        color: {
+            if (Settings.barBackgroundStyle === "transparent")
+                return "transparent"
+            if (Settings.barBackgroundStyle === "opaque")
+                return ThemeManager.bgBase
+            return Qt.rgba(ThemeManager.bgBase.r, ThemeManager.bgBase.g, ThemeManager.bgBase.b, Settings.barOpacity)
+        }
+        radius: Settings.barFloating ? ThemeManager.hyprRounding : 0
+        border.width: Settings.barShowBorder ? 1 : 0
+        border.color: ThemeManager.accentBorder
+    }
 
     Item {
         anchors.fill: parent
@@ -40,6 +51,11 @@ Rectangle {
             IconButton {
                 glyph: "󰣇"
                 glyphColor: ThemeManager.accentBlue
+                width: ThemeManager.archIconSize
+                height: ThemeManager.archIconSize
+                pixelSize: Math.round(ThemeManager.archIconSize * 0.5)
+                hoverScale: ThemeManager.archIconHoverScale
+                pressScale: ThemeManager.archIconPressScale
                 onClicked: bar.toggleLauncher()
             }
 
@@ -105,7 +121,7 @@ Rectangle {
 
     MouseArea {
         z: -1
-        anchors.fill: parent
+        anchors.fill: barBg
         acceptedButtons: Qt.RightButton
         onClicked: bar.toggleControlCenter()
     }

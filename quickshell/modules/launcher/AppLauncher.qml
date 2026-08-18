@@ -9,7 +9,9 @@ Panel {
     id: root
     width: 720
     height: 520
-    property bool isVisible: false
+    slideOffsetX: -70
+    slideOffsetY: -50
+    entranceScale: 0.82
     property int selectedIndex: 0
     property string searchText: ""
 

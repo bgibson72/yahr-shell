@@ -9,7 +9,6 @@ Panel {
     id: root
     width: 340
     height: 480
-    property bool isVisible: false
     property var themes: []
     property int hoverIndex: -1
     signal requestClose()

@@ -7,6 +7,8 @@ Rectangle {
     property string glyph: ""
     property color glyphColor: ThemeManager.fgPrimary
     property int pixelSize: ThemeManager.fontSizeIcon
+    property real hoverScale: ThemeManager.iconHoverScale
+    property real pressScale: ThemeManager.iconPressScale
     signal clicked()
 
     width: 46
@@ -14,7 +16,7 @@ Rectangle {
     radius: 10
     color: "transparent"
 
-    scale: mouse.pressed ? ThemeManager.iconPressScale : (mouse.containsMouse ? ThemeManager.iconHoverScale : 1.0)
+    scale: mouse.pressed ? root.pressScale : (mouse.containsMouse ? root.hoverScale : 1.0)
     Behavior on scale {
         SpringAnimation { spring: ThemeManager.bounceSpring; damping: ThemeManager.bounceDamping; mass: ThemeManager.bounceMass }
     }

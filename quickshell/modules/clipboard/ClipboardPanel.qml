@@ -8,7 +8,6 @@ Panel {
     id: root
     width: 480
     height: 420
-    property bool isVisible: false
     property var items: []
     signal requestClose()
 

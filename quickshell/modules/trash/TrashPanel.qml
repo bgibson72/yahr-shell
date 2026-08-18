@@ -10,7 +10,6 @@ Panel {
     id: root
     width: 480
     height: 600
-    property bool isVisible: false
     property var items: []
     property var selectedNames: []
 
