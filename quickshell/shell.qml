@@ -14,6 +14,7 @@ import "modules/theme"
 import "modules/wallpaper"
 import "modules/clipboard"
 import "modules/screenshot"
+import "modules/trash"
 
 ShellRoot {
     id: root
@@ -29,6 +30,7 @@ ShellRoot {
     property string themeLoadingName: ""
     property bool dockAppPickerVisible: false
     property bool screenshotVisible: false
+    property bool trashVisible: false
 
     function hideOverlays() {
         launcherVisible = false
@@ -40,6 +42,7 @@ ShellRoot {
         clipboardVisible = false
         dockAppPickerVisible = false
         screenshotVisible = false
+        trashVisible = false
     }
 
     IpcHandler {
@@ -53,6 +56,7 @@ ShellRoot {
         function toggleClipboard() { root.clipboardVisible = !root.clipboardVisible }
         function toggleDockAppPicker() { root.dockAppPickerVisible = !root.dockAppPickerVisible }
         function toggleScreenshot() { root.screenshotVisible = !root.screenshotVisible }
+        function toggleTrash() { root.trashVisible = !root.trashVisible }
     }
 
     Variants {
@@ -131,6 +135,7 @@ ShellRoot {
                 anchors.centerIn: parent
                 onSettingsRequested: root.settingsVisible = !root.settingsVisible
                 onAppPickerRequested: root.dockAppPickerVisible = !root.dockAppPickerVisible
+                onTrashRequested: root.trashVisible = !root.trashVisible
             }
         }
     }
@@ -235,6 +240,26 @@ ShellRoot {
             onRequestClose: root.settingsVisible = false
             onThemeApplyStarted: name => { root.themeLoadingName = name; root.themeLoadingVisible = true }
             onThemeApplyFinished: root.themeLoadingVisible = false
+        }
+    }
+
+    PanelWindow {
+        visible: root.trashVisible
+        color: "transparent"
+        exclusiveZone: 0
+        WlrLayershell.layer: WlrLayer.Overlay
+        WlrLayershell.keyboardFocus: WlrKeyboardFocus.OnDemand
+        anchors { top: true; left: true; right: true; bottom: true }
+
+        MouseArea {
+            anchors.fill: parent
+            onClicked: root.trashVisible = false
+        }
+
+        TrashPanel {
+            anchors.centerIn: parent
+            isVisible: root.trashVisible
+            onRequestClose: root.trashVisible = false
         }
     }
 

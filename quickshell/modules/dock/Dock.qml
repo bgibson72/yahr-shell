@@ -17,6 +17,7 @@ Rectangle {
 
     signal settingsRequested()
     signal appPickerRequested()
+    signal trashRequested()
 
     readonly property int iconSize: Settings.dockIconSize
     implicitHeight: iconSize + 20
@@ -88,6 +89,15 @@ Rectangle {
             tooltip: "Add App"
             dockPosition: Settings.dockPosition
             onClicked: dock.appPickerRequested()
+        }
+
+        DockUtilityButton {
+            iconSize: dock.iconSize * 0.7
+            anchors.verticalCenter: parent.verticalCenter
+            glyph: "\uf1f8"
+            tooltip: "Trash"
+            dockPosition: Settings.dockPosition
+            onClicked: dock.trashRequested()
         }
 
         DockUtilityButton {
