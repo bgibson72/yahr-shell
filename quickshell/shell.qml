@@ -24,6 +24,8 @@ ShellRoot {
     property bool wallpaperVisible: false
     property bool controlCenterVisible: false
     property bool clipboardVisible: false
+    property bool themeLoadingVisible: false
+    property string themeLoadingName: ""
 
     function hideOverlays() {
         launcherVisible = false
@@ -190,6 +192,8 @@ ShellRoot {
             anchors.centerIn: parent
             isVisible: root.themeSwitcherVisible
             onRequestClose: root.themeSwitcherVisible = false
+            onThemeApplyStarted: name => { root.themeLoadingName = name; root.themeLoadingVisible = true }
+            onThemeApplyFinished: root.themeLoadingVisible = false
         }
     }
 
@@ -220,6 +224,29 @@ ShellRoot {
             anchors.centerIn: parent
             isVisible: root.settingsVisible
             onRequestClose: root.settingsVisible = false
+            onThemeApplyStarted: name => { root.themeLoadingName = name; root.themeLoadingVisible = true }
+            onThemeApplyFinished: root.themeLoadingVisible = false
+        }
+    }
+
+    Variants {
+        model: Quickshell.screens
+
+        PanelWindow {
+            required property var modelData
+            screen: modelData
+            visible: root.themeLoadingVisible
+            color: "transparent"
+            exclusiveZone: 0
+            WlrLayershell.layer: WlrLayer.Overlay
+            WlrLayershell.keyboardFocus: WlrKeyboardFocus.Exclusive
+            anchors { top: true; left: true; right: true; bottom: true }
+
+            ThemeLoadingOverlay {
+                anchors.fill: parent
+                isVisible: root.themeLoadingVisible
+                themeName: root.themeLoadingName
+            }
         }
     }
 

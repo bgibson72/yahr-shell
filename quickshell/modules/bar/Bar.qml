@@ -44,6 +44,10 @@ Rectangle {
             WorkspaceBar {
                 minWorkspaces: Settings.minWorkspaces
             }
+
+            MediaPlayer {}
+
+            QuickAccessDrawer {}
         }
 
         // Anchored to the bar's own center rather than the midpoint between
@@ -75,6 +79,7 @@ Rectangle {
                 onClicked: bar.toggleClipboard()
             }
             SystemTray {}
+            UpdateChecker {}
             Audio {}
             Network {}
             Battery {}

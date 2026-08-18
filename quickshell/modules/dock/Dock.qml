@@ -1,6 +1,7 @@
 import QtQuick
 import QtQuick.Layouts
 import Quickshell
+import "../../components"
 import "../.."
 
 Rectangle {
@@ -80,27 +81,13 @@ Rectangle {
             visible: Settings.dockPinnedApps && Settings.dockPinnedApps.length > 0
         }
 
-        Text {
-            id: settingsGlyph
-            text: "󰒓"
-            font.family: "Symbols Nerd Font"
-            font.pixelSize: 26
-            color: ThemeManager.fgSecondary
+        DockUtilityButton {
+            iconSize: dock.iconSize * 0.7
             anchors.verticalCenter: parent.verticalCenter
-
-            scale: settingsMouse.pressed ? ThemeManager.iconPressScale : (settingsMouse.containsMouse ? ThemeManager.iconHoverScale : 1.0)
-            Behavior on scale {
-                SpringAnimation { spring: ThemeManager.bounceSpring; damping: ThemeManager.bounceDamping; mass: ThemeManager.bounceMass }
-            }
-
-            MouseArea {
-                id: settingsMouse
-                anchors.fill: parent
-                anchors.margins: -8
-                hoverEnabled: true
-                cursorShape: Qt.PointingHandCursor
-                onClicked: dock.settingsRequested()
-            }
+            glyph: "󰒓"
+            tooltip: "Settings"
+            dockPosition: Settings.dockPosition
+            onClicked: dock.settingsRequested()
         }
     }
 }

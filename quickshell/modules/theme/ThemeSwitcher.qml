@@ -13,6 +13,8 @@ Panel {
     property var themes: []
     property int hoverIndex: -1
     signal requestClose()
+    signal themeApplyStarted(string name)
+    signal themeApplyFinished()
 
     focus: true
     Keys.onEscapePressed: root.requestClose()
@@ -45,6 +47,8 @@ Panel {
         running: false
         property string themeId: ""
         command: ["yahr-theme", "apply", themeId]
+        onStarted: root.themeApplyStarted(applyProc.themeId)
+        onExited: root.themeApplyFinished()
     }
 
     Column {

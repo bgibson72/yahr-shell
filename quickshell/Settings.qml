@@ -27,6 +27,7 @@ Item {
     property bool showQuickLaunch: true
     property bool showSystemTray: true
     property bool showMediaPlayer: false
+    property bool showUpdateChecker: true
     property int minWorkspaces: 4
     property string workspaceStyle: "dots"
 
@@ -72,6 +73,7 @@ Item {
                 showQuickLaunch: showQuickLaunch,
                 showSystemTray: showSystemTray,
                 showMediaPlayer: showMediaPlayer,
+                showUpdateChecker: showUpdateChecker,
                 minWorkspaces: minWorkspaces,
                 workspaceStyle: workspaceStyle
             },
@@ -123,6 +125,7 @@ Item {
         if (b.showQuickLaunch !== undefined) showQuickLaunch = b.showQuickLaunch
         if (b.showSystemTray !== undefined) showSystemTray = b.showSystemTray
         if (b.showMediaPlayer !== undefined) showMediaPlayer = b.showMediaPlayer
+        if (b.showUpdateChecker !== undefined) showUpdateChecker = b.showUpdateChecker
         if (b.minWorkspaces !== undefined) minWorkspaces = b.minWorkspaces
         if (b.workspaceStyle !== undefined) workspaceStyle = b.workspaceStyle
 

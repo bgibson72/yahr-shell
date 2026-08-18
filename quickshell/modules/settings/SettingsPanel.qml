@@ -25,6 +25,8 @@ Panel {
     property string saveName: "Custom"
 
     signal requestClose()
+    signal themeApplyStarted(string name)
+    signal themeApplyFinished()
     focus: true
     Keys.onEscapePressed: root.requestClose()
 
@@ -61,7 +63,11 @@ Panel {
         running: false
         property string themeId: "catppuccin"
         command: ["yahr-theme", "apply", themeId]
-        onExited: themeList.running = true
+        onStarted: root.themeApplyStarted(applyTheme.themeId)
+        onExited: {
+            themeList.running = true
+            root.themeApplyFinished()
+        }
     }
 
     Process {
