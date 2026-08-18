@@ -53,7 +53,7 @@ Item {
                 glyphColor: ThemeManager.accentBlue
                 width: ThemeManager.archIconSize
                 height: ThemeManager.archIconSize
-                pixelSize: Math.round(ThemeManager.archIconSize * 0.5)
+                pixelSize: Math.round(ThemeManager.archIconSize * 0.85)
                 hoverScale: ThemeManager.archIconHoverScale
                 pressScale: ThemeManager.archIconPressScale
                 onClicked: bar.toggleLauncher()

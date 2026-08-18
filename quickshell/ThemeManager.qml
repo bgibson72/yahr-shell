@@ -61,10 +61,10 @@ Item {
     // Arch logo button can spill above/below the pill without changing how
     // much screen space Hyprland reserves for the bar.
     readonly property int barHeight: Settings.barSize === "large" ? 56 : 46
-    readonly property int barWindowHeight: barHeight + 46
-    readonly property int archIconSize: barHeight + 24
-    readonly property real archIconHoverScale: 1.15
-    readonly property real archIconPressScale: 0.92
+    readonly property int archIconSize: Math.round(barHeight * 2.2)
+    readonly property int barWindowHeight: archIconSize + 30
+    readonly property real archIconHoverScale: 1.1
+    readonly property real archIconPressScale: 0.94
     readonly property bool showWidgetBorders: Settings.showWidgetBorders
     readonly property int widgetBorderWidth: Settings.widgetBorderWidth
     readonly property real widgetOpacity: Settings.widgetOpacity
