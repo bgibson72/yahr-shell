@@ -15,6 +15,7 @@ import "modules/wallpaper"
 import "modules/clipboard"
 import "modules/screenshot"
 import "modules/trash"
+import "modules/infopanel"
 
 ShellRoot {
     id: root
@@ -31,6 +32,7 @@ ShellRoot {
     property bool dockAppPickerVisible: false
     property bool screenshotVisible: false
     property bool trashVisible: false
+    property bool infoPanelVisible: false
 
     function hideOverlays() {
         launcherVisible = false
@@ -43,6 +45,7 @@ ShellRoot {
         dockAppPickerVisible = false
         screenshotVisible = false
         trashVisible = false
+        infoPanelVisible = false
     }
 
     IpcHandler {
@@ -57,6 +60,7 @@ ShellRoot {
         function toggleDockAppPicker() { root.dockAppPickerVisible = !root.dockAppPickerVisible }
         function toggleScreenshot() { root.screenshotVisible = !root.screenshotVisible }
         function toggleTrash() { root.trashVisible = !root.trashVisible }
+        function toggleInfoPanel() { root.infoPanelVisible = !root.infoPanelVisible }
     }
 
     Variants {
@@ -97,6 +101,7 @@ ShellRoot {
                 onToggleControlCenter: root.controlCenterVisible = !root.controlCenterVisible
                 onToggleClipboard: root.clipboardVisible = !root.clipboardVisible
                 onToggleScreenshot: root.screenshotVisible = !root.screenshotVisible
+                onToggleInfoPanel: root.infoPanelVisible = !root.infoPanelVisible
             }
         }
     }
@@ -321,6 +326,26 @@ ShellRoot {
                 isVisible: root.themeLoadingVisible
                 themeName: root.themeLoadingName
             }
+        }
+    }
+
+    PanelWindow {
+        visible: root.infoPanelVisible
+        color: "transparent"
+        exclusiveZone: 0
+        WlrLayershell.layer: WlrLayer.Overlay
+        WlrLayershell.keyboardFocus: WlrKeyboardFocus.OnDemand
+        anchors { top: true; left: true; right: true; bottom: true }
+
+        MouseArea {
+            anchors.fill: parent
+            onClicked: root.infoPanelVisible = false
+        }
+
+        InfoPanel {
+            anchors.centerIn: parent
+            isVisible: root.infoPanelVisible
+            onRequestClose: root.infoPanelVisible = false
         }
     }
 

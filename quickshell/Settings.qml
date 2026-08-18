@@ -16,6 +16,8 @@ Item {
     property string dateFormat: "MDY"
     property bool dateLong: false
     property bool showDayOfWeek: false
+    property bool weatherUseFahrenheit: true
+    property string weatherLocation: ""
 
     property string barPosition: "top"
     property string barSize: "small"
@@ -45,6 +47,8 @@ Item {
     property int hyprRounding: 12
     property int hyprBorderSize: 3
     property string screenshotDir: "~/Pictures/Screenshots"
+    property string calendarFilePath: "~/.config/yahr/calendar.ics"
+    property int calendarRefreshInterval: 15
     property bool screenshotSaveToDisk: true
     property bool screenshotCopyToClipboard: true
 
@@ -62,7 +66,9 @@ Item {
                 showSeconds: showSeconds,
                 dateFormat: dateFormat,
                 dateLong: dateLong,
-                showDayOfWeek: showDayOfWeek
+                showDayOfWeek: showDayOfWeek,
+                weatherUseFahrenheit: weatherUseFahrenheit,
+                weatherLocation: weatherLocation
             },
             bar: {
                 position: barPosition,
@@ -99,6 +105,10 @@ Item {
                 saveLocation: screenshotDir,
                 saveToDisk: screenshotSaveToDisk,
                 copyToClipboard: screenshotCopyToClipboard
+            },
+            calendar: {
+                filePath: calendarFilePath,
+                refreshInterval: calendarRefreshInterval
             }
         }
     }
@@ -117,6 +127,8 @@ Item {
         if (g.dateFormat !== undefined) dateFormat = g.dateFormat
         if (g.dateLong !== undefined) dateLong = g.dateLong
         if (g.showDayOfWeek !== undefined) showDayOfWeek = g.showDayOfWeek
+        if (g.weatherUseFahrenheit !== undefined) weatherUseFahrenheit = g.weatherUseFahrenheit
+        if (g.weatherLocation !== undefined) weatherLocation = g.weatherLocation
 
         const b = data.bar || {}
         if (b.position !== undefined) barPosition = b.position
@@ -153,6 +165,10 @@ Item {
         if (s.saveLocation !== undefined) screenshotDir = s.saveLocation
         if (s.saveToDisk !== undefined) screenshotSaveToDisk = s.saveToDisk
         if (s.copyToClipboard !== undefined) screenshotCopyToClipboard = s.copyToClipboard
+
+        const c = data.calendar || {}
+        if (c.filePath !== undefined) calendarFilePath = c.filePath
+        if (c.refreshInterval !== undefined) calendarRefreshInterval = c.refreshInterval
     }
 
     function save() {

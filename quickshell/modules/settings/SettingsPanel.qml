@@ -185,6 +185,34 @@ Panel {
             ToggleRow { label: "Widget borders"; checked: Settings.showWidgetBorders; onToggled: { Settings.showWidgetBorders = checked; Settings.save() } }
             ToggleRow { label: "Day of week"; checked: Settings.showDayOfWeek; onToggled: { Settings.showDayOfWeek = checked; Settings.save() } }
             ToggleRow { label: "Long date"; checked: Settings.dateLong; onToggled: { Settings.dateLong = checked; Settings.save() } }
+            ToggleRow { label: "Weather in \u00b0F"; checked: Settings.weatherUseFahrenheit; onToggled: { Settings.weatherUseFahrenheit = checked; Settings.save() } }
+
+            Row {
+                spacing: 10
+                Text {
+                    text: "Weather location"
+                    color: ThemeManager.fgSecondary
+                    font.family: ThemeManager.uiFont
+                    font.pixelSize: 13
+                    anchors.verticalCenter: parent.verticalCenter
+                }
+                TextField {
+                    width: 220
+                    height: 30
+                    text: Settings.weatherLocation
+                    placeholderText: "auto (IP-based)"
+                    color: ThemeManager.fgPrimary
+                    font.family: ThemeManager.uiFont
+                    font.pixelSize: 12
+                    background: Rectangle {
+                        color: ThemeManager.surface0
+                        radius: 6
+                        border.color: ThemeManager.accentBorder
+                        border.width: 1
+                    }
+                    onEditingFinished: { Settings.weatherLocation = text; Settings.save() }
+                }
+            }
         }
 
         // Bar

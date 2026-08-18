@@ -25,6 +25,7 @@ Rectangle {
     signal toggleControlCenter()
     signal toggleClipboard()
     signal toggleScreenshot()
+    signal toggleInfoPanel()
 
     Item {
         anchors.fill: parent
@@ -80,6 +81,10 @@ Rectangle {
             IconButton {
                 glyph: "󰅍"
                 onClicked: bar.toggleClipboard()
+            }
+            IconButton {
+                glyph: "󰃭"
+                onClicked: bar.toggleInfoPanel()
             }
             SystemTray {}
             UpdateChecker {}
