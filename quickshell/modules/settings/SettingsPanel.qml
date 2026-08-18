@@ -442,6 +442,9 @@ Panel {
                     }
                 }
             }
+
+            ToggleRow { label: "Panel shadows"; checked: Settings.hyprShadowEnabled; onToggled: { Settings.hyprShadowEnabled = checked; Settings.save() } }
+            ToggleRow { label: "Accent-colored shadow"; checked: Settings.hyprShadowUseAccent; onToggled: { Settings.hyprShadowUseAccent = checked; Settings.save() } }
         }
 
         Column {

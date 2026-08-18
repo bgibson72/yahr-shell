@@ -51,6 +51,10 @@ Item {
     readonly property bool barLarge: Settings.barSize === "large"
     readonly property string uiFont: Settings.uiFont
     readonly property int hyprRounding: Settings.hyprRounding
+    readonly property bool hyprShadowEnabled: Settings.hyprShadowEnabled
+    readonly property int hyprShadowRange: Settings.hyprShadowRange
+    readonly property int hyprShadowAlpha: Settings.hyprShadowAlpha
+    readonly property bool hyprShadowUseAccent: Settings.hyprShadowUseAccent
     readonly property bool showWidgetBorders: Settings.showWidgetBorders
     readonly property int widgetBorderWidth: Settings.widgetBorderWidth
     readonly property real widgetOpacity: Settings.widgetOpacity

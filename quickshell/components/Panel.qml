@@ -8,4 +8,7 @@ Rectangle {
     border.width: ThemeManager.showWidgetBorders ? ThemeManager.widgetBorderWidth : 0
     border.color: ThemeManager.accentBorder
     antialiasing: true
+
+    layer.enabled: ThemeManager.hyprShadowEnabled
+    layer.effect: WidgetShadowEffect {}
 }

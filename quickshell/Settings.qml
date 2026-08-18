@@ -46,6 +46,10 @@ Item {
 
     property int hyprRounding: 12
     property int hyprBorderSize: 3
+    property bool hyprShadowEnabled: true
+    property int hyprShadowRange: 20
+    property int hyprShadowAlpha: 33
+    property bool hyprShadowUseAccent: false
     property string screenshotDir: "~/Pictures/Screenshots"
     property string calendarFilePath: "~/.config/yahr/calendar.ics"
     property int calendarRefreshInterval: 15
@@ -99,7 +103,11 @@ Item {
             },
             hypr: {
                 rounding: hyprRounding,
-                borderSize: hyprBorderSize
+                borderSize: hyprBorderSize,
+                shadowEnabled: hyprShadowEnabled,
+                shadowRange: hyprShadowRange,
+                shadowAlpha: hyprShadowAlpha,
+                shadowUseAccent: hyprShadowUseAccent
             },
             screenshot: {
                 saveLocation: screenshotDir,
@@ -160,6 +168,10 @@ Item {
         const h = data.hypr || {}
         if (h.rounding !== undefined) hyprRounding = h.rounding
         if (h.borderSize !== undefined) hyprBorderSize = h.borderSize
+        if (h.shadowEnabled !== undefined) hyprShadowEnabled = h.shadowEnabled
+        if (h.shadowRange !== undefined) hyprShadowRange = h.shadowRange
+        if (h.shadowAlpha !== undefined) hyprShadowAlpha = h.shadowAlpha
+        if (h.shadowUseAccent !== undefined) hyprShadowUseAccent = h.shadowUseAccent
 
         const s = data.screenshot || {}
         if (s.saveLocation !== undefined) screenshotDir = s.saveLocation
