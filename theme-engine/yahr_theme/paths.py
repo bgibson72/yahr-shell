@@ -49,8 +49,20 @@ def hypr_theme_lua() -> Path:
     return hypr_dir() / "theme.lua"
 
 
-def kitty_theme() -> Path:
-    return home() / ".config/kitty/current-theme.conf"
+def starship_toml() -> Path:
+    return home() / ".config/starship.toml"
+
+
+def ghostty_dir() -> Path:
+    return home() / ".config/ghostty"
+
+
+def ghostty_config() -> Path:
+    return ghostty_dir() / "config"
+
+
+def ghostty_theme() -> Path:
+    return ghostty_dir() / "themes" / "yahr"
 
 
 def mako_config() -> Path:
@@ -71,6 +83,10 @@ def gtk3_settings() -> Path:
 
 def gtk4_css() -> Path:
     return home() / ".config/gtk-4.0/gtk.css"
+
+
+def cursor_settings_json() -> Path:
+    return home() / ".config/Cursor/User/settings.json"
 
 
 def qt6ct_colors() -> Path:

@@ -110,11 +110,12 @@ main() {
 
     info "Installing core desktop…"
     pkg_install \
-        hyprland quickshell-git kitty mako libnotify swww \
+        hyprland quickshell-git ghostty mako libnotify swww \
         thunar tumbler gvfs thunar-archive-plugin file-roller \
-        papirus-icon-theme papirus-folders-git adw-gtk-theme \
+        papirus-icon-theme papirus-folders-git bibata-cursor-theme adw-gtk-theme \
         qt6ct nwg-look \
         ttf-nerd-fonts-symbols noto-fonts-emoji ttf-inter \
+        adobe-source-sans-fonts ttf-roboto ttf-ibm-plex otf-overpass \
         ttf-jetbrains-mono-nerd \
         pipewire pipewire-pulse pipewire-alsa wireplumber pavucontrol \
         networkmanager brightnessctl \
@@ -124,9 +125,9 @@ main() {
         xdg-desktop-portal-hyprland
 
     if [ "$MINIMAL" = false ]; then
-        $AUR_HELPER -S --needed --noconfirm ttf-maple || true
-        if ask "Install recommended extras (Firefox, blueman, fastfetch)? [Y/n]" y; then
-            pkg_install firefox blueman bluez bluez-utils fastfetch
+        $AUR_HELPER -S --needed --noconfirm ttf-maple ttf-inter ttf-manrope ttf-space-grotesk ttf-roboto-flex || true
+        if ask "Install recommended extras (Firefox, blueman)? [Y/n]" y; then
+            pkg_install firefox blueman bluez bluez-utils
         fi
         if ask "Install Neovim? [y/N]" n; then
             pkg_install neovim
@@ -139,7 +140,7 @@ main() {
 
     link_or_copy "$SCRIPT_DIR/hypr" "$HOME/.config/hypr"
     link_or_copy "$SCRIPT_DIR/quickshell" "$HOME/.config/quickshell"
-    link_or_copy "$SCRIPT_DIR/kitty" "$HOME/.config/kitty"
+    link_or_copy "$SCRIPT_DIR/ghostty" "$HOME/.config/ghostty"
     link_or_copy "$SCRIPT_DIR/mako" "$HOME/.config/mako"
     mkdir -p "$HOME/.config/Thunar"
     cp -a "$SCRIPT_DIR/thunar/." "$HOME/.config/Thunar/" 2>/dev/null || true
@@ -165,7 +166,53 @@ if __name__ == "__main__":
     raise SystemExit(main())
 WRAP
     chmod +x "$HOME/.local/bin/yahr-theme"
-    chmod +x "$HOME/.config/quickshell/scripts/"*.py "$HOME/.config/quickshell/scripts/yahr-ipc"
+    chmod +x "$HOME/.config/quickshell/scripts/"*.py "$HOME/.config/quickshell/scripts/yahr-ipc" \
+        "$HOME/.config/quickshell/scripts/yahr-calendar" \
+        "$HOME/.config/quickshell/scripts/yahr-calculator" \
+        "$HOME/.config/quickshell/scripts/yahr-keybinds"
+    install -m 0755 "$SCRIPT_DIR/quickshell/scripts/yahr-calendar" "$HOME/.local/bin/yahr-calendar"
+    install -m 0755 "$SCRIPT_DIR/quickshell/scripts/yahr-calculator" "$HOME/.local/bin/yahr-calculator"
+    install -m 0755 "$SCRIPT_DIR/quickshell/scripts/yahr-keybinds" "$HOME/.local/bin/yahr-keybinds"
+    mkdir -p "$HOME/.local/share/applications"
+    cat > "$HOME/.local/share/applications/yahr-calendar.desktop" <<EOF
+[Desktop Entry]
+Type=Application
+Name=Yahr Calendar
+Comment=Month, week, and day calendar with ICS import
+Exec=$HOME/.local/bin/yahr-calendar
+TryExec=$HOME/.local/bin/yahr-calendar
+Icon=office-calendar
+Terminal=false
+Categories=Office;Calendar;Utility;
+StartupNotify=false
+Keywords=calendar;ics;ical;schedule;event;
+EOF
+    cat > "$HOME/.local/share/applications/yahr-calculator.desktop" <<EOF
+[Desktop Entry]
+Type=Application
+Name=Yahr Calculator
+Comment=Yahr calculator
+Exec=$HOME/.local/bin/yahr-calculator
+TryExec=$HOME/.local/bin/yahr-calculator
+Icon=accessories-calculator
+Terminal=false
+Categories=Utility;Calculator;
+StartupNotify=false
+Keywords=calculator;calc;math;
+EOF
+    cat > "$HOME/.local/share/applications/yahr-keybinds.desktop" <<EOF
+[Desktop Entry]
+Type=Application
+Name=Yahr Keybinds
+Comment=View and customize Hyprland keybinds
+Exec=$HOME/.local/bin/yahr-keybinds
+TryExec=$HOME/.local/bin/yahr-keybinds
+Icon=input-keyboard
+Terminal=false
+Categories=Settings;Utility;
+StartupNotify=false
+Keywords=keyboard;shortcuts;keybinds;hotkeys;hyprland;
+EOF
 
     case ":$PATH:" in
         *":$HOME/.local/bin:"*) ;;

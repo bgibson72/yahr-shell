@@ -6,12 +6,14 @@ import "../.."
 
 IconButton {
     id: audio
+    compact: true
     glyph: muted ? "󰝟" : (volume >= 66 ? "󰕾" : (volume >= 33 ? "󰖀" : "󰕿"))
-    glyphColor: muted ? ThemeManager.border0 : ThemeManager.accentYellow
+    glyphColor: muted ? ThemeManager.border0 : ThemeManager.accentGreen
     property int volume: 50
     property bool muted: false
+    signal togglePanel()
 
-    onClicked: Quickshell.execDetached(["pavucontrol"])
+    onClicked: audio.togglePanel()
 
     WheelHandler {
         onWheel: event => {

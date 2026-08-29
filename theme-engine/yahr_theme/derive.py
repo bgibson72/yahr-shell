@@ -4,7 +4,7 @@ from __future__ import annotations
 
 import re
 
-from .colors import darken, hash_hex, lighten, strip_hash
+from .colors import darken, hash_hex, lighten, palette_mode, relative_luminance, strip_hash
 
 _SLUG_RE = re.compile(r"[^a-z0-9]+")
 
@@ -26,6 +26,7 @@ def derive_palette(
     green: str,
     teal: str,
     theme_id: str | None = None,
+    papirus_folder: str | None = None,
 ) -> dict:
     bg = strip_hash(bg)
     blue = strip_hash(blue)
@@ -39,8 +40,37 @@ def derive_palette(
 
     tid = theme_id or slugify(name)
     wallpaper_dir = name.replace(" ", "")
+    light = relative_luminance(bg) >= 0.55
+    if light:
+        neutrals = {
+            "fgPrimary": hash_hex(darken(bg, 0.78)),
+            "fgSecondary": hash_hex(darken(bg, 0.62)),
+            "fgTertiary": hash_hex(darken(bg, 0.48)),
+            "border2": hash_hex(darken(bg, 0.38)),
+            "border1": hash_hex(darken(bg, 0.26)),
+            "border0": hash_hex(darken(bg, 0.16)),
+            "surface2": hash_hex(darken(bg, 0.18)),
+            "surface1": hash_hex(darken(bg, 0.12)),
+            "surface0": hash_hex(darken(bg, 0.07)),
+            "bgMantle": hash_hex(lighten(bg, 0.08)),
+            "bgCrust": hash_hex(darken(bg, 0.08)),
+        }
+    else:
+        neutrals = {
+            "fgPrimary": hash_hex(lighten(bg, 0.90)),
+            "fgSecondary": hash_hex(lighten(bg, 0.78)),
+            "fgTertiary": hash_hex(lighten(bg, 0.65)),
+            "border2": hash_hex(lighten(bg, 0.55)),
+            "border1": hash_hex(lighten(bg, 0.45)),
+            "border0": hash_hex(lighten(bg, 0.35)),
+            "surface2": hash_hex(lighten(bg, 0.30)),
+            "surface1": hash_hex(lighten(bg, 0.20)),
+            "surface0": hash_hex(lighten(bg, 0.10)),
+            "bgMantle": hash_hex(darken(bg, 0.15)),
+            "bgCrust": hash_hex(darken(bg, 0.30)),
+        }
 
-    return {
+    palette = {
         "id": tid,
         "name": name,
         "wallpaperDir": wallpaper_dir,
@@ -70,17 +100,12 @@ def derive_palette(
         "accentSapphire": hash_hex(blue),
         "accentBlue": hash_hex(blue),
         "accentLavender": hash_hex(purple),
-        "fgPrimary": hash_hex(lighten(bg, 0.90)),
-        "fgSecondary": hash_hex(lighten(bg, 0.78)),
-        "fgTertiary": hash_hex(lighten(bg, 0.65)),
-        "border2": hash_hex(lighten(bg, 0.55)),
-        "border1": hash_hex(lighten(bg, 0.45)),
-        "border0": hash_hex(lighten(bg, 0.35)),
-        "surface2": hash_hex(lighten(bg, 0.30)),
-        "surface1": hash_hex(lighten(bg, 0.20)),
-        "surface0": hash_hex(lighten(bg, 0.10)),
+        **neutrals,
         "bgBase": hash_hex(bg),
-        "bgMantle": hash_hex(darken(bg, 0.15)),
-        "bgCrust": hash_hex(darken(bg, 0.30)),
         "glassAccent": hash_hex(blue) + "59",
     }
+    folder = (papirus_folder or "auto").strip().lower()
+    if folder and folder != "auto":
+        palette["papirusFolder"] = folder
+    palette["mode"] = palette_mode(palette)
+    return palette

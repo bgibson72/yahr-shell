@@ -31,6 +31,22 @@ Panel {
         }
     }
 
+    function copyPinned() {
+        const src = Settings.dockPinnedApps || []
+        const out = []
+        for (let i = 0; i < src.length; i++) {
+            const a = src[i]
+            out.push({
+                desktopId: a.desktopId,
+                name: a.name,
+                icon: a.icon,
+                exec: a.exec,
+                terminal: !!a.terminal
+            })
+        }
+        return out
+    }
+
     function isPinned(desktopId) {
         const pinned = Settings.dockPinnedApps || []
         for (let i = 0; i < pinned.length; i++) {
@@ -40,20 +56,25 @@ Panel {
         return false
     }
 
-    function togglePin(app) {
-        const pinned = (Settings.dockPinnedApps || []).slice()
-        const idx = pinned.findIndex(a => a.desktopId === app.desktopId)
-        if (idx !== -1) {
-            pinned.splice(idx, 1)
-        } else {
-            pinned.push({
-                desktopId: app.desktopId,
-                name: app.appName,
-                icon: app.appIcon,
-                exec: app.appCommand,
-                terminal: app.needsTerminal
-            })
-        }
+    function pinApp(app) {
+        if (!app || !app.desktopId || root.isPinned(app.desktopId))
+            return
+        const pinned = root.copyPinned()
+        pinned.push({
+            desktopId: app.desktopId,
+            name: app.appName,
+            icon: app.appIcon,
+            exec: app.appCommand,
+            terminal: !!app.needsTerminal
+        })
+        Settings.dockPinnedApps = pinned
+        Settings.save()
+    }
+
+    function unpinApp(desktopId) {
+        if (!desktopId)
+            return
+        const pinned = root.copyPinned().filter(a => a.desktopId !== desktopId)
         Settings.dockPinnedApps = pinned
         Settings.save()
     }
@@ -96,61 +117,54 @@ Panel {
         }
     }
 
+    Text {
+        z: 2
+        anchors.top: parent.top
+        anchors.right: parent.right
+        anchors.topMargin: 14
+        anchors.rightMargin: 16
+        text: "\u2715"
+        font.family: "Symbols Nerd Font"
+        font.pixelSize: 14
+        color: closeMouse.containsMouse ? ThemeManager.accentRed : ThemeManager.fgSecondary
+
+        scale: closeMouse.pressed ? ThemeManager.iconPressScale : (closeMouse.containsMouse ? ThemeManager.iconHoverScale : 1.0)
+        Behavior on scale {
+            SpringAnimation { spring: ThemeManager.bounceSpring; damping: ThemeManager.bounceDamping; mass: ThemeManager.bounceMass }
+        }
+
+        MouseArea {
+            id: closeMouse
+            anchors.fill: parent
+            anchors.margins: -8
+            hoverEnabled: true
+            cursorShape: Qt.PointingHandCursor
+            onClicked: root.requestClose()
+        }
+    }
+
     Column {
+        z: 1
         anchors.fill: parent
         anchors.margins: 16
         spacing: 12
 
-        Row {
-            width: parent.width
-            spacing: 8
-
-            Text {
-                text: "Pin an Application"
-                font.family: ThemeManager.uiFont
-                font.pixelSize: ThemeManager.fontSizeLarge
-                font.weight: Font.DemiBold
-                color: ThemeManager.fgPrimary
-                anchors.verticalCenter: parent.verticalCenter
-            }
-
-            Item { width: parent.width - 220; height: 1 }
-
-            Text {
-                text: "\u2715"
-                font.family: "Symbols Nerd Font"
-                font.pixelSize: 14
-                color: closeMouse.containsMouse ? ThemeManager.accentRed : ThemeManager.fgSecondary
-                anchors.verticalCenter: parent.verticalCenter
-
-                scale: closeMouse.pressed ? ThemeManager.iconPressScale : (closeMouse.containsMouse ? ThemeManager.iconHoverScale : 1.0)
-                Behavior on scale {
-                    SpringAnimation { spring: ThemeManager.bounceSpring; damping: ThemeManager.bounceDamping; mass: ThemeManager.bounceMass }
-                }
-
-                MouseArea {
-                    id: closeMouse
-                    anchors.fill: parent
-                    anchors.margins: -8
-                    hoverEnabled: true
-                    cursorShape: Qt.PointingHandCursor
-                    onClicked: root.requestClose()
-                }
-            }
+        Text {
+            text: "Pin an Application"
+            font.family: ThemeManager.uiFont
+            font.pixelSize: ThemeManager.fontSizeLarge
+            font.weight: Font.DemiBold
+            color: ThemeManager.fgPrimary
         }
 
-        TextField {
+        InputField {
             id: searchField
             width: parent.width
             placeholderText: "Search apps…"
-            color: ThemeManager.fgPrimary
-            font.family: ThemeManager.uiFont
             font.pixelSize: 14
             background: Rectangle {
-                color: ThemeManager.surface0
+                color: ThemeManager.cardColor
                 radius: 8
-                border.color: ThemeManager.accentBorder
-                border.width: 1
             }
             onTextChanged: {
                 root.searchText = text
@@ -170,57 +184,92 @@ Panel {
                 id: appRow
                 required property string appName
                 required property string appIcon
+                required property string appCommand
+                required property var needsTerminal
                 required property string desktopId
                 width: list.width
                 height: 44
                 radius: 8
                 readonly property bool pinned: root.isPinned(desktopId)
-                color: rowMouse.containsMouse && !pinned ? Qt.rgba(1, 1, 1, 0.08) : "transparent"
-
-                Row {
-                    anchors.fill: parent
-                    anchors.margins: 6
-                    spacing: 10
-
-                    Image {
-                        width: 26
-                        height: 26
-                        anchors.verticalCenter: parent.verticalCenter
-                        source: appIcon.startsWith("/") ? appIcon : `image://icon/${appIcon}`
-                        fillMode: Image.PreserveAspectFit
-                        smooth: true
-                    }
-
-                    Text {
-                        text: appName
-                        font.family: ThemeManager.uiFont
-                        font.pixelSize: 13
-                        color: ThemeManager.fgPrimary
-                        anchors.verticalCenter: parent.verticalCenter
-                        width: list.width - 90
-                        elide: Text.ElideRight
-                    }
-                }
-
-                Text {
-                    visible: appRow.pinned
-                    text: "Pinned"
-                    font.family: ThemeManager.uiFont
-                    font.pixelSize: 10
-                    color: ThemeManager.accentGreen
-                    anchors.right: parent.right
-                    anchors.rightMargin: 10
-                    anchors.verticalCenter: parent.verticalCenter
-                }
+                color: rowMouse.containsMouse ? ThemeManager.overlay(0.08) : "transparent"
 
                 MouseArea {
                     id: rowMouse
                     anchors.fill: parent
                     hoverEnabled: true
+                    enabled: !appRow.pinned
                     cursorShape: appRow.pinned ? Qt.ArrowCursor : Qt.PointingHandCursor
-                    onClicked: {
-                        if (!appRow.pinned)
-                            root.togglePin(filtered.get(index))
+                    onClicked: root.pinApp({
+                        desktopId: appRow.desktopId,
+                        appName: appRow.appName,
+                        appIcon: appRow.appIcon,
+                        appCommand: appRow.appCommand,
+                        needsTerminal: appRow.needsTerminal
+                    })
+                }
+
+                Row {
+                    anchors.fill: parent
+                    anchors.leftMargin: 6
+                    anchors.rightMargin: 8
+                    spacing: 10
+
+                    AppIcon {
+                        iconName: appRow.appIcon
+                        pixelSize: 26
+                        anchors.verticalCenter: parent.verticalCenter
+                    }
+
+                    Text {
+                        text: appRow.appName
+                        font.family: ThemeManager.uiFont
+                        font.pixelSize: 13
+                        color: ThemeManager.fgPrimary
+                        anchors.verticalCenter: parent.verticalCenter
+                        width: Math.max(40, parent.width - 36 - (appRow.pinned ? 128 : 0))
+                        elide: Text.ElideRight
+                    }
+                }
+
+                Row {
+                    anchors.right: parent.right
+                    anchors.rightMargin: 8
+                    anchors.verticalCenter: parent.verticalCenter
+                    spacing: 8
+                    visible: appRow.pinned
+                    z: 2
+
+                    Text {
+                        text: "Pinned"
+                        font.family: ThemeManager.uiFont
+                        font.pixelSize: 10
+                        color: ThemeManager.accentGreen
+                        anchors.verticalCenter: parent.verticalCenter
+                    }
+
+                    Rectangle {
+                        width: 64
+                        height: 24
+                        radius: 6
+                        color: removeMouse.containsMouse
+                            ? Qt.rgba(ThemeManager.accentRed.r, ThemeManager.accentRed.g, ThemeManager.accentRed.b, 0.28)
+                            : ThemeManager.overlay(0.08)
+
+                        Text {
+                            anchors.centerIn: parent
+                            text: "Remove"
+                            font.family: ThemeManager.uiFont
+                            font.pixelSize: 11
+                            color: removeMouse.containsMouse ? ThemeManager.accentRed : ThemeManager.fgSecondary
+                        }
+
+                        MouseArea {
+                            id: removeMouse
+                            anchors.fill: parent
+                            hoverEnabled: true
+                            cursorShape: Qt.PointingHandCursor
+                            onClicked: root.unpinApp(appRow.desktopId)
+                        }
                     }
                 }
             }

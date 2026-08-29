@@ -1,8 +1,8 @@
 import QtQuick
 import ".."
 
-// Compact "icon + title + big value" card with a sparkline history and two
-// footer stats, used for the System tab's CPU/memory/temperature readouts.
+// "Icon + title + big value" card. Full size includes a sparkline and two
+// footer stats; compact mode is a short tile for the combined info panel.
 Rectangle {
     id: root
 
@@ -14,16 +14,16 @@ Rectangle {
     property real sparklineMax: 100
     property string footerLeft: ""
     property string footerRight: ""
+    property bool compact: false
 
-    color: Qt.rgba(1, 1, 1, 0.07)
+    color: ThemeManager.cardColor
     radius: 12
-    border.width: 1
-    border.color: Qt.rgba(1, 1, 1, 0.10)
 
     Column {
+        visible: !root.compact
         anchors.fill: parent
-        anchors.margins: 16
-        spacing: 12
+        anchors.margins: 10
+        spacing: 8
 
         Row {
             width: parent.width
@@ -32,7 +32,7 @@ Rectangle {
             Text {
                 text: root.glyph
                 font.family: "Symbols Nerd Font"
-                font.pixelSize: 18
+                font.pixelSize: 14
                 color: root.valueColor
                 anchors.verticalCenter: parent.verticalCenter
             }
@@ -51,7 +51,7 @@ Rectangle {
             Text {
                 text: root.valueText
                 font.family: ThemeManager.uiFont
-                font.pixelSize: 22
+                font.pixelSize: 18
                 font.weight: Font.Bold
                 color: root.valueColor
                 anchors.verticalCenter: parent.verticalCenter
@@ -60,7 +60,7 @@ Rectangle {
 
         SparklineChart {
             width: parent.width
-            height: parent.height - 80
+            height: parent.height - 64
             values: root.sparklineValues
             maxValue: root.sparklineMax
             color: root.valueColor
@@ -84,6 +84,50 @@ Rectangle {
                 font.pixelSize: ThemeManager.fontSizeSmall
                 color: ThemeManager.fgSecondary
             }
+        }
+    }
+
+    Column {
+        visible: root.compact
+        anchors.fill: parent
+        anchors.margins: 10
+        spacing: 4
+
+        Row {
+            spacing: 6
+
+            Text {
+                text: root.glyph
+                font.family: "Symbols Nerd Font"
+                font.pixelSize: 13
+                color: root.valueColor
+                anchors.verticalCenter: parent.verticalCenter
+            }
+            Text {
+                text: root.title
+                font.family: ThemeManager.uiFont
+                font.pixelSize: 12
+                font.weight: Font.DemiBold
+                color: ThemeManager.fgSecondary
+                anchors.verticalCenter: parent.verticalCenter
+            }
+        }
+
+        Text {
+            text: root.valueText
+            font.family: ThemeManager.uiFont
+            font.pixelSize: 22
+            font.weight: Font.Bold
+            color: root.valueColor
+        }
+
+        Text {
+            text: [root.footerLeft, root.footerRight].filter(s => s).join("  ·  ")
+            font.family: ThemeManager.uiFont
+            font.pixelSize: 11
+            color: ThemeManager.fgTertiary
+            elide: Text.ElideRight
+            width: parent.width
         }
     }
 }

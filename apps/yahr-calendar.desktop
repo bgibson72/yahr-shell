@@ -1,0 +1,11 @@
+[Desktop Entry]
+Type=Application
+Name=Yahr Calendar
+Comment=Month, week, and day calendar with ICS import
+Exec=/home/bryan/.local/bin/yahr-calendar
+TryExec=/home/bryan/.local/bin/yahr-calendar
+Icon=office-calendar
+Terminal=false
+Categories=Office;Calendar;Utility;
+StartupNotify=false
+Keywords=calendar;ics;ical;schedule;event;

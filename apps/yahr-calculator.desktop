@@ -1,0 +1,11 @@
+[Desktop Entry]
+Type=Application
+Name=Yahr Calculator
+Comment=Yahr calculator
+Exec=/home/bryan/.local/bin/yahr-calculator
+TryExec=/home/bryan/.local/bin/yahr-calculator
+Icon=accessories-calculator
+Terminal=false
+Categories=Utility;Calculator;
+StartupNotify=false
+Keywords=calculator;calc;math;

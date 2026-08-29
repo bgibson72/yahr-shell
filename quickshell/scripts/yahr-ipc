@@ -1,8 +1,9 @@
 #!/bin/bash
 set -euo pipefail
 action="${1:?usage: yahr-ipc <function>}"
+ROOT="$(cd "$(dirname "$0")/.." && pwd)"
 if command -v qs >/dev/null 2>&1; then
-    qs ipc call yahr "$action"
+    qs -p "$ROOT" ipc call yahr "$action"
 else
-    quickshell ipc call yahr "$action"
+    quickshell -p "$ROOT" ipc call yahr "$action"
 fi

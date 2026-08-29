@@ -147,7 +147,7 @@ Panel {
         Rectangle {
             Layout.fillWidth: true
             Layout.fillHeight: true
-            color: ThemeManager.surface0
+            color: ThemeManager.cardColor
             radius: 12
 
             ListView {
@@ -164,9 +164,7 @@ Panel {
                     width: list.width
                     height: 60
                     radius: 8
-                    color: itemArea.containsMouse ? ThemeManager.surface1 : ThemeManager.surface0
-                    border.width: 1
-                    border.color: root.isSelected(modelData.name) ? ThemeManager.accentBlue : ThemeManager.surface2
+                    color: itemArea.containsMouse ? ThemeManager.overlay(0.12) : "transparent"
 
                     MouseArea {
                         id: itemArea

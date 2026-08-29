@@ -102,7 +102,7 @@ Item {
                     if (btn.isCurrent)
                         return "transparent"
                     if (btn.containsMouse)
-                        return Qt.rgba(1, 1, 1, 0.12)
+                        return ThemeManager.overlay(0.12)
                     if (btn.hyprWorkspace && btn.hyprWorkspace.toplevels && btn.hyprWorkspace.toplevels.length > 0)
                         return Qt.rgba(ThemeManager.fgTertiary.r, ThemeManager.fgTertiary.g, ThemeManager.fgTertiary.b, 0.55)
                     return Qt.rgba(ThemeManager.fgTertiary.r, ThemeManager.fgTertiary.g, ThemeManager.fgTertiary.b, 0.22)

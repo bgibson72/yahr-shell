@@ -1,4 +1,5 @@
 import QtQuick
+import QtQuick.Layouts
 import Quickshell
 import Quickshell.Io
 import "../../components"
@@ -8,6 +9,7 @@ Panel {
     id: root
     width: 480
     height: 420
+    frameJoin: "center"
     property var items: []
     signal requestClose()
 
@@ -24,7 +26,7 @@ Panel {
         }
     }
 
-    Column {
+    ColumnLayout {
         anchors.fill: parent
         anchors.margins: 16
         spacing: 10
@@ -38,8 +40,8 @@ Panel {
         }
 
         ListView {
-            width: parent.width
-            height: parent.height - 36
+            Layout.fillWidth: true
+            Layout.fillHeight: true
             clip: true
             model: root.items
             spacing: 4

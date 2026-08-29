@@ -1,2 +1,4 @@
 singleton ThemeManager ThemeManager.qml
 singleton Settings Settings.qml
+singleton PowerState PowerState.qml
+singleton NetworkState NetworkState.qml

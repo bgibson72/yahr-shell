@@ -87,9 +87,8 @@ Item {
             anchors.verticalCenter: parent.verticalCenter
             text: "\uf021"
             font.family: "Symbols Nerd Font"
-            font.pixelSize: ThemeManager.fontSizeIcon
-            color: updates.count > 0 ? ThemeManager.accentYellow : ThemeManager.fgSecondary
-            Behavior on color { ColorAnimation { duration: 250 } }
+            font.pixelSize: ThemeManager.fontSizeIconFA
+            color: ThemeManager.accentYellow
         }
 
         Text {
@@ -118,7 +117,7 @@ Item {
                            'elif command -v yay >/dev/null 2>&1; then yay -Syu; ' +
                            'else sudo pacman -Syu; fi; ' +
                            'echo ""; echo "Done - press enter to exit"; read'
-            Quickshell.execDetached(["kitty", "-e", "sh", "-c", script])
+            Quickshell.execDetached([ThemeManager.terminal, "-e", "sh", "-c", script])
             recheckTimer.attempts = 0
             recheckTimer.running = true
         }

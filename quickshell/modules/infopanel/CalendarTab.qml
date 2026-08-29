@@ -15,44 +15,12 @@ Item {
         }
     }
 
-    function updateClock() {
-        const now = new Date()
-        const minutes = now.getMinutes().toString().padStart(2, '0')
-        const seconds = now.getSeconds().toString().padStart(2, '0')
-        let hours = now.getHours()
-
-        if (Settings.clockFormat24hr) {
-            timeText.text = Settings.showSeconds
-                ? `${hours.toString().padStart(2, '0')}:${minutes}:${seconds}`
-                : `${hours.toString().padStart(2, '0')}:${minutes}`
-            periodText.text = ""
-        } else {
-            const period = hours >= 12 ? "PM" : "AM"
-            hours = hours % 12 || 12
-            timeText.text = Settings.showSeconds
-                ? `${hours.toString().padStart(2, '0')}:${minutes}:${seconds}`
-                : `${hours.toString().padStart(2, '0')}:${minutes}`
-            periodText.text = period
+    Connections {
+        target: Settings
+        function onCalendarFilePathChanged() {
+            if (root.active)
+                calendarModel.triggerCalendarLoad()
         }
-
-        const days = ["Sunday", "Monday", "Tuesday", "Wednesday", "Thursday", "Friday", "Saturday"]
-        const months = ["January", "February", "March", "April", "May", "June",
-                         "July", "August", "September", "October", "November", "December"]
-        dateText.text = `${days[now.getDay()]}, ${months[now.getMonth()]} ${now.getDate()}, ${now.getFullYear()}`
-    }
-
-    readonly property var moonEmoji: ({
-        "New Moon": "\ud83c\udf11", "Waxing Crescent": "\ud83c\udf12", "First Quarter": "\ud83c\udf13",
-        "Waxing Gibbous": "\ud83c\udf14", "Full Moon": "\ud83c\udf15", "Waning Gibbous": "\ud83c\udf16",
-        "Last Quarter": "\ud83c\udf17", "Waning Crescent": "\ud83c\udf18"
-    })
-
-    Timer {
-        interval: 1000
-        running: root.active
-        repeat: true
-        triggeredOnStart: true
-        onTriggered: root.updateClock()
     }
 
     Timer {
@@ -64,455 +32,190 @@ Item {
         onTriggered: calendarModel.triggerCalendarLoad()
     }
 
-    Timer {
-        interval: 10800000 // astronomy data barely changes intraday; refresh every 3h
-        running: root.active
-        repeat: true
-        triggeredOnStart: true
-        onTriggered: astronomyLoader.running = true
-    }
-
-    // Astronomy (moon phase + sunrise/sunset) via a single wttr.in call
-    Process {
-        id: astronomyLoader
-        running: false
-        command: ["sh", "-c", `curl -s --max-time 8 'wttr.in/${Settings.weatherLocation.trim()}?format=j1'`]
-        stdout: StdioCollector {
-            onStreamFinished: {
-                try {
-                    const data = JSON.parse(this.text)
-                    const astro = data.weather && data.weather[0] && data.weather[0].astronomy && data.weather[0].astronomy[0]
-                    if (astro) {
-                        calendarModel.moonPhaseName = astro.moon_phase || "New Moon"
-                        calendarModel.moonIllumination = (astro.moon_illumination || "0") + "%"
-                        calendarModel.sunriseTime = astro.sunrise || "N/A"
-                        calendarModel.sunsetTime = astro.sunset || "N/A"
-                    }
-                } catch (e) {
-                    // keep previous/default values on failure
-                }
-            }
-        }
-    }
-
-    Column {
+    Rectangle {
         anchors.fill: parent
-        spacing: 16
+        color: ThemeManager.overlay(0.07)
+        radius: 12
 
-        Rectangle {
-            width: parent.width
-            height: 100
-            color: Qt.rgba(1, 1, 1, 0.07)
-            radius: 12
-
-            TextMetrics {
-                id: maxTimeMetrics
-                font.family: ThemeManager.uiFont
-                font.pixelSize: 48
-                font.weight: Font.Bold
-                text: "00:00:00"
-            }
+        Item {
+            anchors.fill: parent
+            anchors.margins: 16
 
             Row {
-                anchors.fill: parent
+                id: calHeader
+                width: parent.width
+                height: 40
+                anchors.top: parent.top
 
-                Item {
-                    width: (parent.width - 2) / 2
-                    height: parent.height
+                Rectangle {
+                    width: 32
+                    height: 32
+                    radius: 6
+                    color: "transparent"
+                    scale: prevMouse.pressed ? ThemeManager.iconPressScale : (prevMouse.containsMouse ? ThemeManager.iconHoverScale : 1.0)
+                    Behavior on scale {
+                        SpringAnimation { spring: ThemeManager.bounceSpring; damping: ThemeManager.bounceDamping; mass: ThemeManager.bounceMass }
+                    }
 
                     Text {
-                        id: dateText
                         anchors.centerIn: parent
-                        font.family: ThemeManager.uiFont
-                        font.pixelSize: 20
-                        font.weight: Font.Bold
+                        text: "\u25c0"
+                        font.pixelSize: 14
                         color: ThemeManager.fgPrimary
-                        horizontalAlignment: Text.AlignHCenter
+                    }
+
+                    MouseArea {
+                        id: prevMouse
+                        anchors.fill: parent
+                        hoverEnabled: true
+                        cursorShape: Qt.PointingHandCursor
+                        onClicked: calendarModel.changeMonth(-1)
                     }
                 }
 
-                Item {
-                    width: (parent.width - 2) / 2
+                Text {
+                    width: parent.width - 80
                     height: parent.height
+                    text: calendarModel.monthYearText
+                    font.family: ThemeManager.uiFont
+                    font.pixelSize: 20
+                    font.weight: Font.Bold
+                    color: ThemeManager.fgPrimary
+                    horizontalAlignment: Text.AlignHCenter
+                    verticalAlignment: Text.AlignVCenter
+                }
 
-                    Row {
-                        anchors.left: parent.left
-                        anchors.leftMargin: Math.max(8, (parent.width - maxTimeMetrics.width) / 2)
-                        anchors.verticalCenter: parent.verticalCenter
-                        spacing: 8
+                Rectangle {
+                    width: 32
+                    height: 32
+                    radius: 6
+                    color: "transparent"
+                    scale: nextMouse.pressed ? ThemeManager.iconPressScale : (nextMouse.containsMouse ? ThemeManager.iconHoverScale : 1.0)
+                    Behavior on scale {
+                        SpringAnimation { spring: ThemeManager.bounceSpring; damping: ThemeManager.bounceDamping; mass: ThemeManager.bounceMass }
+                    }
 
-                        Text {
-                            id: timeText
-                            font.family: ThemeManager.uiFont
-                            font.pixelSize: 48
-                            font.weight: Font.Bold
-                            color: ThemeManager.accentBlue
-                        }
+                    Text {
+                        anchors.centerIn: parent
+                        text: "\u25b6"
+                        font.pixelSize: 14
+                        color: ThemeManager.fgPrimary
+                    }
 
-                        Item {
-                            width: periodText.implicitWidth
-                            height: timeText.implicitHeight
-                            visible: periodText.text !== ""
-
-                            Text {
-                                id: periodText
-                                anchors.verticalCenter: parent.verticalCenter
-                                font.family: ThemeManager.uiFont
-                                font.pixelSize: 22
-                                font.weight: Font.Medium
-                                color: ThemeManager.fgSecondary
-                            }
-                        }
+                    MouseArea {
+                        id: nextMouse
+                        anchors.fill: parent
+                        hoverEnabled: true
+                        cursorShape: Qt.PointingHandCursor
+                        onClicked: calendarModel.changeMonth(1)
                     }
                 }
             }
-        }
 
-        Row {
-            width: parent.width
-            height: parent.height - 116
-            spacing: 16
+            Grid {
+                id: calGrid
+                width: parent.width
+                anchors.top: calHeader.bottom
+                anchors.topMargin: 10
+                anchors.bottom: parent.bottom
+                columns: 7
+                columnSpacing: 4
+                rowSpacing: 4
 
-            // Calendar grid
-            Rectangle {
-                width: (parent.width - 16) * 0.55
-                height: parent.height
-                color: Qt.rgba(1, 1, 1, 0.07)
-                radius: 12
+                property int dayHeaderH: 24
+                property int dayH: Math.max(28, Math.floor((height - dayHeaderH - 6 * rowSpacing) / 6))
 
-                Item {
-                    anchors.fill: parent
-                    anchors.margins: 16
-
-                    Row {
-                        id: calHeader
-                        width: parent.width
-                        height: 40
-                        anchors.top: parent.top
-
-                        Rectangle {
-                            width: 32
-                            height: 32
-                            radius: 6
-                            color: "transparent"
-                            scale: prevMouse.pressed ? ThemeManager.iconPressScale : (prevMouse.containsMouse ? ThemeManager.iconHoverScale : 1.0)
-                            Behavior on scale {
-                                SpringAnimation { spring: ThemeManager.bounceSpring; damping: ThemeManager.bounceDamping; mass: ThemeManager.bounceMass }
-                            }
-
-                            Text {
-                                anchors.centerIn: parent
-                                text: "\u25c0"
-                                font.pixelSize: 14
-                                color: ThemeManager.fgPrimary
-                            }
-
-                            MouseArea {
-                                id: prevMouse
-                                anchors.fill: parent
-                                hoverEnabled: true
-                                cursorShape: Qt.PointingHandCursor
-                                onClicked: calendarModel.changeMonth(-1)
-                            }
-                        }
-
-                        Text {
-                            width: parent.width - 80
-                            height: parent.height
-                            text: calendarModel.monthYearText
-                            font.family: ThemeManager.uiFont
-                            font.pixelSize: 20
-                            font.weight: Font.Bold
-                            color: ThemeManager.fgPrimary
-                            horizontalAlignment: Text.AlignHCenter
-                            verticalAlignment: Text.AlignVCenter
-                        }
-
-                        Rectangle {
-                            width: 32
-                            height: 32
-                            radius: 6
-                            color: "transparent"
-                            scale: nextMouse.pressed ? ThemeManager.iconPressScale : (nextMouse.containsMouse ? ThemeManager.iconHoverScale : 1.0)
-                            Behavior on scale {
-                                SpringAnimation { spring: ThemeManager.bounceSpring; damping: ThemeManager.bounceDamping; mass: ThemeManager.bounceMass }
-                            }
-
-                            Text {
-                                anchors.centerIn: parent
-                                text: "\u25b6"
-                                font.pixelSize: 14
-                                color: ThemeManager.fgPrimary
-                            }
-
-                            MouseArea {
-                                id: nextMouse
-                                anchors.fill: parent
-                                hoverEnabled: true
-                                cursorShape: Qt.PointingHandCursor
-                                onClicked: calendarModel.changeMonth(1)
-                            }
-                        }
+                Repeater {
+                    model: calendarModel.weekdayHeaders
+                    Text {
+                        text: modelData
+                        font.family: ThemeManager.uiFont
+                        font.pixelSize: 12
+                        font.weight: Font.Bold
+                        color: ThemeManager.accentBlue
+                        width: (calGrid.width - 24) / 7
+                        height: calGrid.dayHeaderH
+                        horizontalAlignment: Text.AlignHCenter
+                        verticalAlignment: Text.AlignVCenter
                     }
+                }
+
+                Repeater {
+                    model: 42
 
                     Rectangle {
-                        id: moonPhaseSection
-                        width: parent.width
-                        height: 62
-                        anchors.bottom: parent.bottom
-                        color: Qt.rgba(1, 1, 1, 0.07)
+                        id: dayCell
+                        width: (calGrid.width - 24) / 7
+                        height: calGrid.dayH
                         radius: 8
 
-                        Row {
+                        required property int index
+                        readonly property int dayNumber: {
+                            calendarModel.eventsRevision
+                            calendarModel.currentMonth
+                            calendarModel.currentYear
+                            calendarModel.weekStartOffset
+                            return calendarModel.getDayNumber(index)
+                        }
+                        readonly property bool isCurrentDay: {
+                            calendarModel.weekStartOffset
+                            return calendarModel.isToday(index)
+                        }
+                        readonly property bool isSelectedDay: {
+                            calendarModel.weekStartOffset
+                            calendarModel.selectedDay
+                            return calendarModel.isSelected(index)
+                        }
+                        readonly property bool isValidDay: dayNumber > 0
+                        readonly property string dateKey: isValidDay
+                            ? `${calendarModel.currentYear}-${(calendarModel.currentMonth + 1).toString().padStart(2, '0')}-${dayNumber.toString().padStart(2, '0')}`
+                            : ""
+                        readonly property bool hasEvents: isValidDay && calendarModel.eventDatesCache[dateKey] === true
+                        readonly property int _revision: calendarModel.eventsRevision
+
+                        color: {
+                            if (isValidDay && isCurrentDay) return Qt.rgba(ThemeManager.accentBlue.r, ThemeManager.accentBlue.g, ThemeManager.accentBlue.b, 0.30)
+                            if (isValidDay && isSelectedDay) return ThemeManager.overlay(0.16)
+                            if (dayMouse.containsMouse && isValidDay) return ThemeManager.overlay(0.08)
+                            return "transparent"
+                        }
+                        border.width: isValidDay && isCurrentDay ? 1 : 0
+                        border.color: Qt.rgba(ThemeManager.accentBlue.r, ThemeManager.accentBlue.g, ThemeManager.accentBlue.b, 0.55)
+                        Behavior on color { ColorAnimation { duration: 120 } }
+
+                        MouseArea {
+                            id: dayMouse
                             anchors.fill: parent
-
-                            Item {
-                                width: (parent.width - 2) / 2
-                                height: parent.height
-
-                                Row {
-                                    anchors.centerIn: parent
-                                    spacing: 8
-
-                                    Text {
-                                        text: root.moonEmoji[calendarModel.moonPhaseName] || "\ud83c\udf11"
-                                        font.family: "Noto Color Emoji"
-                                        font.pixelSize: 26
-                                        anchors.verticalCenter: parent.verticalCenter
-                                    }
-
-                                    Column {
-                                        spacing: 2
-                                        anchors.verticalCenter: parent.verticalCenter
-
-                                        Text {
-                                            text: calendarModel.moonPhaseName
-                                            font.family: ThemeManager.uiFont
-                                            font.pixelSize: 13
-                                            font.weight: Font.Bold
-                                            color: ThemeManager.fgPrimary
-                                        }
-                                        Text {
-                                            text: calendarModel.moonIllumination
-                                            font.family: ThemeManager.uiFont
-                                            font.pixelSize: 11
-                                            color: ThemeManager.fgSecondary
-                                        }
-                                    }
-                                }
-                            }
-
-                            Rectangle {
-                                width: 2
-                                height: 38
-                                color: Qt.rgba(1, 1, 1, 0.10)
-                                anchors.verticalCenter: parent.verticalCenter
-                            }
-
-                            Item {
-                                width: (parent.width - 2) / 2
-                                height: parent.height
-
-                                Column {
-                                    anchors.centerIn: parent
-                                    spacing: 6
-
-                                    Row {
-                                        anchors.horizontalCenter: parent.horizontalCenter
-                                        spacing: 8
-                                        Text { text: "\ud83c\udf05"; font.family: "Noto Color Emoji"; font.pixelSize: 16; anchors.verticalCenter: parent.verticalCenter }
-                                        Text { text: calendarModel.sunriseTime; font.family: ThemeManager.uiFont; font.pixelSize: 12; color: ThemeManager.accentYellow; anchors.verticalCenter: parent.verticalCenter }
-                                    }
-                                    Row {
-                                        anchors.horizontalCenter: parent.horizontalCenter
-                                        spacing: 8
-                                        Text { text: "\ud83c\udf07"; font.family: "Noto Color Emoji"; font.pixelSize: 16; anchors.verticalCenter: parent.verticalCenter }
-                                        Text { text: calendarModel.sunsetTime; font.family: ThemeManager.uiFont; font.pixelSize: 12; color: ThemeManager.accentOrange; anchors.verticalCenter: parent.verticalCenter }
-                                    }
-                                }
-                            }
-                        }
-                    }
-
-                    Grid {
-                        id: calGrid
-                        width: parent.width
-                        anchors.top: calHeader.bottom
-                        anchors.topMargin: 10
-                        anchors.bottom: moonPhaseSection.top
-                        anchors.bottomMargin: 10
-                        columns: 7
-                        columnSpacing: 4
-                        rowSpacing: 4
-
-                        property int dayHeaderH: 24
-                        property int dayH: Math.max(28, Math.floor((height - dayHeaderH - 6 * rowSpacing) / 6))
-
-                        Repeater {
-                            model: ["Sun", "Mon", "Tue", "Wed", "Thu", "Fri", "Sat"]
-                            Text {
-                                text: modelData
-                                font.family: ThemeManager.uiFont
-                                font.pixelSize: 12
-                                font.weight: Font.Bold
-                                color: ThemeManager.accentBlue
-                                width: (calGrid.width - 24) / 7
-                                height: calGrid.dayHeaderH
-                                horizontalAlignment: Text.AlignHCenter
-                                verticalAlignment: Text.AlignVCenter
-                            }
+                            hoverEnabled: true
+                            cursorShape: dayCell.isValidDay ? Qt.PointingHandCursor : Qt.ArrowCursor
+                            onClicked: if (dayCell.isValidDay) calendarModel.selectDay(dayCell.dayNumber)
                         }
 
-                        Repeater {
-                            id: calendarRepeater
-                            model: 42
-
-                            Rectangle {
-                                id: dayCell
-                                width: (calGrid.width - 24) / 7
-                                height: calGrid.dayH
-                                radius: 8
-
-                                required property int index
-                                readonly property int dayNumber: calendarModel.getDayNumber(index)
-                                readonly property bool isCurrentDay: calendarModel.isToday(index)
-                                readonly property bool isSelectedDay: calendarModel.isSelected(index)
-                                readonly property bool isValidDay: dayNumber > 0
-                                readonly property string dateKey: isValidDay
-                                    ? `${calendarModel.currentYear}-${(calendarModel.currentMonth + 1).toString().padStart(2, '0')}-${dayNumber.toString().padStart(2, '0')}`
-                                    : ""
-                                readonly property bool hasEvents: isValidDay && calendarModel.eventDatesCache[dateKey] === true
-                                // eventsRevision is unused directly but forces this delegate to
-                                // re-evaluate hasEvents whenever the ical loader rebuilds the cache.
-                                readonly property int _revision: calendarModel.eventsRevision
-
-                                color: {
-                                    if (isValidDay && isCurrentDay) return Qt.rgba(ThemeManager.accentBlue.r, ThemeManager.accentBlue.g, ThemeManager.accentBlue.b, 0.30)
-                                    if (isValidDay && isSelectedDay) return Qt.rgba(1, 1, 1, 0.16)
-                                    if (dayMouse.containsMouse && isValidDay) return Qt.rgba(1, 1, 1, 0.08)
-                                    return "transparent"
-                                }
-                                border.width: isValidDay && isCurrentDay ? 1 : 0
-                                border.color: Qt.rgba(ThemeManager.accentBlue.r, ThemeManager.accentBlue.g, ThemeManager.accentBlue.b, 0.55)
-                                Behavior on color { ColorAnimation { duration: 120 } }
-
-                                MouseArea {
-                                    id: dayMouse
-                                    anchors.fill: parent
-                                    hoverEnabled: true
-                                    cursorShape: dayCell.isValidDay ? Qt.PointingHandCursor : Qt.ArrowCursor
-                                    onClicked: if (dayCell.isValidDay) calendarModel.selectDay(dayCell.dayNumber)
-                                }
-
-                                Column {
-                                    anchors.centerIn: parent
-                                    spacing: 2
-
-                                    Text {
-                                        anchors.horizontalCenter: parent.horizontalCenter
-                                        text: dayCell.isValidDay ? dayCell.dayNumber : ""
-                                        font.family: ThemeManager.uiFont
-                                        font.pixelSize: 14
-                                        font.weight: dayCell.isValidDay && dayCell.isCurrentDay ? Font.Bold : Font.Normal
-                                        color: {
-                                            if (dayCell.isValidDay && dayCell.isCurrentDay) return ThemeManager.accentBlue
-                                            if (!dayCell.isValidDay) return ThemeManager.border0
-                                            return ThemeManager.fgPrimary
-                                        }
-                                    }
-
-                                    Rectangle {
-                                        width: 6
-                                        height: 6
-                                        radius: 3
-                                        anchors.horizontalCenter: parent.horizontalCenter
-                                        color: ThemeManager.accentCyan
-                                        visible: dayCell.hasEvents
-                                    }
-                                }
-                            }
-                        }
-                    }
-                }
-            }
-
-            // Events list
-            Rectangle {
-                width: (parent.width - 16) * 0.45
-                height: parent.height
-                color: Qt.rgba(1, 1, 1, 0.07)
-                radius: 12
-
-                Column {
-                    anchors.fill: parent
-                    anchors.margins: 16
-                    spacing: 12
-
-                    Text {
-                        text: calendarModel.selectedDateText
-                        font.family: ThemeManager.uiFont
-                        font.pixelSize: 16
-                        font.weight: Font.Bold
-                        color: ThemeManager.fgPrimary
-                    }
-
-                    ListView {
-                        id: eventsListView
-                        width: parent.width
-                        height: parent.height - 40
-                        clip: true
-                        spacing: 8
-                        model: calendarModel.eventsModel
-
-                        delegate: Rectangle {
-                            required property var modelData
-                            width: eventsListView.width
-                            height: 70
-                            color: Qt.rgba(1, 1, 1, 0.07)
-                            radius: 8
-
-                            Row {
-                                anchors.fill: parent
-                                anchors.margins: 12
-                                spacing: 12
-
-                                Rectangle {
-                                    width: 4
-                                    height: parent.height
-                                    radius: 2
-                                    color: modelData.color || ThemeManager.accentBlue
-                                }
-
-                                Column {
-                                    width: parent.width - 20
-                                    spacing: 4
-
-                                    Text {
-                                        width: parent.width
-                                        text: modelData.title || "Event"
-                                        font.family: ThemeManager.uiFont
-                                        font.pixelSize: 14
-                                        font.weight: Font.Bold
-                                        color: ThemeManager.fgPrimary
-                                        elide: Text.ElideRight
-                                    }
-                                    Text {
-                                        text: modelData.time || "All day"
-                                        font.family: ThemeManager.uiFont
-                                        font.pixelSize: 12
-                                        color: ThemeManager.fgSecondary
-                                    }
-                                }
-                            }
-                        }
-
-                        Text {
+                        Column {
                             anchors.centerIn: parent
-                            text: "No events for this day"
-                            font.family: ThemeManager.uiFont
-                            font.pixelSize: 13
-                            color: ThemeManager.fgTertiary
-                            visible: eventsListView.count === 0
+                            spacing: 2
+
+                            Text {
+                                anchors.horizontalCenter: parent.horizontalCenter
+                                text: dayCell.isValidDay ? dayCell.dayNumber : ""
+                                font.family: ThemeManager.uiFont
+                                font.pixelSize: 14
+                                font.weight: dayCell.isValidDay && dayCell.isCurrentDay ? Font.Bold : Font.Normal
+                                color: {
+                                    if (dayCell.isValidDay && dayCell.isCurrentDay) return ThemeManager.accentBlue
+                                    if (!dayCell.isValidDay) return ThemeManager.border0
+                                    return ThemeManager.fgPrimary
+                                }
+                            }
+
+                            Rectangle {
+                                width: 6
+                                height: 6
+                                radius: 3
+                                anchors.horizontalCenter: parent.horizontalCenter
+                                color: ThemeManager.accentCyan
+                                visible: dayCell.hasEvents
+                            }
                         }
                     }
                 }
@@ -526,27 +229,21 @@ Item {
         property int currentMonth: new Date().getMonth()
         property int currentYear: new Date().getFullYear()
         property int selectedDay: new Date().getDate()
-        property var eventsModel: []
         property string monthYearText: getMonthYearText()
-        property string selectedDateText: getSelectedDateText()
         property var eventDatesCache: ({})
         property var allEventsCache: []
         property int eventsRevision: 0
+        property int weekStartOffset: Settings.calendarWeekStart === "monday" ? 1 : 0
+        property var weekdayHeaders: weekStartOffset === 1
+            ? ["Mon", "Tue", "Wed", "Thu", "Fri", "Sat", "Sun"]
+            : ["Sun", "Mon", "Tue", "Wed", "Thu", "Fri", "Sat"]
 
-        property string moonPhaseName: "New Moon"
-        property string moonIllumination: "0%"
-        property string sunriseTime: "--"
-        property string sunsetTime: "--"
+        onWeekStartOffsetChanged: eventsRevision++
 
         function getMonthYearText() {
             const months = ["January", "February", "March", "April", "May", "June",
                              "July", "August", "September", "October", "November", "December"]
             return `${months[currentMonth]} ${currentYear}`
-        }
-
-        function getSelectedDateText() {
-            const months = ["Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep", "Oct", "Nov", "Dec"]
-            return `${months[currentMonth]} ${selectedDay}, ${currentYear}`
         }
 
         function changeMonth(delta) {
@@ -559,13 +256,12 @@ Item {
             if (allEventsCache.length > 0)
                 buildEventCacheForMonth(currentYear, currentMonth)
             eventsRevision++
-
-            filterEventsForSelectedDay()
         }
 
         function getDayNumber(index) {
             const firstDay = new Date(currentYear, currentMonth, 1)
-            const dayNumber = index - firstDay.getDay() + 1
+            const startOffset = (firstDay.getDay() - weekStartOffset + 7) % 7
+            const dayNumber = index - startOffset + 1
             const daysInMonth = new Date(currentYear, currentMonth + 1, 0).getDate()
             return (dayNumber >= 1 && dayNumber <= daysInMonth) ? dayNumber : 0
         }
@@ -584,22 +280,6 @@ Item {
 
         function selectDay(day) {
             selectedDay = day
-            selectedDateText = getSelectedDateText()
-            filterEventsForSelectedDay()
-        }
-
-        function filterEventsForSelectedDay() {
-            const selectedDate = new Date(currentYear, currentMonth, selectedDay)
-            eventsModel = allEventsCache.filter(evt => {
-                if (evt.rrule)
-                    return icalLoader.checkRecurringEvent(evt, selectedDate)
-                if (!evt.date)
-                    return false
-                const eventDate = new Date(evt.date)
-                return eventDate.getDate() === selectedDate.getDate() &&
-                       eventDate.getMonth() === selectedDate.getMonth() &&
-                       eventDate.getFullYear() === selectedDate.getFullYear()
-            })
         }
 
         function buildEventCacheForMonth(year, month) {
@@ -616,7 +296,6 @@ Item {
                     eventDatesCache[dateKey] = true
                 currentDate.setDate(currentDate.getDate() + 1)
             }
-            // Reassign so bindings watching this property see the change.
             eventDatesCache = eventDatesCache
         }
 
@@ -637,7 +316,6 @@ Item {
         }
     }
 
-    // iCal file loader + RRULE-aware recurrence matching
     Process {
         id: icalLoader
         running: false
@@ -652,12 +330,10 @@ Item {
 
             if (!icalContent || icalContent.trim() === "") {
                 calendarModel.allEventsCache = allEvents
-                calendarModel.eventsModel = []
                 calendarModel.eventDatesCache = {}
                 return
             }
 
-            // Some servers return iCal with no real newlines; reinsert them before keywords.
             if (icalContent.indexOf('\n') === -1 && icalContent.indexOf('\r') === -1) {
                 icalContent = icalContent.replace(
                     /(BEGIN:|END:|DTSTART|DTEND|SUMMARY:|DESCRIPTION:|LOCATION:|UID:|DTSTAMP:|CREATED:|LAST-MODIFIED:|SEQUENCE:|STATUS:|TRANSP:|VERSION:|PRODID:|CALSCALE:|METHOD:)/g,
@@ -665,7 +341,6 @@ Item {
                 ).trim()
             }
 
-            // Unfold continuation lines (iCal wraps long lines with a leading space).
             const unfolded = icalContent.replace(/\r\n /g, '').replace(/\n /g, '').replace(/\r /g, '')
             const lines = unfolded.split(/\r\n|\r|\n/)
             let currentEvent = null
@@ -711,7 +386,6 @@ Item {
             calendarModel.eventDatesCache = {}
             calendarModel.buildEventCacheForMonth(calendarModel.currentYear, calendarModel.currentMonth)
             calendarModel.eventsRevision++
-            calendarModel.filterEventsForSelectedDay()
         }
 
         function checkRecurringEvent(event, targetDate) {

@@ -3,22 +3,20 @@ import Quickshell
 import Quickshell.Io
 import "../.."
 
-// wttr.in-backed weather: a single `j1` request returns current conditions,
-// location, and the forecast together, so unlike the old dual-API version
-// this only ever needs one HTTP call per refresh.
+// Current conditions plus today's high/low, moon, and sunrise/sunset.
 Item {
     id: root
     property bool active: false
 
     property string icon: "\u26c5"
     property string temp: "..."
-    property string condition: "Loading..."
     property string location: ""
-    property string feelsLike: "--"
-    property string humidity: "--"
-    property string windSpeed: "--"
-    property string pressure: "--"
-    property var forecast: []
+    property string highTemp: "--"
+    property string lowTemp: "--"
+    property string moonPhaseName: "New Moon"
+    property string moonIllumination: "0%"
+    property string sunriseTime: "--"
+    property string sunsetTime: "--"
 
     readonly property var weatherIcons: ({
         "113": "\u2600\ufe0f", "116": "\u26c5", "119": "\u2601\ufe0f", "122": "\u2601\ufe0f", "143": "\ud83c\udf2b\ufe0f",
@@ -33,15 +31,13 @@ Item {
         "389": "\u26c8\ufe0f", "392": "\u26c8\ufe0f", "395": "\u2744\ufe0f"
     })
 
-    function iconFor(code) { return weatherIcons[code] || "\u26c5" }
+    readonly property var moonEmoji: ({
+        "New Moon": "\ud83c\udf11", "Waxing Crescent": "\ud83c\udf12", "First Quarter": "\ud83c\udf13",
+        "Waxing Gibbous": "\ud83c\udf14", "Full Moon": "\ud83c\udf15", "Waning Gibbous": "\ud83c\udf16",
+        "Last Quarter": "\ud83c\udf17", "Waning Crescent": "\ud83c\udf18"
+    })
 
-    function dayLabel(index) {
-        if (index === 0) return "Today"
-        if (index === 1) return "Tomorrow"
-        const date = new Date()
-        date.setDate(date.getDate() + index)
-        return ["Sun", "Mon", "Tue", "Wed", "Thu", "Fri", "Sat"][date.getDay()]
-    }
+    function iconFor(code) { return weatherIcons[code] || "\u26c5" }
 
     Timer {
         interval: 300000
@@ -54,11 +50,7 @@ Item {
     Process {
         id: proc
         running: false
-        command: {
-            const unit = Settings.weatherUseFahrenheit ? "u" : "m"
-            const loc = Settings.weatherLocation.trim()
-            return ["sh", "-c", `curl -s --max-time 8 'wttr.in/${loc}?${unit}&format=j1'`]
-        }
+        command: ["python3", `${Quickshell.env("HOME")}/.config/yahr/lock-info.py`, "fetch-weather"]
         stdout: StdioCollector {
             onStreamFinished: {
                 let data
@@ -69,17 +61,10 @@ Item {
                 }
 
                 const tempSymbol = Settings.weatherUseFahrenheit ? "\u00b0F" : "\u00b0C"
-                const speedUnit = Settings.weatherUseFahrenheit ? " mph" : " km/h"
-
                 const cur = data.current_condition && data.current_condition[0]
                 if (cur) {
                     root.icon = root.iconFor(cur.weatherCode)
                     root.temp = (Settings.weatherUseFahrenheit ? cur.temp_F : cur.temp_C) + tempSymbol
-                    root.condition = (cur.weatherDesc && cur.weatherDesc[0] && cur.weatherDesc[0].value.trim()) || "Unknown"
-                    root.feelsLike = (Settings.weatherUseFahrenheit ? cur.FeelsLikeF : cur.FeelsLikeC) + tempSymbol
-                    root.humidity = cur.humidity + "%"
-                    root.windSpeed = (Settings.weatherUseFahrenheit ? cur.windspeedMiles : cur.windspeedKmph) + speedUnit
-                    root.pressure = cur.pressure + " hPa"
                 }
 
                 const area = data.nearest_area && data.nearest_area[0]
@@ -89,114 +74,111 @@ Item {
                     root.location = [city, region].filter(s => s).join(", ")
                 }
 
-                if (Array.isArray(data.weather)) {
-                    const days = []
-                    for (let i = 0; i < Math.min(3, data.weather.length); i++) {
-                        const day = data.weather[i]
-                        const hourly = day.hourly && day.hourly[Math.floor(day.hourly.length / 2)]
-                        days.push({
-                            high: (Settings.weatherUseFahrenheit ? day.maxtempF : day.maxtempC) + tempSymbol,
-                            low: (Settings.weatherUseFahrenheit ? day.mintempF : day.mintempC) + tempSymbol,
-                            condition: (hourly && hourly.weatherDesc[0].value.trim()) || "Unknown",
-                            icon: root.iconFor(hourly ? hourly.weatherCode : "")
-                        })
+                const today = data.weather && data.weather[0]
+                if (today) {
+                    root.highTemp = (Settings.weatherUseFahrenheit ? today.maxtempF : today.maxtempC) + tempSymbol
+                    root.lowTemp = (Settings.weatherUseFahrenheit ? today.mintempF : today.mintempC) + tempSymbol
+                    const astro = today.astronomy && today.astronomy[0]
+                    if (astro) {
+                        root.moonPhaseName = astro.moon_phase || "New Moon"
+                        root.moonIllumination = (astro.moon_illumination || "0") + "%"
+                        root.sunriseTime = astro.sunrise || "--"
+                        root.sunsetTime = astro.sunset || "--"
                     }
-                    root.forecast = days
                 }
             }
         }
     }
 
-    Column {
+    Rectangle {
         anchors.fill: parent
-        spacing: 16
+        color: ThemeManager.overlay(0.07)
+        radius: 12
 
-        Rectangle {
-            width: parent.width
-            height: (parent.height - 16) * 0.45
-            color: Qt.rgba(1, 1, 1, 0.07)
-            radius: 12
+        Item {
+            id: weatherBlock
+            anchors.left: parent.left
+            anchors.right: parent.right
+            anchors.top: parent.top
+            anchors.bottom: astroBar.top
+            anchors.margins: 16
+            anchors.bottomMargin: 10
 
-            Item {
-                anchors.fill: parent
-                anchors.margins: 24
+            Column {
+                anchors.centerIn: parent
+                width: parent.width
+                spacing: 14
 
-                Column {
-                    anchors.horizontalCenter: parent.horizontalCenter
-                    anchors.horizontalCenterOffset: -parent.width * 0.25
-                    anchors.verticalCenter: parent.verticalCenter
-                    spacing: 12
-
-                    Text {
-                        anchors.horizontalCenter: parent.horizontalCenter
-                        text: root.icon
-                        font.family: "Noto Color Emoji"
-                        font.pixelSize: 72
-                    }
-                    Text {
-                        anchors.horizontalCenter: parent.horizontalCenter
-                        text: root.temp
-                        font.family: ThemeManager.uiFont
-                        font.pixelSize: 44
-                        font.weight: Font.Bold
-                        color: ThemeManager.fgPrimary
-                    }
-                    Text {
-                        anchors.horizontalCenter: parent.horizontalCenter
-                        text: root.condition
-                        font.family: ThemeManager.uiFont
-                        font.pixelSize: 16
-                        color: ThemeManager.fgSecondary
-                    }
+                Text {
+                    width: parent.width
+                    text: root.location !== "" ? root.location : "Weather"
+                    font.family: ThemeManager.uiFont
+                    font.pixelSize: 16
+                    font.weight: Font.DemiBold
+                    color: ThemeManager.accentBlue
+                    elide: Text.ElideRight
+                    horizontalAlignment: Text.AlignHCenter
                 }
 
-                Column {
-                    width: parent.width * 0.5
+                Row {
                     anchors.horizontalCenter: parent.horizontalCenter
-                    anchors.horizontalCenterOffset: parent.width * 0.25
-                    anchors.verticalCenter: parent.verticalCenter
                     spacing: 16
 
                     Text {
-                        visible: root.location !== ""
-                        text: "\ud83d\udccd " + root.location
-                        font.family: ThemeManager.uiFont
-                        font.pixelSize: 14
-                        font.weight: Font.Bold
-                        color: ThemeManager.accentBlue
-                        width: parent.width
-                        elide: Text.ElideRight
+                        text: root.icon
+                        font.family: "Noto Color Emoji"
+                        font.pixelSize: 72
+                        anchors.verticalCenter: parent.verticalCenter
                     }
 
-                    Grid {
-                        columns: 2
-                        columnSpacing: 32
-                        rowSpacing: 14
+                    Text {
+                        text: root.temp
+                        font.family: ThemeManager.uiFont
+                        font.pixelSize: 56
+                        font.weight: Font.Bold
+                        color: ThemeManager.fgPrimary
+                        anchors.verticalCenter: parent.verticalCenter
+                    }
+                }
 
-                        Repeater {
-                            model: [
-                                { label: "Feels Like", value: root.feelsLike, color: ThemeManager.fgPrimary },
-                                { label: "Humidity", value: root.humidity, color: ThemeManager.accentCyan },
-                                { label: "Wind Speed", value: root.windSpeed, color: ThemeManager.accentGreen },
-                                { label: "Pressure", value: root.pressure, color: ThemeManager.fgPrimary }
-                            ]
-                            Column {
-                                required property var modelData
-                                spacing: 4
-                                Text {
-                                    text: modelData.label
-                                    font.family: ThemeManager.uiFont
-                                    font.pixelSize: 11
-                                    color: ThemeManager.fgTertiary
-                                }
-                                Text {
-                                    text: modelData.value
-                                    font.family: ThemeManager.uiFont
-                                    font.pixelSize: 15
-                                    font.weight: Font.Bold
-                                    color: modelData.color
-                                }
-                            }
+                Row {
+                    anchors.horizontalCenter: parent.horizontalCenter
+                    spacing: 22
+
+                    Row {
+                        spacing: 8
+                        Text {
+                            text: "H"
+                            font.family: ThemeManager.uiFont
+                            font.pixelSize: 14
+                            color: ThemeManager.fgTertiary
+                            anchors.verticalCenter: parent.verticalCenter
+                        }
+                        Text {
+                            text: root.highTemp
+                            font.family: ThemeManager.uiFont
+                            font.pixelSize: 20
+                            font.weight: Font.Bold
+                            color: ThemeManager.accentRed
+                            anchors.verticalCenter: parent.verticalCenter
+                        }
+                    }
+                    Row {
+                        spacing: 8
+                        Text {
+                            text: "L"
+                            font.family: ThemeManager.uiFont
+                            font.pixelSize: 14
+                            color: ThemeManager.fgTertiary
+                            anchors.verticalCenter: parent.verticalCenter
+                        }
+                        Text {
+                            text: root.lowTemp
+                            font.family: ThemeManager.uiFont
+                            font.pixelSize: 20
+                            font.weight: Font.Bold
+                            color: ThemeManager.accentCyan
+                            anchors.verticalCenter: parent.verticalCenter
                         }
                     }
                 }
@@ -204,89 +186,91 @@ Item {
         }
 
         Rectangle {
-            width: parent.width
-            height: (parent.height - 16) * 0.55
-            color: Qt.rgba(1, 1, 1, 0.07)
-            radius: 12
+            id: astroBar
+            anchors.left: parent.left
+            anchors.right: parent.right
+            anchors.bottom: parent.bottom
+            anchors.margins: 12
+            height: 76
+            color: ThemeManager.overlay(0.07)
+            radius: 10
 
-            Column {
-                anchors.fill: parent
-                anchors.margins: 20
-                spacing: 16
+            Row {
+                id: moonRow
+                anchors.left: parent.left
+                anchors.right: sunCol.left
+                anchors.verticalCenter: parent.verticalCenter
+                anchors.leftMargin: 12
+                anchors.rightMargin: 12
+                spacing: 10
 
                 Text {
-                    text: "3-Day Forecast"
-                    font.family: ThemeManager.uiFont
-                    font.pixelSize: ThemeManager.fontSizeLarge
-                    font.weight: Font.Bold
-                    color: ThemeManager.fgPrimary
+                    text: root.moonEmoji[root.moonPhaseName] || "\ud83c\udf11"
+                    font.family: "Noto Color Emoji"
+                    font.pixelSize: 30
+                    anchors.verticalCenter: parent.verticalCenter
                 }
 
+                Column {
+                    spacing: 2
+                    anchors.verticalCenter: parent.verticalCenter
+                    width: parent.width - 44
+
+                    Text {
+                        text: root.moonPhaseName
+                        font.family: ThemeManager.uiFont
+                        font.pixelSize: 14
+                        font.weight: Font.Bold
+                        color: ThemeManager.fgPrimary
+                        elide: Text.ElideRight
+                        width: parent.width
+                    }
+                    Text {
+                        text: root.moonIllumination
+                        font.family: ThemeManager.uiFont
+                        font.pixelSize: 12
+                        color: ThemeManager.fgSecondary
+                    }
+                }
+            }
+
+            Column {
+                id: sunCol
+                anchors.right: parent.right
+                anchors.rightMargin: 14
+                anchors.verticalCenter: parent.verticalCenter
+                spacing: 8
+
                 Row {
-                    width: parent.width
-                    height: parent.height - 50
                     spacing: 8
-
-                    Repeater {
-                        model: root.forecast
-
-                        Rectangle {
-                            required property var modelData
-                            required property int index
-                            width: (parent.width - 16) / 3
-                            height: parent.height
-                            color: Qt.rgba(1, 1, 1, 0.07)
-                            radius: 10
-
-                            Column {
-                                anchors.centerIn: parent
-                                spacing: 10
-
-                                Text {
-                                    anchors.horizontalCenter: parent.horizontalCenter
-                                    text: root.dayLabel(index)
-                                    font.family: ThemeManager.uiFont
-                                    font.pixelSize: 13
-                                    font.weight: Font.Bold
-                                    color: ThemeManager.fgPrimary
-                                }
-                                Text {
-                                    anchors.horizontalCenter: parent.horizontalCenter
-                                    text: modelData.icon
-                                    font.family: "Noto Color Emoji"
-                                    font.pixelSize: 34
-                                }
-                                Row {
-                                    anchors.horizontalCenter: parent.horizontalCenter
-                                    spacing: 6
-                                    Text {
-                                        text: modelData.high
-                                        font.family: ThemeManager.uiFont
-                                        font.pixelSize: 14
-                                        font.weight: Font.Bold
-                                        color: ThemeManager.accentRed
-                                    }
-                                    Text {
-                                        text: modelData.low
-                                        font.family: ThemeManager.uiFont
-                                        font.pixelSize: 13
-                                        color: ThemeManager.accentCyan
-                                    }
-                                }
-                                Text {
-                                    anchors.horizontalCenter: parent.horizontalCenter
-                                    text: modelData.condition
-                                    font.family: ThemeManager.uiFont
-                                    font.pixelSize: 10
-                                    color: ThemeManager.fgSecondary
-                                    width: parent.parent.width - 16
-                                    horizontalAlignment: Text.AlignHCenter
-                                    wrapMode: Text.WordWrap
-                                    maximumLineCount: 2
-                                    elide: Text.ElideRight
-                                }
-                            }
-                        }
+                    Text {
+                        text: "\ud83c\udf05"
+                        font.family: "Noto Color Emoji"
+                        font.pixelSize: 16
+                        anchors.verticalCenter: parent.verticalCenter
+                    }
+                    Text {
+                        text: root.sunriseTime
+                        font.family: ThemeManager.uiFont
+                        font.pixelSize: 13
+                        color: ThemeManager.accentYellow
+                        anchors.verticalCenter: parent.verticalCenter
+                    }
+                }
+                Row {
+                    spacing: 8
+                    Text {
+                        text: "\ud83c\udf07"
+                        font.family: "Noto Color Emoji"
+                        font.pixelSize: 16
+                        anchors.verticalCenter: parent.verticalCenter
+                    }
+                    Text {
+                        text: root.sunsetTime
+                        font.family: ThemeManager.uiFont
+                        font.pixelSize: 13
+                        color: ThemeManager.accentOrange
+                        anchors.verticalCenter: parent.verticalCenter
                     }
                 }
             }

@@ -1,22 +1,35 @@
 import QtQuick
 import Quickshell
-import Quickshell.Io
 import "../.."
 
 Item {
     id: bat
-    implicitWidth: visible ? row.implicitWidth + 12 : 0
+    implicitWidth: row.implicitWidth + 12
     implicitHeight: 40
-    visible: false
-    property int percent: 100
-    property bool charging: false
+    signal togglePanel()
+
+    readonly property bool hasBattery: PowerState.hasBattery
+    readonly property bool pluggedIn: PowerState.pluggedIn
+    readonly property bool charging: PowerState.charging
+    readonly property int percent: PowerState.percent
+
+    scale: batMouse.pressed ? ThemeManager.iconPressScale : (batMouse.containsMouse ? ThemeManager.iconHoverScale : 1.0)
+    Behavior on scale {
+        SpringAnimation { spring: ThemeManager.bounceSpring; damping: ThemeManager.bounceDamping; mass: ThemeManager.bounceMass }
+    }
 
     Row {
         id: row
         anchors.centerIn: parent
         spacing: 4
         Text {
+            id: batGlyph
             text: {
+                if (bat.pluggedIn) {
+                    if (bat.hasBattery && bat.charging)
+                        return "󰂄"
+                    return "󰚥"
+                }
                 const pct = bat.percent
                 if (pct >= 95) return "󰁹"
                 if (pct >= 80) return "󰂁"
@@ -28,44 +41,28 @@ Item {
             font.family: "Symbols Nerd Font"
             font.pixelSize: ThemeManager.fontSizeIcon
             color: {
-                if (bat.charging) return ThemeManager.accentGreen
+                if (bat.pluggedIn)
+                    return ThemeManager.accentGreen
                 if (bat.percent <= 15) return ThemeManager.accentRed
                 if (bat.percent <= 30) return ThemeManager.accentYellow
                 return ThemeManager.accentGreen
             }
+            visible: !(Settings.showBatteryPercent && bat.hasBattery)
         }
         Text {
-            visible: bat.charging
+            visible: Settings.showBatteryPercent && bat.hasBattery
             text: bat.percent + "%"
             font.family: ThemeManager.uiFont
-            font.pixelSize: ThemeManager.fontSizeSmall
-            color: ThemeManager.accentGreen
+            font.pixelSize: ThemeManager.fontSizeNormal
+            color: batGlyph.color
         }
     }
 
-    Timer {
-        interval: 8000
-        running: true
-        repeat: true
-        triggeredOnStart: true
-        onTriggered: probe.running = true
-    }
-
-    Process {
-        id: probe
-        running: false
-        command: ["sh", "-c", "BAT=$(echo /sys/class/power_supply/BAT*/uevent | awk '{print $1}'); [ -f \"$BAT\" ] || exit 1; CAP=$(grep POWER_SUPPLY_CAPACITY= \"$BAT\" | cut -d= -f2); STAT=$(grep POWER_SUPPLY_STATUS= \"$BAT\" | cut -d= -f2); echo \"$CAP $STAT\""]
-        stdout: StdioCollector {
-            onStreamFinished: {
-                const parts = this.text.trim().split(" ")
-                if (parts.length >= 1 && parts[0] !== "") {
-                    bat.visible = true
-                    bat.percent = parseInt(parts[0]) || 0
-                    bat.charging = parts.slice(1).join(" ").indexOf("Charg") !== -1
-                } else {
-                    bat.visible = false
-                }
-            }
-        }
+    MouseArea {
+        id: batMouse
+        anchors.fill: parent
+        hoverEnabled: true
+        cursorShape: Qt.PointingHandCursor
+        onClicked: bat.togglePanel()
     }
 }

@@ -9,9 +9,14 @@ Rectangle {
     property int pixelSize: ThemeManager.fontSizeIcon
     property real hoverScale: ThemeManager.iconHoverScale
     property real pressScale: ThemeManager.iconPressScale
+    // Nudges the glyph within its own fixed-size box without moving/resizing
+    // the button itself. Useful when a container is already flush against a
+    // screen edge and can't grow further in that direction.
+    property real glyphOffsetY: 0
+    property bool compact: false
     signal clicked()
 
-    width: 46
+    width: compact ? pixelSize + 12 : 46
     height: 40
     radius: 10
     color: "transparent"
@@ -23,6 +28,7 @@ Rectangle {
 
     Text {
         anchors.centerIn: parent
+        anchors.verticalCenterOffset: root.glyphOffsetY
         text: root.glyph
         font.family: "Symbols Nerd Font"
         font.pixelSize: root.pixelSize

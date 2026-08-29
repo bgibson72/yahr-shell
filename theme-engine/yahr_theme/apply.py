@@ -1,14 +1,34 @@
-"""Load palettes and fan them out to Hyprland, GTK, Kitty, Mako, icons, lock, Qt."""
+"""Load palettes and fan them out to Hyprland, GTK, Ghostty, Starship, Mako, icons, lock, Qt."""
 
 from __future__ import annotations
 
 import json
+import re
 import shutil
 import subprocess
+import sys
 from pathlib import Path
 
 from . import paths, templates
-from .colors import nearest_papirus, strip_hash
+from .colors import PAPIRUS_FOLDERS, PAPIRUS_TO_GNOME, nearest_gnome_accent, palette_mode, papirus_folder_for
+
+# v1 shipped full GTK3 theme packages in ~/.themes (Materia forks).
+# adw-gtk3 is not installed here, so we keep mapping palettes onto those.
+GTK_THEME_MAP = {
+    "catppuccin": "Catppuccin-Dark",
+    "dracula": "Dracula",
+    "eldritch": "Eldritch",
+    "everforest": "Everforest-Dark",
+    "gruvbox": "Gruvbox-Dark",
+    "kanagawa": "Kanagawa-Dark-Dragon",
+    "material": "Material-Dark-Palenight",
+    "nightfox": "Nightfox-Dark-Duskfox",
+    "nord": "Nordic",
+    "rose-pine": "Rosepine-Dark",
+    "solarized": "Osaka-Dark",
+    "tokyo-night": "Tokyonight-Dark",
+    "monochrome": "Catppuccin-Dark",
+}
 
 
 def _read_json(path: Path) -> dict:
@@ -58,8 +78,58 @@ def list_themes() -> list[dict]:
             "custom": bool(data.get("custom")),
             "path": str(path),
             "active": data.get("id", path.stem) == current_id,
+            "mode": palette_mode(data),
+            "bgBase": data.get("bgBase", "#1e1e2e"),
+            "fgPrimary": data.get("fgPrimary", "#cdd6f4"),
+            "fgTertiary": data.get("fgTertiary", "#a6adc8"),
+            "accentBlue": data.get("accentBlue", "#89b4fa"),
+            "border0": data.get("border0", "#6c7086"),
         })
     return out
+
+
+def _settings() -> dict:
+    path = paths.yahr_config() / "settings.json"
+    try:
+        data = json.loads(path.read_text())
+        return data if isinstance(data, dict) else {}
+    except (OSError, json.JSONDecodeError, TypeError):
+        return {}
+
+
+def _ui_font() -> str:
+    return str(_settings().get("general", {}).get("uiFont") or "Inter")
+
+
+def _sync_sddm() -> None:
+    """Push the current palette, clock, and wallpaper into the SDDM greeter."""
+    script = paths.repo_root() / "quickshell" / "scripts" / "sddm-apply.py"
+    if not script.is_file():
+        return
+    sddm = _settings().get("sddm") or {}
+    blur = 0 if not sddm.get("blurEnabled", True) else int(sddm.get("blurAmount", 20) or 0)
+    opacity = sddm.get("loginOpacity", 0.75)
+    wallpaper = "desktop" if sddm.get("followDesktop", True) else (sddm.get("customWallpaper") or "none")
+    _run([
+        sys.executable,
+        str(script),
+        "--opacity",
+        f"{float(opacity):.2f}",
+        "--blur",
+        str(blur),
+        "--wallpaper",
+        str(wallpaper),
+    ])
+
+
+def _install_lock_info() -> None:
+    src = paths.repo_root() / "hypr" / "scripts" / "lock-info.py"
+    dest = paths.yahr_config() / "lock-info.py"
+    if src.is_file():
+        dest.parent.mkdir(parents=True, exist_ok=True)
+        shutil.copy2(src, dest)
+        dest.chmod(0o755)
+        _run([str(dest), "render"])
 
 
 def _write(path: Path, content: str) -> None:
@@ -78,81 +148,262 @@ def _gsettings(schema: str, key: str, value: str) -> None:
     _run(["gsettings", "set", schema, key, value])
 
 
-def _pick_wallpaper(palette: dict, previous: dict | None) -> Path | None:
-    root = paths.wallpaper_root()
-    folder = root / palette.get("wallpaperDir", palette.get("name", ""))
-    if not folder.is_dir():
-        return None
-    images = sorted(
-        p for p in folder.iterdir()
-        if p.suffix.lower() in {".png", ".jpg", ".jpeg", ".webp", ".gif"}
-    )
-    if not images:
-        return None
+def _firefox_profile_dirs() -> list[Path]:
+    home = paths.home()
+    roots = [
+        home / ".mozilla" / "firefox",
+        home / ".config" / "mozilla" / "firefox",
+        home / ".librewolf",
+        home / ".var" / "app" / "org.mozilla.firefox" / ".mozilla" / "firefox",
+    ]
+    found: list[Path] = []
+    for root in roots:
+        ini = root / "profiles.ini"
+        if not ini.is_file():
+            continue
+        try:
+            lines = ini.read_text().splitlines()
+        except OSError:
+            continue
+        for line in lines:
+            if not line.startswith("Path="):
+                continue
+            rel = line.split("=", 1)[1].strip()
+            if not rel:
+                continue
+            dest = Path(rel) if Path(rel).is_absolute() else root / rel
+            if dest.is_dir():
+                found.append(dest)
+    return found
 
-    last = paths.last_wallpaper()
-    current_file = last.read_text().strip() if last.is_file() else ""
-    prev_dir = (previous or {}).get("wallpaperDir")
-    if current_file:
-        current_path = Path(current_file)
-        # Keep a user-chosen wallpaper unless it belonged to the previous theme folder
-        if current_path.is_file():
-            if prev_dir and prev_dir in current_path.parts:
-                return images[0]
-            if palette.get("wallpaperDir") in current_path.parts:
-                return current_path
-            return current_path
-    return images[0]
+
+def _upsert_firefox_user_js(path: Path, *, light: bool) -> None:
+    block = templates.firefox_user_js(light=light).strip() + "\n"
+    text = path.read_text() if path.is_file() else ""
+    start = "// >>> yahr-theme"
+    end = "// <<< yahr-theme"
+    if start in text and end in text:
+        before = text.split(start, 1)[0]
+        after = text.split(end, 1)[1]
+        if after.startswith("\n"):
+            after = after[1:]
+        text = before.rstrip() + "\n\n" + block + after
+    else:
+        text = (text.rstrip() + "\n\n" + block) if text.strip() else block
+    path.write_text(text)
+
+
+def _install_firefox_theme(palette: dict) -> None:
+    light = palette_mode(palette) == "light"
+    chrome = templates.firefox_user_chrome(palette)
+    for profile in _firefox_profile_dirs():
+        chrome_dir = profile / "chrome"
+        chrome_dir.mkdir(parents=True, exist_ok=True)
+        _write(chrome_dir / "userChrome.css", chrome)
+        _upsert_firefox_user_js(profile / "user.js", light=light)
+
+
+def _install_cursor_theme(palette: dict) -> None:
+    path = paths.cursor_settings_json()
+    try:
+        data = json.loads(path.read_text()) if path.is_file() else {}
+    except (OSError, json.JSONDecodeError):
+        return
+    if not isinstance(data, dict):
+        return
+    light = palette_mode(palette) == "light"
+    data["workbench.colorCustomizations"] = templates.cursor_color_customizations(palette)
+    data["editor.tokenColorCustomizations"] = templates.cursor_token_customizations(palette)
+    if light:
+        data["workbench.preferredLightColorTheme"] = data.get("workbench.preferredLightColorTheme") or "Cursor Light"
+    else:
+        data["workbench.preferredDarkColorTheme"] = data.get("workbench.preferredDarkColorTheme") or "Cursor Dark"
+    path.parent.mkdir(parents=True, exist_ok=True)
+    path.write_text(json.dumps(data, indent=4) + "\n")
+
+
+def _upsert_hash_block(path: Path, body: str) -> None:
+    start = "# >>> yahr-theme"
+    end = "# <<< yahr-theme"
+    block = f"{start}\n{body.rstrip()}\n{end}\n"
+    path.parent.mkdir(parents=True, exist_ok=True)
+    text = path.read_text() if path.is_file() else ""
+    if start in text and end in text:
+        before = text.split(start, 1)[0]
+        after = text.split(end, 1)[1]
+        if after.startswith("\n"):
+            after = after[1:]
+        text = before.rstrip() + "\n\n" + block + after
+    else:
+        text = (text.rstrip() + "\n\n" + block) if text.strip() else block
+    path.write_text(text)
+
+
+def _window_opacity() -> float:
+    hypr = _settings().get("hypr") or {}
+    if hypr.get("windowTransparent") is not True:
+        return 1.0
+    try:
+        return max(0.5, min(1.0, float(hypr.get("windowOpacity") or 0.92)))
+    except (TypeError, ValueError):
+        return 0.92
+
+
+def sync_ghostty_opacity() -> None:
+    palette: dict = {}
+    try:
+        palette = json.loads(paths.current_json().read_text())
+        if not isinstance(palette, dict):
+            palette = {}
+    except (OSError, json.JSONDecodeError, TypeError):
+        palette = {}
+    light = palette_mode(palette) == "light" if palette else False
+    conf = paths.ghostty_config()
+    if not conf.is_file():
+        return
+    _upsert_hash_block(conf, templates.ghostty_config_block(
+        light=light, background_opacity=_window_opacity()))
+
+
+def _install_ghostty_theme(palette: dict) -> None:
+    theme_path = paths.ghostty_theme()
+    theme_path.parent.mkdir(parents=True, exist_ok=True)
+    _write(theme_path, templates.ghostty_theme(palette))
+    conf = paths.ghostty_config()
+    if not conf.is_file() or not conf.read_text().strip():
+        _write(conf, templates.ghostty_config_base())
+    light = palette_mode(palette) == "light"
+    _upsert_hash_block(conf, templates.ghostty_config_block(
+        light=light, background_opacity=_window_opacity()))
+
+
+def _theme_installed(name: str) -> bool:
+    home = paths.home()
+    for root in (home / ".themes", home / ".local/share/themes", Path("/usr/share/themes")):
+        if (root / name).is_dir():
+            return True
+    return False
+
+
+def resolve_gtk_theme(palette: dict) -> str:
+    tid = str(palette.get("id") or "").strip().lower()
+    mapped = GTK_THEME_MAP.get(tid)
+    if mapped is None:
+        for key in sorted(GTK_THEME_MAP, key=len, reverse=True):
+            if tid == key or tid.startswith(key + "-"):
+                mapped = GTK_THEME_MAP[key]
+                break
+    light = palette_mode(palette) == "light"
+    if mapped and _theme_installed(mapped) and not light:
+        return mapped
+    if light:
+        if _theme_installed("adw-gtk3"):
+            return "adw-gtk3"
+        return "Adwaita"
+    if _theme_installed("adw-gtk3-dark"):
+        return "adw-gtk3-dark"
+    if _theme_installed("Catppuccin-Dark"):
+        return "Catppuccin-Dark"
+    if _theme_installed("Dracula"):
+        return "Dracula"
+    return "Adwaita-dark"
+
+
+def _ensure_pointer_themes() -> None:
+    dest_dir = paths.home() / ".local/share/icons"
+    dest_dir.mkdir(parents=True, exist_ok=True)
+    for name in (templates.POINTER_THEME_DARK, templates.POINTER_THEME_LIGHT):
+        src = Path("/usr/share/icons") / name
+        dest = dest_dir / name
+        if src.is_dir() and not dest.exists():
+            dest.symlink_to(src)
+
+
+def _update_xsettingsd(gtk_theme: str, icon_theme: str, *, cursor_theme: str) -> None:
+    conf = paths.home() / ".config/xsettingsd/xsettingsd.conf"
+    if not conf.is_file():
+        return
+    text = conf.read_text()
+
+    def set_quoted(src: str, key: str, value: str) -> str:
+        line = f'{key} "{value}"'
+        pattern = rf"(?m)^{re.escape(key)}\s+.*$"
+        if re.search(pattern, src):
+            return re.sub(pattern, line, src, count=1)
+        return src.rstrip() + "\n" + line + "\n"
+
+    def set_plain(src: str, key: str, value: str) -> str:
+        line = f"{key} {value}"
+        pattern = rf"(?m)^{re.escape(key)}\s+.*$"
+        if re.search(pattern, src):
+            return re.sub(pattern, line, src, count=1)
+        return src.rstrip() + "\n" + line + "\n"
+
+    text = set_quoted(text, "Net/ThemeName", gtk_theme)
+    text = set_quoted(text, "Net/IconThemeName", icon_theme)
+    text = set_quoted(text, "Gtk/CursorThemeName", cursor_theme)
+    text = set_plain(text, "Gtk/CursorThemeSize", str(templates.POINTER_SIZE))
+    conf.write_text(text)
+    _run(["killall", "-HUP", "xsettingsd"])
 
 
 def apply_palette(palette: dict, *, reload: bool = True) -> None:
-    previous = None
-    if paths.current_json().is_file():
-        try:
-            previous = _read_json(paths.current_json())
-        except json.JSONDecodeError:
-            previous = None
-
     paths.yahr_config().mkdir(parents=True, exist_ok=True)
+    light = palette_mode(palette) == "light"
+    gtk_theme = resolve_gtk_theme(palette)
+    icon_theme = "Papirus" if light else "Papirus-Dark"
+    color_scheme = "prefer-light" if light else "prefer-dark"
+
     _write(paths.current_json(), json.dumps(palette, indent=2) + "\n")
+    _sync_sddm()
     _write(paths.hypr_theme_lua(), templates.hypr_theme_lua(palette))
-    _write(paths.kitty_theme(), templates.kitty_theme(palette))
-    _write(paths.mako_config(), templates.mako_config(palette))
+    _install_ghostty_theme(palette)
+    _write(paths.starship_toml(), templates.starship_toml(palette))
+    _write(paths.mako_config(), templates.mako_config(palette, **templates.mako_style(palette, _settings())))
+    _install_lock_info()
     _write(paths.hyprlock_conf(), templates.hyprlock_conf(palette))
     css = templates.gtk_css(palette)
     _write(paths.gtk3_css(), css)
     _write(paths.gtk4_css(), css)
-    _write(paths.gtk3_settings(), templates.gtk_settings_ini())
-    gtk4_ini = paths.home() / ".config/gtk-4.0/settings.ini"
-    _write(gtk4_ini, templates.gtk_settings_ini())
+    ini = templates.gtk_settings_ini(gtk_theme, icon_theme, light=light)
+    _write(paths.gtk3_settings(), ini)
+    _write(paths.home() / ".config/gtk-4.0/settings.ini", ini)
+    _write(paths.home() / ".gtkrc-2.0", templates.gtkrc2(gtk_theme, icon_theme, light=light))
+    _write(paths.home() / ".config/gtk-3.0/gtk-theme-env.sh", templates.gtk_theme_env(gtk_theme, icon_theme, light=light))
     _write(paths.qt6ct_colors(), templates.qt6ct_colors(palette))
+    pointer = templates.pointer_theme(light=light)
+    _ensure_pointer_themes()
+    _update_xsettingsd(gtk_theme, icon_theme, cursor_theme=pointer)
 
-    _gsettings("org.gnome.desktop.interface", "gtk-theme", "adw-gtk3-dark")
-    _gsettings("org.gnome.desktop.interface", "icon-theme", "Papirus-Dark")
-    _gsettings("org.gnome.desktop.interface", "color-scheme", "prefer-dark")
-    _gsettings("org.gnome.desktop.interface", "accent-color", "blue")
+    _gsettings("org.gnome.desktop.interface", "gtk-theme", gtk_theme)
+    _gsettings("org.gnome.desktop.interface", "icon-theme", icon_theme)
+    _gsettings("org.gnome.desktop.interface", "color-scheme", color_scheme)
+    folder_color = papirus_folder_for(palette)
+    gnome_accent = PAPIRUS_TO_GNOME.get(folder_color) or nearest_gnome_accent("#" + PAPIRUS_FOLDERS.get(folder_color, "5294e2"))
+    _gsettings("org.gnome.desktop.interface", "accent-color", gnome_accent)
+    _gsettings("org.gnome.desktop.interface", "cursor-theme", pointer)
+    _gsettings("org.gnome.desktop.interface", "cursor-size", str(templates.POINTER_SIZE))
+    _run(["hyprctl", "eval", f'hl.env("GTK_THEME", "{gtk_theme}")'])
+    _run(["hyprctl", "eval", f'hl.env("XCURSOR_THEME", "{pointer}")'])
+    _run(["hyprctl", "eval", f'hl.env("HYPRCURSOR_THEME", "{pointer}")'])
+    _run(["hyprctl", "setcursor", pointer, str(templates.POINTER_SIZE)])
 
-    folder_color = nearest_papirus(palette["accentBlue"])
     papirus = shutil.which("papirus-folders")
     if papirus:
-        result = _run(["papirus-folders", "-C", folder_color, "--theme", "Papirus-Dark"])
+        result = _run(["papirus-folders", "-C", folder_color, "--theme", icon_theme])
         if result and result.returncode != 0:
-            _run(["sudo", "-n", papirus, "-C", folder_color, "--theme", "Papirus-Dark"])
+            _run(["sudo", "-n", papirus, "-C", folder_color, "--theme", icon_theme])
 
-    wallpaper = _pick_wallpaper(palette, previous)
-    if wallpaper:
-        paths.last_wallpaper().write_text(str(wallpaper) + "\n")
-        if reload:
-            _run(["swww", "img", str(wallpaper), "--transition-type", "fade", "--transition-duration", "0.6"])
+    _install_firefox_theme(palette)
+    _install_cursor_theme(palette)
 
+    # Wallpaper is chosen from Settings → Wallpaper, not from theme folders.
     if not reload:
         return
 
     _run(["hyprctl", "reload"])
     _run(["makoctl", "reload"])
-    _run(["kitty", "@", "set-colors", "--all", "--configured", str(paths.kitty_theme())])
-    _run(["killall", "-SIGUSR1", "kitty"])
-    # Thunar daemon picks up GTK CSS after a restart
+    # Thunar daemon picks up GTK CSS / theme after a restart
     _run(["thunar", "-q"])
     _run(["killall", "thunar"])
 

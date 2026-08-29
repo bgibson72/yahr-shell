@@ -4,7 +4,7 @@
     "widgetOpacity": 1.0,
     "showWidgetBorders": false,
     "widgetBorderWidth": 1,
-    "blur": true,
+    "blur": false,
     "clockFormat24hr": false,
     "showSeconds": false,
     "dateFormat": "MDY",
@@ -20,7 +20,7 @@
     "floating": false,
     "showBorder": false,
     "showQuickLaunch": true,
-    "showSystemTray": true,
+    "showSystemTray": false,
     "showMediaPlayer": false,
     "minWorkspaces": 4,
     "workspaceStyle": "dots"
@@ -39,9 +39,18 @@
   },
   "hypr": {
     "rounding": 12,
-    "borderSize": 3
+    "showBorder": true,
+    "borderSize": 3,
+    "blurEnabled": false,
+    "blurSize": 10,
+    "windowTransparent": false,
+    "windowOpacity": 0.92
   },
   "screenshot": {
     "saveLocation": "~/Pictures/Screenshots"
+  },
+  "wallpaper": {
+    "directory": "~/Pictures/Wallpapers",
+    "current": ""
   }
 }

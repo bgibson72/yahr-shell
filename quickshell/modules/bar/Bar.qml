@@ -4,48 +4,94 @@ import Quickshell
 import "../../components"
 import "../.."
 
-// Root is a plain Item (not the visual bar surface) so the bar window can be
-// taller than the pill itself, letting the Arch logo button spill above and
-// below the bar's edges. barBg below is the actual pill; archButton sits
-// outside it, flush against the window's top edge so its tip touches the
-// true top of the screen.
+// Root is a plain Item (not the visual bar surface) so the bar window can
+// be slightly taller than the pill for hover bounce. barBg is the actual
+// pill; archButton is the launcher mark, sized to fit inside the bar.
 Item {
     id: bar
 
     signal toggleLauncher()
     signal togglePowerMenu()
-    signal toggleSettings()
-    signal toggleThemeSwitcher()
-    signal toggleWallpaper()
-    signal toggleControlCenter()
+    signal toggleNetwork()
+    signal toggleBluetooth()
+    signal toggleBattery()
+    signal toggleAudio()
     signal toggleClipboard()
     signal toggleScreenshot()
     signal toggleInfoPanel()
+    signal toggleSettings()
+
+    readonly property bool useIslands: Settings.barStyle === "islands"
+    readonly property int islandOuterPad: 6
+    readonly property int islandInnerPad: 10
+    property alias maskBar: barBg
+    property alias maskArch: archButton
+    property alias maskLeftIsland: leftIsland
+    property alias maskCenterIsland: centerIsland
+    property alias maskRightIsland: rightIsland
+
+    // In frame-and-emerge mode the bar fill and the top inverse corners are
+    // the same canvas, so the corners read as a continuation of the bar
+    // instead of a separate rounded cap sitting under it.
+    ScreenFrame {
+        z: 0
+        anchors.fill: parent
+        topSectionOnly: true
+    }
 
     Rectangle {
         id: barBg
+        visible: !bar.useIslands
         anchors.left: parent.left
         anchors.right: parent.right
         anchors.top: parent.top
-        anchors.topMargin: ThemeManager.barPillOffset
+        anchors.topMargin: ThemeManager.barPillTopMargin
         height: ThemeManager.barHeight
-        color: {
-            if (Settings.barBackgroundStyle === "transparent")
-                return "transparent"
-            if (Settings.barBackgroundStyle === "opaque")
-                return ThemeManager.bgBase
-            return Qt.rgba(ThemeManager.bgBase.r, ThemeManager.bgBase.g, ThemeManager.bgBase.b, Settings.barOpacity)
-        }
-        radius: Settings.barFloating ? ThemeManager.hyprRounding : 0
-        border.width: Settings.barShowBorder ? 1 : 0
-        border.color: ThemeManager.accentBorder
+        color: ThemeManager.useFrameEmerge ? "transparent" : ThemeManager.barFillColor
+        radius: (Settings.barFloating && !ThemeManager.useFrameEmerge) ? height / 2 : 0
+        border.width: ThemeManager.useFrameEmerge ? 0
+            : (ThemeManager.effectiveBarShowBorder ? ThemeManager.effectiveBarBorderWidth : 0)
+        border.color: ThemeManager.chromeBorderColor
+    }
+
+    component IslandPill: Rectangle {
+        visible: bar.useIslands
+        height: ThemeManager.barHeight
+        radius: height / 2
+        color: ThemeManager.barFillColor
+        border.width: ThemeManager.effectiveBarShowBorder ? ThemeManager.effectiveBarBorderWidth : 0
+        border.color: ThemeManager.chromeBorderColor
+        z: 0
+    }
+
+    IslandPill {
+        id: leftIsland
+        anchors.verticalCenter: barBg.verticalCenter
+        x: bar.islandOuterPad
+        width: Math.max(ThemeManager.barHeight, leftRow.x + leftRow.width - x + bar.islandInnerPad)
+    }
+
+    IslandPill {
+        id: centerIsland
+        anchors.verticalCenter: barBg.verticalCenter
+        anchors.horizontalCenter: clock.horizontalCenter
+        width: clock.width + bar.islandInnerPad * 2
+    }
+
+    IslandPill {
+        id: rightIsland
+        anchors.verticalCenter: barBg.verticalCenter
+        anchors.right: parent.right
+        anchors.rightMargin: bar.islandOuterPad
+        width: rightRow.width + bar.islandInnerPad * 2
     }
 
     IconButton {
         id: archButton
-        anchors.top: parent.top
+        z: 1
         anchors.left: parent.left
         anchors.leftMargin: 10
+        anchors.verticalCenter: barBg.verticalCenter
         width: ThemeManager.archIconSize
         height: ThemeManager.archIconSize
         glyph: "󰣇"
@@ -57,74 +103,78 @@ Item {
     }
 
     RowLayout {
+        id: leftRow
+        z: 1
         anchors.left: parent.left
         anchors.leftMargin: archButton.width + 16
         anchors.verticalCenter: barBg.verticalCenter
         spacing: 6
 
-        WorkspaceBar {
-            minWorkspaces: Settings.minWorkspaces
+        PillGroup {
+            horizontalPadding: 10
+            WorkspaceBar {
+                minWorkspaces: Settings.minWorkspaces
+            }
         }
 
         MediaPlayer {}
 
         QuickAccessDrawer {
             onToggleScreenshot: bar.toggleScreenshot()
+            onToggleSettings: bar.toggleSettings()
         }
     }
 
-    // Anchored to the pill's own center and the screen's horizontal
-    // center, so it stays fixed relative to the display regardless of
-    // how many icons end up on either side. Doubles as the opener for the
-    // Calendar/Weather/System info panel, so there's no separate icon for it.
     Clock {
+        id: clock
+        z: 1
         anchors.horizontalCenter: parent.horizontalCenter
         anchors.verticalCenter: barBg.verticalCenter
         onClicked: bar.toggleInfoPanel()
     }
 
     RowLayout {
+        id: rightRow
+        z: 1
         anchors.right: parent.right
-        anchors.rightMargin: 10
+        // Islands: sit inside the right-island pill with the same inner pad
+        // on both sides. Single style keeps a tighter 10px window inset.
+        anchors.rightMargin: bar.useIslands ? bar.islandOuterPad + bar.islandInnerPad : 10
         anchors.verticalCenter: barBg.verticalCenter
-        spacing: 4
+        // Same gap between groups: updater→bluetooth and audio→power.
+        spacing: 16
 
-        IconButton {
-            glyph: "󰉋"
-            onClicked: Quickshell.execDetached(["thunar"])
-        }
-        IconButton {
-            glyph: "󰏘"
-            onClicked: bar.toggleThemeSwitcher()
-        }
-        IconButton {
-            glyph: "󰸉"
-            onClicked: bar.toggleWallpaper()
-        }
-            IconButton {
-                glyph: "󰅍"
-                onClicked: bar.toggleClipboard()
-            }
+        PillGroup {
             SystemTray {}
-        UpdateChecker {}
-        Audio {}
-        Network {}
-        Battery {}
-        IconButton {
-            glyph: "󰒓"
-            onClicked: bar.toggleSettings()
+            Clipboard {
+                onToggleClipboard: bar.toggleClipboard()
+            }
+            UpdateChecker {}
         }
-        IconButton {
-            glyph: "󰐥"
-            glyphColor: ThemeManager.accentRed
-            onClicked: bar.togglePowerMenu()
-        }
-    }
 
-    MouseArea {
-        z: -1
-        anchors.fill: barBg
-        acceptedButtons: Qt.RightButton
-        onClicked: bar.toggleControlCenter()
+        PillGroup {
+            Bluetooth {
+                onTogglePanel: bar.toggleBluetooth()
+            }
+            Network {
+                onTogglePanel: bar.toggleNetwork()
+            }
+            Battery {
+                onTogglePanel: bar.toggleBattery()
+            }
+            Audio {
+                onTogglePanel: bar.toggleAudio()
+            }
+        }
+
+        PillGroup {
+            circular: true
+            IconButton {
+                compact: true
+                glyph: "󰐥"
+                glyphColor: ThemeManager.accentRed
+                onClicked: bar.togglePowerMenu()
+            }
+        }
     }
 }

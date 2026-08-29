@@ -7,7 +7,7 @@ import "../.."
 
 RowLayout {
     id: root
-    spacing: 2
+    spacing: 4
     visible: Settings.showSystemTray && SystemTray.items.values.length > 0
 
     Repeater {

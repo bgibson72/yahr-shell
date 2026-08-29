@@ -2,11 +2,11 @@
 
 Hyprland + Quickshell desktop for Arch Linux, built around one theme engine.
 
-Switch between bundled palettes (Catppuccin, Dracula, Nord, …) or save your own colors. The same palette drives Hyprland borders, Quickshell widgets, GTK (Thunar), Papirus folder colors, Kitty, Mako, Hyprlock, and Qt.
+Switch between bundled palettes (Catppuccin, Dracula, Nord, …) or save your own colors. The same palette drives Hyprland borders, Quickshell widgets, GTK (Thunar), Papirus folder colors, Ghostty, Starship, Mako, Hyprlock, and Qt.
 
 ## Features
 
-- **13 bundled themes** plus a custom theme creator (background + 8 accents)
+- **13 dark + 13 light bundled palettes** plus a custom theme creator (background + 8 accents)
 - **One command apply** — `yahr-theme apply catppuccin` rewrites every target without restarting Quickshell
 - **Quickshell desktop** — bar, dock, app launcher, control center, power menu, wallpaper picker, clipboard
 - **Daily-driver installer** — GPU drivers, compositor, shell, file manager, notifications, lock screen
@@ -46,14 +46,14 @@ Palettes are JSON in `themes/` (bundled) and `~/.config/yahr/themes/` (yours). `
 
 | Bind | Action |
 | --- | --- |
-| Super+Return | Terminal (Kitty) |
+| Super+Return | Terminal (Ghostty) |
 | Super+A | App launcher |
 | Super+T | Theme switcher |
 | Super+F | Thunar |
 | Super+Escape | Power menu |
 | Super+L | Lock (Hyprlock) |
 | Super+Shift+S | Settings |
-| Super+Shift+W | Wallpaper picker |
+| Super+Shift+W | Settings → Wallpaper |
 | Super+Shift+V | Clipboard |
 | Super+Shift+C | Control center |
 | Super+Print | Region screenshot |
@@ -65,13 +65,13 @@ themes/            bundled palettes (JSON)
 theme-engine/      yahr-theme CLI (Python, stdlib only)
 hypr/              Lua config (Hyprland ≥ 0.55) + generated theme.lua
 quickshell/        modular QML shell
-kitty/ mako/ thunar/
+ghostty/ mako/ thunar/
 wallpapers/        per-theme folders, copied to ~/Pictures/Wallpapers
 ```
 
 ## Stack
 
-Hyprland (Lua) · Quickshell · Kitty · Mako · Thunar · Papirus · swww · adw-gtk3 · qt6ct
+Hyprland (Lua) · Quickshell · Ghostty · Mako · Thunar · Papirus · swww · adw-gtk3 · qt6ct
 
 Nautilus is not used: libadwaita only follows accent color reliably. Thunar plus generated GTK CSS actually recolors the file manager.
 

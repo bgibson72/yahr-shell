@@ -1,10 +1,11 @@
 -- Keybindings. Quickshell IPC target is `yahr`.
 
 local MOD = "SUPER"
-local ipc = os.getenv("HOME") .. "/.config/quickshell/scripts/yahr-ipc"
+local ipc = os.getenv("HOME") .. "/Projects/yahr-shell/quickshell/scripts/yahr-ipc"
+local restart = os.getenv("HOME") .. "/Projects/yahr-shell/quickshell/scripts/restart-shell.sh"
 
-hl.bind(MOD .. " + Return", hl.dsp.exec_cmd("kitty"))
-hl.bind(MOD .. " + F", hl.dsp.exec_cmd("thunar"))
+hl.bind(MOD .. " + Return", hl.dsp.exec_cmd("ghostty"))
+hl.bind(MOD .. " + F", hl.dsp.exec_cmd(os.getenv("HOME") .. "/Projects/yahr-shell/quickshell/scripts/launch-thunar.sh"))
 hl.bind(MOD .. " + B", hl.dsp.exec_cmd("firefox"))
 hl.bind(MOD .. " + A", hl.dsp.exec_cmd(ipc .. " toggleLauncher"))
 hl.bind(MOD .. " + Escape", hl.dsp.exec_cmd(ipc .. " togglePowerMenu"))
@@ -18,13 +19,14 @@ hl.bind(MOD .. " + P", hl.dsp.window.pseudo())
 hl.bind(MOD .. " + SHIFT + W", hl.dsp.exec_cmd(ipc .. " toggleWallpaper"))
 hl.bind(MOD .. " + SHIFT + S", hl.dsp.exec_cmd(ipc .. " toggleSettings"))
 hl.bind(MOD .. " + SHIFT + V", hl.dsp.exec_cmd(ipc .. " toggleClipboard"))
-hl.bind(MOD .. " + SHIFT + C", hl.dsp.exec_cmd(ipc .. " toggleControlCenter"))
+hl.bind(MOD .. " + SHIFT + C", hl.dsp.exec_cmd(ipc .. " toggleAudio"))
 
 hl.bind(MOD .. " + Print", hl.dsp.exec_cmd("hyprshot -m region --clipboard-only"))
 hl.bind("Print", hl.dsp.exec_cmd("hyprshot -m output --clipboard-only"))
 
 hl.bind(MOD .. " + L", hl.dsp.exec_cmd("hyprlock"))
-hl.bind(MOD .. " + Z", hl.dsp.exec_cmd("killall quickshell; quickshell"))
+hl.bind(MOD .. " + Z", hl.dsp.exec_cmd(restart))
+hl.bind(MOD .. " + K", hl.dsp.exec_cmd(ipc .. " toggleKeybinds"))
 
 hl.bind(MOD .. " + left", hl.dsp.focus({ direction = "left" }))
 hl.bind(MOD .. " + right", hl.dsp.focus({ direction = "right" }))

@@ -5,8 +5,12 @@ import "../.."
 
 Panel {
     id: root
-    width: 520
-    height: 110
+    width: 110
+    height: 520
+    emergeEdge: "right"
+    frameJoin: "center"
+    slideOffsetX: 48
+    slideOffsetY: 0
     signal requestClose()
 
     focus: true
@@ -23,7 +27,7 @@ Panel {
         })
     }
 
-    Row {
+    Column {
         anchors.centerIn: parent
         spacing: 16
 

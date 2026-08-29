@@ -12,42 +12,27 @@ Item {
     visible: Settings.showQuickLaunch
 
     signal toggleScreenshot()
+    signal toggleSettings()
 
     property bool expanded: false
-    readonly property int chevronSize: 32
 
     implicitWidth: content.implicitWidth
     implicitHeight: 40
+    Layout.leftMargin: 10
 
     RowLayout {
         id: content
         anchors.verticalCenter: parent.verticalCenter
         spacing: 2
 
-        Rectangle {
-            id: chevron
-            Layout.preferredWidth: drawer.chevronSize
-            Layout.preferredHeight: drawer.chevronSize
-            radius: 8
-            color: "transparent"
-            scale: chevronMouse.pressed ? ThemeManager.iconPressScale : (chevronMouse.containsMouse ? ThemeManager.iconHoverScale : 1.0)
-            Behavior on scale {
-                SpringAnimation { spring: ThemeManager.bounceSpring; damping: ThemeManager.bounceDamping; mass: ThemeManager.bounceMass }
-            }
+        PillGroup {
+            circular: true
 
-            Text {
-                anchors.centerIn: parent
-                text: drawer.expanded ? "\uf054" : "\uf077"
-                font.family: "Symbols Nerd Font"
-                font.pixelSize: ThemeManager.fontSizeSmall
-                color: ThemeManager.fgSecondary
-            }
-
-            MouseArea {
-                id: chevronMouse
-                anchors.fill: parent
-                hoverEnabled: true
-                cursorShape: Qt.PointingHandCursor
+            IconButton {
+                compact: true
+                glyph: drawer.expanded ? "\uf054" : "\uf077"
+                glyphColor: ThemeManager.accentBlue
+                pixelSize: ThemeManager.fontSizeSmall
                 onClicked: drawer.expanded = !drawer.expanded
             }
         }
@@ -71,64 +56,47 @@ Item {
                 anchors.verticalCenter: parent.verticalCenter
                 spacing: 0
 
-                Item {
-                    width: 46
-                    height: 40
-                    scale: drawer.expanded ? 1.0 : 0.4
-                    opacity: drawer.expanded ? 1.0 : 0.0
-                    Behavior on scale {
-                        SequentialAnimation {
-                            PauseAnimation { duration: drawer.expanded ? 0 : 0 }
-                            SpringAnimation { spring: ThemeManager.bounceSpring; damping: ThemeManager.bounceDamping; mass: ThemeManager.bounceMass }
+                Repeater {
+                    model: [
+                        { glyph: "\uf07c", action: "files" },
+                        { glyph: "\uf120", action: "terminal" },
+                        { glyph: "\uf269", action: "browser" },
+                        { glyph: "\uf030", action: "screenshot" },
+                        { glyph: "󰒓", action: "settings", md: true }
+                    ]
+
+                    Item {
+                        id: wrap
+                        required property var modelData
+                        required property int index
+                        width: 32
+                        height: 40
+                        scale: drawer.expanded ? 1.0 : 0.4
+                        opacity: drawer.expanded ? 1.0 : 0.0
+                        Behavior on scale {
+                            SequentialAnimation {
+                                PauseAnimation { duration: drawer.expanded ? wrap.index * 40 : 0 }
+                                SpringAnimation { spring: ThemeManager.bounceSpring; damping: ThemeManager.bounceDamping; mass: ThemeManager.bounceMass }
+                            }
                         }
-                    }
-                    Behavior on opacity {
-                        NumberAnimation { duration: 140 }
-                    }
-                    IconButton {
-                        anchors.fill: parent
-                        glyph: "\uf489"
-                        onClicked: Quickshell.execDetached(["kitty"])
-                    }
-                }
-                Item {
-                    width: 46
-                    height: 40
-                    scale: drawer.expanded ? 1.0 : 0.4
-                    opacity: drawer.expanded ? 1.0 : 0.0
-                    Behavior on scale {
-                        SequentialAnimation {
-                            PauseAnimation { duration: drawer.expanded ? 40 : 0 }
-                            SpringAnimation { spring: ThemeManager.bounceSpring; damping: ThemeManager.bounceDamping; mass: ThemeManager.bounceMass }
+                        Behavior on opacity {
+                            NumberAnimation { duration: 140 }
                         }
-                    }
-                    Behavior on opacity {
-                        NumberAnimation { duration: 140 }
-                    }
-                    IconButton {
-                        anchors.fill: parent
-                        glyph: "\uf269"
-                        onClicked: Quickshell.execDetached(["firefox"])
-                    }
-                }
-                Item {
-                    width: 46
-                    height: 40
-                    scale: drawer.expanded ? 1.0 : 0.4
-                    opacity: drawer.expanded ? 1.0 : 0.0
-                    Behavior on scale {
-                        SequentialAnimation {
-                            PauseAnimation { duration: drawer.expanded ? 80 : 0 }
-                            SpringAnimation { spring: ThemeManager.bounceSpring; damping: ThemeManager.bounceDamping; mass: ThemeManager.bounceMass }
+                        IconButton {
+                            anchors.fill: parent
+                            glyph: wrap.modelData.glyph
+                            glyphColor: ThemeManager.accentBlue
+                            pixelSize: wrap.modelData.md ? ThemeManager.fontSizeIcon : ThemeManager.fontSizeIconFA
+                            onClicked: {
+                                switch (wrap.modelData.action) {
+                                case "files": Quickshell.execDetached([`${Quickshell.shellDir}/scripts/launch-thunar.sh`]); break
+                                case "terminal": Quickshell.execDetached([ThemeManager.terminal]); break
+                                case "browser": Quickshell.execDetached(["firefox"]); break
+                                case "screenshot": drawer.toggleScreenshot(); break
+                                case "settings": drawer.toggleSettings(); break
+                                }
+                            }
                         }
-                    }
-                    Behavior on opacity {
-                        NumberAnimation { duration: 140 }
-                    }
-                    IconButton {
-                        anchors.fill: parent
-                        glyph: "\uf030"
-                        onClicked: drawer.toggleScreenshot()
                     }
                 }
             }

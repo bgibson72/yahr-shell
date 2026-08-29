@@ -31,40 +31,60 @@ Item {
                 height: 56
                 anchors.horizontalCenter: parent.horizontalCenter
 
+                // Quiet track so the gap in the spinner reads as motion.
                 Rectangle {
                     anchors.centerIn: parent
                     width: 48
                     height: 48
                     radius: 24
                     color: "transparent"
-                    border.width: 5
+                    border.width: 4
                     border.color: ThemeManager.accentBlue
-                    opacity: 0.25
+                    opacity: 0.18
                 }
 
-                Rectangle {
-                    id: spinnerArc
+                Canvas {
+                    id: spinner
                     anchors.centerIn: parent
                     width: 48
                     height: 48
-                    radius: 24
-                    color: "transparent"
-                    border.width: 5
-                    border.color: ThemeManager.accentBlue
-                    clip: true
+                    antialiasing: true
+                    renderTarget: Canvas.FramebufferObject
+                    property color accent: ThemeManager.accentBlue
 
-                    Rectangle {
-                        width: parent.width
-                        height: parent.height / 2
-                        color: "transparent"
+                    onAccentChanged: requestPaint()
+                    Component.onCompleted: requestPaint()
+
+                    onPaint: {
+                        const ctx = getContext("2d")
+                        ctx.reset()
+                        const cx = width / 2
+                        const cy = height / 2
+                        const line = 4
+                        const radius = (Math.min(width, height) - line) / 2
+                        const segments = 64
+                        const sweep = Math.PI * 1.65
+                        const start = -Math.PI / 2
+                        ctx.lineWidth = line
+                        ctx.lineCap = "round"
+                        for (let i = 0; i < segments; i++) {
+                            const t = (i + 1) / segments
+                            const a0 = start + (i / segments) * sweep
+                            const a1 = start + ((i + 1.2) / segments) * sweep
+                            ctx.beginPath()
+                            ctx.strokeStyle = Qt.rgba(spinner.accent.r, spinner.accent.g, spinner.accent.b, t * t)
+                            ctx.arc(cx, cy, radius, a0, Math.min(a1, start + sweep))
+                            ctx.stroke()
+                        }
                     }
 
                     RotationAnimation on rotation {
                         loops: Animation.Infinite
                         from: 0
                         to: 360
-                        duration: 900
+                        duration: 1100
                         running: root.isVisible
+                        easing.type: Easing.Linear
                     }
                 }
             }

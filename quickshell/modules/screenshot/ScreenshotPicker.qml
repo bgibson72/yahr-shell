@@ -76,11 +76,8 @@ Panel {
                     Layout.fillHeight: true
                     radius: 10
                     color: Qt.rgba(modelData.color.r, modelData.color.g, modelData.color.b, modeMouse.containsMouse ? 0.25 : 0.10)
-                    border.width: 1
-                    border.color: Qt.rgba(modelData.color.r, modelData.color.g, modelData.color.b, modeMouse.containsMouse ? 0.6 : 0.25)
 
                     Behavior on color { ColorAnimation { duration: 150 } }
-                    Behavior on border.color { ColorAnimation { duration: 150 } }
 
                     scale: modeMouse.pressed ? ThemeManager.bouncePressScale : (modeMouse.containsMouse ? ThemeManager.bounceHoverScale : 1.0)
                     Behavior on scale {

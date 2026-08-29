@@ -1,0 +1,25 @@
+#!/usr/bin/env bash
+# Run the yahr-theme CLI without depending on PATH.
+# Hyprland-launched Quickshell often lacks ~/.local/bin.
+set -euo pipefail
+
+script_dir="$(cd "$(dirname "$0")" && pwd)"
+repo_root="$(cd "$script_dir/../.." && pwd)"
+
+candidates=(
+    "$repo_root/theme-engine/yahr-theme"
+    "${HOME}/.local/bin/yahr-theme"
+)
+
+for bin in "${candidates[@]}"; do
+    if [[ -x "$bin" ]]; then
+        exec "$bin" "$@"
+    fi
+done
+
+if command -v yahr-theme >/dev/null 2>&1; then
+    exec yahr-theme "$@"
+fi
+
+echo "yahr-theme CLI not found" >&2
+exit 127

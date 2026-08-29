@@ -15,11 +15,15 @@ def _print_json(obj) -> None:
     sys.stdout.write("\n")
 
 
-def cmd_list(_args: argparse.Namespace) -> int:
-    for theme in apply.list_themes():
+def cmd_list(args: argparse.Namespace) -> int:
+    themes = apply.list_themes()
+    if getattr(args, "json", False):
+        _print_json(themes)
+        return 0
+    for theme in themes:
         mark = "*" if theme["active"] else " "
         kind = "custom" if theme["custom"] else "bundled"
-        print(f"{mark} {theme['id']:16}  {theme['name']:20}  {kind}")
+        print(f"{mark} {theme['id']:16}  {theme['name']:20}  {kind:8}  {theme['mode']}")
     return 0
 
 
@@ -51,6 +55,7 @@ def cmd_save(args: argparse.Namespace) -> int:
         green=args.green,
         teal=args.teal,
         theme_id=args.id,
+        papirus_folder=getattr(args, "papirus_folder", None),
     )
     path = apply.save_palette(palette, apply_now=not args.no_apply)
     print(f"saved {palette['id']} -> {path}")
@@ -76,6 +81,7 @@ def cmd_derive(args: argparse.Namespace) -> int:
         green=args.green,
         teal=args.teal,
         theme_id=args.id,
+        papirus_folder=getattr(args, "papirus_folder", None),
     )
     _print_json(palette)
     return 0
@@ -84,11 +90,12 @@ def cmd_derive(args: argparse.Namespace) -> int:
 def build_parser() -> argparse.ArgumentParser:
     parser = argparse.ArgumentParser(
         prog="yahr-theme",
-        description="Apply Yahr Shell palettes across Hyprland, Quickshell, GTK, Kitty, Mako, and more.",
+        description="Apply Yahr Shell palettes across Hyprland, Quickshell, GTK, Ghostty, Starship, Mako, and more.",
     )
     sub = parser.add_subparsers(dest="cmd", required=True)
 
     p_list = sub.add_parser("list", help="list bundled and user themes")
+    p_list.add_argument("--json", action="store_true", help="print theme metadata as JSON")
     p_list.set_defaults(func=cmd_list)
 
     p_current = sub.add_parser("current", help="print the active palette JSON")
@@ -111,6 +118,7 @@ def build_parser() -> argparse.ArgumentParser:
     p_save.add_argument("--yellow", required=True)
     p_save.add_argument("--green", required=True)
     p_save.add_argument("--teal", required=True)
+    p_save.add_argument("--papirus-folder", default="auto", help="Papirus folder color, or auto")
     p_save.add_argument("--no-apply", action="store_true")
     p_save.set_defaults(func=cmd_save)
 
@@ -130,6 +138,7 @@ def build_parser() -> argparse.ArgumentParser:
     p_derive.add_argument("--yellow", required=True)
     p_derive.add_argument("--green", required=True)
     p_derive.add_argument("--teal", required=True)
+    p_derive.add_argument("--papirus-folder", default="auto")
     p_derive.set_defaults(func=cmd_derive)
 
     return parser

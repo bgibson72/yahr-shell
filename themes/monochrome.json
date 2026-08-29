@@ -29,5 +29,6 @@
   "bgBase": "#252525",
   "bgMantle": "#1f1f1f",
   "bgCrust": "#191919",
-  "glassAccent": "#a0a0a059"
+  "glassAccent": "#a0a0a059",
+  "mode": "dark"
 }

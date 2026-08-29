@@ -26,8 +26,9 @@
   "surface2": "#3f3d54",
   "surface1": "#32303f",
   "surface0": "#2b2837",
-  "bgBase": "#232136",
-  "bgMantle": "#1e1e2e",
-  "bgCrust": "#131021",
-  "glassAccent": "#6db3ce59"
+  "bgBase": "#181625",
+  "bgMantle": "#14131e",
+  "bgCrust": "#100f17",
+  "glassAccent": "#6db3ce59",
+  "mode": "dark"
 }
