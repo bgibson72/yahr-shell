@@ -2,14 +2,17 @@
 
 Hyprland + Quickshell desktop for Arch Linux, built around one theme engine.
 
-Switch between bundled palettes (Catppuccin, Dracula, Nord, …) or save your own colors. The same palette drives Hyprland borders, Quickshell widgets, GTK (Thunar), Papirus folder colors, Ghostty, Starship, Mako, Hyprlock, and Qt.
+Switch between bundled palettes (Catppuccin, Dracula, Nord, …) or save your own colors. The same palette drives Hyprland borders, Quickshell widgets, GTK (Thunar), Papirus folder colors, Ghostty, Mako, Hyprlock, SDDM, and Qt.
+
+This is the successor to [yahr-quickshell](https://github.com/bgibson72/yahr-quickshell), which is archived.
 
 ## Features
 
 - **13 dark + 13 light bundled palettes** plus a custom theme creator (background + 8 accents)
 - **One command apply** — `yahr-theme apply catppuccin` rewrites every target without restarting Quickshell
-- **Quickshell desktop** — bar, dock, app launcher, control center, power menu, wallpaper picker, clipboard
-- **Daily-driver installer** — GPU drivers, compositor, shell, file manager, notifications, lock screen
+- **Quickshell desktop** — bar, dock, app launcher, settings, power menu, clipboard, screenshots, network / bluetooth / audio / battery panels
+- **Yahr apps** — Calendar (ICS + reminders), Calculator, and Keybinds (live map with conflict checks, writes Hyprland Lua)
+- **Daily-driver installer** — GPU drivers, compositor, Ghostty, Thunar, notifications, lock screen
 
 ## Install
 
@@ -26,7 +29,7 @@ Flags:
 - `--yolo` — unattended core install
 - `--minimal` — skip optional packages (Firefox, Blueman, …)
 
-Log in on TTY1 (the installer can add this) or run `Hyprland`. There is no display manager in v1.
+Log in on TTY1 (the installer can add this) or run `Hyprland`. An SDDM theme lives in `sddm/` if you want a display manager.
 
 ## Theming
 
@@ -38,11 +41,13 @@ yahr-theme save --name Dusk --bg 1e1e2e --blue 89b4fa --purple cba6f7 \
 yahr-theme delete dusk
 ```
 
-In the shell: **Super+T** opens the theme switcher. Settings → Theme has the color editor (Save & Apply). Right-click a custom theme card to delete it.
+**Super+T** opens the theme switcher. Settings → Theme has the color editor (Save & Apply). Right-click a custom theme card to delete it.
 
 Palettes are JSON in `themes/` (bundled) and `~/.config/yahr/themes/` (yours). `~/.config/yahr/current.json` is what Quickshell watches, so colors update live.
 
 ## Keybinds
+
+Defaults from `hypr/keybinds.lua`. **Super+K** opens Yahr Keybinds to view or change them.
 
 | Bind | Action |
 | --- | --- |
@@ -52,11 +57,16 @@ Palettes are JSON in `themes/` (bundled) and `~/.config/yahr/themes/` (yours). `
 | Super+F | Thunar |
 | Super+Escape | Power menu |
 | Super+L | Lock (Hyprlock) |
+| Super+K | Yahr Keybinds |
+| Super+Z | Restart Yahr Shell |
 | Super+Shift+S | Settings |
 | Super+Shift+W | Settings → Wallpaper |
 | Super+Shift+V | Clipboard |
 | Super+Shift+C | Control center |
 | Super+Print | Region screenshot |
+| Print | Output screenshot |
+
+Calendar and Calculator are in the app launcher as **Yahr Calendar** and **Yahr Calculator**.
 
 ## Layout
 
@@ -66,6 +76,8 @@ theme-engine/      yahr-theme CLI (Python, stdlib only)
 hypr/              Lua config (Hyprland ≥ 0.55) + generated theme.lua
 quickshell/        modular QML shell
 ghostty/ mako/ thunar/
+sddm/              optional SDDM theme
+apps/              .desktop launchers for Yahr apps
 wallpapers/        per-theme folders, copied to ~/Pictures/Wallpapers
 ```
 
