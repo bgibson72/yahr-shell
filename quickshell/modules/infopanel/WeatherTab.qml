@@ -92,7 +92,7 @@ Item {
 
     Rectangle {
         anchors.fill: parent
-        color: ThemeManager.overlay(0.07)
+        color: ThemeManager.cardColor
         radius: 12
 
         Item {
@@ -192,7 +192,7 @@ Item {
             anchors.bottom: parent.bottom
             anchors.margins: 12
             height: 76
-            color: ThemeManager.overlay(0.07)
+            color: ThemeManager.overlay(0.08)
             radius: 10
 
             Row {

@@ -34,7 +34,7 @@ Item {
 
     Rectangle {
         anchors.fill: parent
-        color: ThemeManager.overlay(0.07)
+        color: ThemeManager.cardColor
         radius: 12
 
         Item {

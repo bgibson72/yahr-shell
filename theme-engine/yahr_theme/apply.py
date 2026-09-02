@@ -3,6 +3,8 @@
 from __future__ import annotations
 
 import json
+import os
+import random
 import re
 import shutil
 import subprocess
@@ -99,6 +101,81 @@ def _settings() -> dict:
 
 def _ui_font() -> str:
     return str(_settings().get("general", {}).get("uiFont") or "Inter")
+
+
+_IMAGE_EXTS = {".png", ".jpg", ".jpeg", ".webp", ".gif"}
+
+
+def _wallpaper_images(folder: Path) -> list[Path]:
+    if not folder.is_dir():
+        return []
+    return sorted(
+        (p for p in folder.iterdir() if p.is_file() and p.suffix.lower() in _IMAGE_EXTS),
+        key=lambda p: p.name.lower(),
+    )
+
+
+def _theme_wallpaper_folder(palette: dict) -> Path | None:
+    name = str(palette.get("wallpaperDir") or "").strip()
+    if not name:
+        return None
+    configured = (_settings().get("wallpaper") or {}).get("directory") or "~/Pictures/Wallpapers"
+    root = Path(os.path.expanduser(str(configured)))
+    for candidate in (root / name, paths.wallpaper_root() / name, paths.repo_root() / "wallpapers" / name):
+        if candidate.is_dir():
+            return candidate
+    return None
+
+
+def _path_in_folder(path: str, folder: Path) -> Path | None:
+    if not path:
+        return None
+    try:
+        resolved = Path(os.path.expanduser(path)).resolve()
+        if resolved.is_file() and resolved.parent == folder.resolve():
+            return resolved
+    except OSError:
+        return None
+    return None
+
+
+def _remember_wallpaper(path: Path) -> None:
+    settings_path = paths.yahr_config() / "settings.json"
+    if not settings_path.is_file():
+        return
+    try:
+        data = json.loads(settings_path.read_text())
+        if not isinstance(data, dict):
+            return
+    except (OSError, json.JSONDecodeError, TypeError):
+        return
+    data.setdefault("wallpaper", {})["current"] = str(path)
+    settings_path.write_text(json.dumps(data, indent=2) + "\n")
+
+
+def _apply_theme_wallpaper(palette: dict) -> None:
+    folder = _theme_wallpaper_folder(palette)
+    if folder is None:
+        return
+    images = _wallpaper_images(folder)
+    if not images:
+        return
+    wallpaper = _settings().get("wallpaper") or {}
+    last = ""
+    try:
+        last = paths.last_wallpaper().read_text().strip()
+    except OSError:
+        last = ""
+    keep = _path_in_folder(str(wallpaper.get("current") or ""), folder) or _path_in_folder(last, folder)
+    chosen = keep if keep is not None else random.choice(images)
+    transition = str(wallpaper.get("transition") or "fade")
+    script = paths.repo_root() / "quickshell" / "scripts" / "set-wallpaper.py"
+    if script.is_file():
+        _run([sys.executable, str(script), str(chosen), transition])
+    else:
+        paths.last_wallpaper().parent.mkdir(parents=True, exist_ok=True)
+        paths.last_wallpaper().write_text(str(chosen) + "\n")
+    _remember_wallpaper(chosen)
 
 
 def _sync_sddm() -> None:
@@ -355,6 +432,7 @@ def apply_palette(palette: dict, *, reload: bool = True) -> None:
     color_scheme = "prefer-light" if light else "prefer-dark"
 
     _write(paths.current_json(), json.dumps(palette, indent=2) + "\n")
+    _apply_theme_wallpaper(palette)
     _sync_sddm()
     _write(paths.hypr_theme_lua(), templates.hypr_theme_lua(palette))
     _install_ghostty_theme(palette)
@@ -397,7 +475,6 @@ def apply_palette(palette: dict, *, reload: bool = True) -> None:
     _install_firefox_theme(palette)
     _install_cursor_theme(palette)
 
-    # Wallpaper is chosen from Settings → Wallpaper, not from theme folders.
     if not reload:
         return
 

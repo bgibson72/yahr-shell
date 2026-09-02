@@ -132,10 +132,10 @@ PAPIRUS_THEME_FOLDERS = {
     "monochrome": "black",
     "nightfox": "darkcyan",
     "dayfox": "darkcyan",
-    "tokyo-night": "blue",
+    "tokyo-night": "indigo",
     "rose-pine": "cyan",
     "nord": "nordic",
-    "solarized": "bluegrey",
+    "solarized": "cyan",
 }
 
 GNOME_ACCENTS = {

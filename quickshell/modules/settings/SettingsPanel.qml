@@ -1521,7 +1521,7 @@ Panel {
             SettingsSection {
                 title: "Wallpaper"
                 Text {
-                    text: "Images from this folder (and its subfolders) appear in the gallery below. PNG, JPG, WebP, and GIF."
+                    text: "Images from this folder (and its subfolders) appear in the gallery below. Applying a theme also sets a wallpaper from that theme’s folder; you can still pick any image here."
                     color: ThemeManager.fgTertiary
                     font.family: ThemeManager.uiFont
                     font.pixelSize: 12
