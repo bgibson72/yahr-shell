@@ -2,8 +2,8 @@
 Type=Application
 Name=Yahr Calculator
 Comment=Yahr calculator
-Exec=/home/bryan/.local/bin/yahr-calculator
-TryExec=/home/bryan/.local/bin/yahr-calculator
+Exec=yahr-calculator
+TryExec=yahr-calculator
 Icon=accessories-calculator
 Terminal=false
 Categories=Utility;Calculator;

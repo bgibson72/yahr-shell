@@ -16,7 +16,7 @@ This is the successor to [yahr-quickshell](https://github.com/bgibson72/yahr-qui
 
 ## Install
 
-From a minimal Arch install:
+From a minimal Arch install (with or without Hyprland already present):
 
 ```bash
 git clone https://github.com/bgibson72/yahr-shell.git
@@ -24,12 +24,16 @@ cd yahr-shell
 ./install.sh
 ```
 
+The installer detects this clone’s path and your `$HOME` — it does not assume `~/Projects/yahr-shell` or a fixed username. Configs are copied into `~/.config/{hypr,quickshell,…}`; the theme engine lands under `~/.local/share/yahr-shell/`.
+
 Flags:
 
 - `--yolo` — unattended core install
 - `--minimal` — skip optional packages (Firefox, Blueman, …)
+- `--skip-packages` — configs/theme only (deps already installed)
+- `--with-sddm` — deploy the optional SDDM greeter theme
 
-Log in on TTY1 (the installer can add this) or run `Hyprland`. An SDDM theme lives in `sddm/` if you want a display manager.
+Log in on TTY1 (the installer can add this) or run `Hyprland`. Re-run with `--with-sddm` (or answer yes when prompted) for a display manager.
 
 ## Theming
 

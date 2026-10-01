@@ -4,11 +4,12 @@ DIR="$(cd "$(dirname "$0")" && pwd)"
 if [ -x "$DIR/yahr-ipc" ]; then
     exec "$DIR/yahr-ipc" toggleKeybinds
 fi
-if [ -x "$HOME/Projects/yahr-shell/quickshell/scripts/yahr-ipc" ]; then
-    exec "$HOME/Projects/yahr-shell/quickshell/scripts/yahr-ipc" toggleKeybinds
-fi
 if [ -x "$HOME/.config/quickshell/scripts/yahr-ipc" ]; then
     exec "$HOME/.config/quickshell/scripts/yahr-ipc" toggleKeybinds
+fi
+# Legacy dev-tree fallback
+if [ -x "$HOME/Projects/yahr-shell/quickshell/scripts/yahr-ipc" ]; then
+    exec "$HOME/Projects/yahr-shell/quickshell/scripts/yahr-ipc" toggleKeybinds
 fi
 echo "yahr-ipc not found" >&2
 exit 1

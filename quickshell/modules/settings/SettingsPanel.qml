@@ -2325,7 +2325,7 @@ Panel {
                         Layout.fillWidth: true
                         wrapMode: Text.WordWrap
                         text: root.sddmOpacityError
-                            ? "Could not write theme.conf. Install passwordless sudo with: ~/Projects/yahr-shell/sddm/setup-sudoers.sh"
+                            ? "Could not write theme.conf. Install passwordless sudo with: ~/.local/share/yahr-shell/sddm/setup-sudoers.sh"
                             : root.sddmStatusMessage
                         color: root.sddmOpacityError ? ThemeManager.accentRed : ThemeManager.fgSecondary
                         font.family: ThemeManager.uiFont
@@ -2957,7 +2957,7 @@ Panel {
                     root.sddmAvatarSuccess = true
                     sddmAvatarSuccessTimer.restart()
                     if (result === "HOME_ONLY")
-                        root.sddmStatusMessage = "Saved ~/.face.icon. Run ~/Projects/yahr-shell/sddm/setup-sudoers.sh so the login screen can use the system face file."
+                        root.sddmStatusMessage = "Saved ~/.face.icon. Run ~/.local/share/yahr-shell/sddm/setup-sudoers.sh so the login screen can use the system face file."
                     root.refreshSddm()
                 } else {
                     root.sddmStatusMessage = "Could not copy the image. Check the path and try again."
