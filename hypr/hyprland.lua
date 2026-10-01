@@ -132,3 +132,11 @@ require("appearance")
 require("input")
 require("keybinds")
 require("rules")
+
+-- The installer writes this only on NVIDIA machines.
+local nvidia_lua = home .. "/.config/hypr/nvidia.lua"
+local nvidia_f = io.open(nvidia_lua, "r")
+if nvidia_f then
+    nvidia_f:close()
+    dofile(nvidia_lua)
+end
