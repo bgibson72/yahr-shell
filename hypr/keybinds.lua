@@ -1,11 +1,12 @@
 -- Keybindings. Quickshell IPC target is `yahr`.
 
 local MOD = "SUPER"
-local ipc = os.getenv("HOME") .. "/Projects/yahr-shell/quickshell/scripts/yahr-ipc"
-local restart = os.getenv("HOME") .. "/Projects/yahr-shell/quickshell/scripts/restart-shell.sh"
+local qs = os.getenv("HOME") .. "/.config/quickshell/scripts"
+local ipc = qs .. "/yahr-ipc"
+local restart = qs .. "/restart-shell.sh"
 
 hl.bind(MOD .. " + Return", hl.dsp.exec_cmd("ghostty"))
-hl.bind(MOD .. " + F", hl.dsp.exec_cmd(os.getenv("HOME") .. "/Projects/yahr-shell/quickshell/scripts/launch-thunar.sh"))
+hl.bind(MOD .. " + F", hl.dsp.exec_cmd(qs .. "/launch-thunar.sh"))
 hl.bind(MOD .. " + B", hl.dsp.exec_cmd("firefox"))
 hl.bind(MOD .. " + A", hl.dsp.exec_cmd(ipc .. " toggleLauncher"))
 hl.bind(MOD .. " + Escape", hl.dsp.exec_cmd(ipc .. " togglePowerMenu"))

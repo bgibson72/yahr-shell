@@ -2,8 +2,8 @@
 Type=Application
 Name=Yahr Keybinds
 Comment=View and customize Hyprland keybinds
-Exec=/home/bryan/.local/bin/yahr-keybinds
-TryExec=/home/bryan/.local/bin/yahr-keybinds
+Exec=yahr-keybinds
+TryExec=yahr-keybinds
 Icon=input-keyboard
 Terminal=false
 Categories=Settings;Utility;

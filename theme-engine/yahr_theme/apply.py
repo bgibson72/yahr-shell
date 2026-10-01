@@ -121,7 +121,7 @@ def _theme_wallpaper_folder(palette: dict) -> Path | None:
         return None
     configured = (_settings().get("wallpaper") or {}).get("directory") or "~/Pictures/Wallpapers"
     root = Path(os.path.expanduser(str(configured)))
-    for candidate in (root / name, paths.wallpaper_root() / name, paths.repo_root() / "wallpapers" / name):
+    for candidate in (root / name, paths.wallpaper_root() / name):
         if candidate.is_dir():
             return candidate
     return None
@@ -169,7 +169,7 @@ def _apply_theme_wallpaper(palette: dict) -> None:
     keep = _path_in_folder(str(wallpaper.get("current") or ""), folder) or _path_in_folder(last, folder)
     chosen = keep if keep is not None else random.choice(images)
     transition = str(wallpaper.get("transition") or "fade")
-    script = paths.repo_root() / "quickshell" / "scripts" / "set-wallpaper.py"
+    script = paths.quickshell_script("set-wallpaper.py")
     if script.is_file():
         _run([sys.executable, str(script), str(chosen), transition])
     else:
@@ -180,7 +180,7 @@ def _apply_theme_wallpaper(palette: dict) -> None:
 
 def _sync_sddm() -> None:
     """Push the current palette, clock, and wallpaper into the SDDM greeter."""
-    script = paths.repo_root() / "quickshell" / "scripts" / "sddm-apply.py"
+    script = paths.quickshell_script("sddm-apply.py")
     if not script.is_file():
         return
     sddm = _settings().get("sddm") or {}
@@ -200,13 +200,15 @@ def _sync_sddm() -> None:
 
 
 def _install_lock_info() -> None:
-    src = paths.repo_root() / "hypr" / "scripts" / "lock-info.py"
+    src = paths.lock_info_source()
     dest = paths.yahr_config() / "lock-info.py"
-    if src.is_file():
-        dest.parent.mkdir(parents=True, exist_ok=True)
+    if not src.is_file():
+        return
+    dest.parent.mkdir(parents=True, exist_ok=True)
+    if src.resolve() != dest.resolve():
         shutil.copy2(src, dest)
         dest.chmod(0o755)
-        _run([str(dest), "render"])
+    _run([str(dest), "render"])
 
 
 def _write(path: Path, content: str) -> None:

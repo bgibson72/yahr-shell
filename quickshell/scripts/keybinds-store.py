@@ -13,9 +13,26 @@ from pathlib import Path
 HOME = Path.home()
 JSON_PATH = HOME / ".config" / "yahr" / "keybinds.json"
 LIVE_LUA = HOME / ".config" / "hypr" / "keybinds.lua"
-REPO_LUA = HOME / "Projects" / "yahr-shell" / "hypr" / "keybinds.lua"
-IPC = str(HOME / "Projects" / "yahr-shell" / "quickshell" / "scripts" / "yahr-ipc")
-RESTART = str(HOME / "Projects" / "yahr-shell" / "quickshell" / "scripts" / "restart-shell.sh")
+QS_SCRIPTS = HOME / ".config" / "quickshell" / "scripts"
+IPC = str(QS_SCRIPTS / "yahr-ipc")
+RESTART = str(QS_SCRIPTS / "restart-shell.sh")
+QS_SCRIPTS_LUA = '/.config/quickshell/scripts'
+
+
+def _repo_keybinds_lua() -> Path | None:
+    """Mirror writes into a git checkout when developing; never invent ~/Projects."""
+    env = os.environ.get("YAHR_REPO")
+    if env:
+        candidate = Path(env).expanduser() / "hypr" / "keybinds.lua"
+        if candidate.parent.is_dir():
+            return candidate
+    root = Path(__file__).resolve().parents[2]
+    candidate = root / "hypr" / "keybinds.lua"
+    if candidate.resolve() == LIVE_LUA.resolve():
+        return None
+    if (root / "themes").is_dir() and (root / "theme-engine").is_dir():
+        return candidate
+    return None
 
 MOD_ORDER = ("SUPER", "CTRL", "ALT", "SHIFT")
 GROUP_ORDER = (
@@ -570,8 +587,9 @@ def generate_lua(binds: list[dict]) -> str:
         "-- Keybindings. Written by Yahr Keybinds. Quickshell IPC target is `yahr`.",
         "",
         'local MOD = "SUPER"',
-        f'local ipc = os.getenv("HOME") .. "/Projects/yahr-shell/quickshell/scripts/yahr-ipc"',
-        f'local restart = os.getenv("HOME") .. "/Projects/yahr-shell/quickshell/scripts/restart-shell.sh"',
+        f'local qs = os.getenv("HOME") .. "{QS_SCRIPTS_LUA}"',
+        'local ipc = qs .. "/yahr-ipc"',
+        'local restart = qs .. "/restart-shell.sh"',
         "",
     ]
     for group in list(GROUP_ORDER) + [g for g in extra if g not in GROUP_ORDER]:
@@ -592,7 +610,11 @@ def generate_lua(binds: list[dict]) -> str:
 
 
 def lua_candidates() -> list[Path]:
-    return [p for p in (LIVE_LUA, REPO_LUA) if p.is_file()]
+    out: list[Path] = []
+    for p in (LIVE_LUA, _repo_keybinds_lua()):
+        if p is not None and p.is_file() and p not in out:
+            out.append(p)
+    return out
 
 
 def load_binds() -> list[dict]:
@@ -649,8 +671,9 @@ def apply(binds: list[dict], reload: bool = True) -> dict:
     lua = generate_lua(cleaned)
     LIVE_LUA.parent.mkdir(parents=True, exist_ok=True)
     LIVE_LUA.write_text(lua)
-    if REPO_LUA.parent.is_dir():
-        REPO_LUA.write_text(lua)
+    repo_lua = _repo_keybinds_lua()
+    if repo_lua is not None and repo_lua.parent.is_dir():
+        repo_lua.write_text(lua)
     reloaded = False
     if reload:
         try:

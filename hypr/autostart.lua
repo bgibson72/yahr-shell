@@ -2,12 +2,22 @@
 
 hl.on("hyprland.start", function()
     local home = os.getenv("HOME")
-    local yahr_qs = home .. "/Projects/yahr-shell/quickshell"
-    local qs_probe = io.open(yahr_qs .. "/shell.qml", "r")
-    if qs_probe then
-        qs_probe:close()
-        hl.exec_cmd("qs -p " .. yahr_qs)
-    else
+    -- Prefer the installed config tree; fall back to a local clone for development.
+    local candidates = {
+        home .. "/.config/quickshell",
+        home .. "/Projects/yahr-shell/quickshell",
+    }
+    local started = false
+    for _, yahr_qs in ipairs(candidates) do
+        local qs_probe = io.open(yahr_qs .. "/shell.qml", "r")
+        if qs_probe then
+            qs_probe:close()
+            hl.exec_cmd("qs -p " .. yahr_qs)
+            started = true
+            break
+        end
+    end
+    if not started then
         hl.exec_cmd("quickshell")
     end
     hl.exec_cmd("hyprpolkitagent")

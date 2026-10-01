@@ -9,7 +9,10 @@ Theme apply (`yahr-theme apply` or Settings → Theme) writes palette colors and
 Passwordless writes need:
 
 ```bash
-~/Projects/yahr-shell/sddm/setup-sudoers.sh
+# From your clone, or after install:
+./sddm/setup-sudoers.sh
+# or
+~/.local/share/yahr-shell/sddm/setup-sudoers.sh
 ```
 
 Manual apply from Settings → SDDM → **Apply to SDDM**.
