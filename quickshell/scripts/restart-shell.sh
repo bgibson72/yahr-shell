@@ -21,6 +21,6 @@ nohup qs -p "$ROOT" >/dev/null 2>&1 &
 qs_pid=$!
 sleep 0.8
 if ! kill -0 "$qs_pid" 2>/dev/null; then
-    notify-send -u critical "Yahr Shell" "Failed to start. Check qs logs, or rebuild with: yay -S quickshell-git"
+    notify-send -u critical "Yahr Shell" "Failed to start. Check qs logs, or reinstall with: sudo pacman -S quickshell"
     exit 1
 fi

@@ -12,7 +12,7 @@ This is the successor to [yahr-quickshell](https://github.com/bgibson72/yahr-qui
 - **One command apply** — `yahr-theme apply catppuccin` rewrites every target without restarting Quickshell
 - **Quickshell desktop** — bar, dock, app launcher, settings, power menu, clipboard, screenshots, network / bluetooth / audio / battery panels
 - **Yahr apps** — Calendar (ICS + reminders), Calculator, and Keybinds (live map with conflict checks, writes Hyprland Lua)
-- **Daily-driver installer** — GPU drivers, compositor, Ghostty, Thunar, notifications, lock screen
+- **Unattended installer** — `./install.sh` on a minimal Arch install sets up the desktop, fonts, themes, wallpapers, and greeter
 
 ## Install
 
@@ -24,16 +24,13 @@ cd yahr-shell
 ./install.sh
 ```
 
-The installer detects this clone’s path and your `$HOME` — it does not assume `~/Projects/yahr-shell` or a fixed username. Configs are copied into `~/.config/{hypr,quickshell,…}`; the theme engine lands under `~/.local/share/yahr-shell/`.
+The installer does not ask questions. It installs the desktop, fonts, bundled themes, wallpapers, and the SDDM greeter, then you reboot and sign in. It detects this clone’s path and your `$HOME` — it does not assume `~/Projects/yahr-shell` or a fixed username. Configs are copied into `~/.config/{hypr,quickshell,…}`; themes and the theme engine land under `~/.local/share/yahr-shell/`. Wallpapers are copied to `~/Pictures/Wallpapers`.
 
 Flags:
 
-- `--yolo` — unattended core install
-- `--minimal` — skip optional packages (Firefox, Blueman, …)
-- `--skip-packages` — configs/theme only (deps already installed)
-- `--with-sddm` — deploy the optional SDDM greeter theme
-
-Log in on TTY1 (the installer can add this) or run `Hyprland`. Re-run with `--with-sddm` (or answer yes when prompted) for a display manager.
+- `--minimal` — skip Firefox (the shell, fonts, themes, and greeter are still installed)
+- `--skip-packages` — refresh configs, themes, and wallpapers only
+- `--print-plan` — print the package list and exit
 
 ## Theming
 

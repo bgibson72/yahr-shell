@@ -51,6 +51,13 @@ def ensure_daemon(name: str) -> None:
     time.sleep(0.5)
 
 
+def remember(image: str) -> None:
+    """Record the chosen image even when no compositor is running yet."""
+    last = Path.home() / ".config/yahr/last-wallpaper"
+    last.parent.mkdir(parents=True, exist_ok=True)
+    last.write_text(image + "\n")
+
+
 def main() -> int:
     if len(sys.argv) < 2:
         print("usage: set-wallpaper.py <image> [transition]", file=sys.stderr)
@@ -62,6 +69,12 @@ def main() -> int:
         return 1
 
     transition = sys.argv[2] if len(sys.argv) > 2 else "fade"
+    remember(image)
+    # The installer applies a theme before the first login. Keep the path
+    # so Hyprland can restore it, and skip the daemon until a session exists.
+    if not os.environ.get("WAYLAND_DISPLAY"):
+        return 0
+
     try:
         cmd, daemon = pick_tool()
     except FileNotFoundError as exc:
@@ -83,9 +96,6 @@ def main() -> int:
     if result.returncode != 0:
         return result.returncode
 
-    last = Path.home() / ".config/yahr/last-wallpaper"
-    last.parent.mkdir(parents=True, exist_ok=True)
-    last.write_text(image + "\n")
     maybe_sync_sddm(image)
     return 0
 

@@ -6,7 +6,7 @@ Login screen that follows the YAHR shell: Inter type, rounded plate, card-colore
 
 Theme apply (`yahr-theme apply` or Settings → Theme) writes palette colors and clock formats into `theme.conf`. Changing the desktop wallpaper (with **Match desktop** on) copies a blurred still of that image into `/usr/share/sddm/themes/yahr-theme`.
 
-Passwordless writes need:
+`./install.sh` writes this sudoers rule. To install it on its own:
 
 ```bash
 # From your clone, or after install:
