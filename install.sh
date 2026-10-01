@@ -173,7 +173,11 @@ repo_packages() {
         git base-devel curl pciutils
         mesa vulkan-icd-loader
         wayland xorg-xwayland libinput xf86-input-libinput seatd polkit
-        qt5-wayland qt6-wayland qt6-5compat qt6-svg qt6-declarative qt6-imageformats
+        # QML modules the shell and greeter import. quickshell and sddm do not
+        # depend on qt6-5compat; Settings and the greeter import
+        # Qt5Compat.GraphicalEffects, which lives in that package.
+        qt6-base qt6-declarative qt6-wayland qt6-svg qt6-imageformats \
+        qt6-5compat qt6-shadertools
         hyprland quickshell ghostty mako libnotify swww
         hyprlock hypridle hyprshot hyprpolkitagent grim slurp
         thunar tumbler gvfs ffmpegthumbnailer
@@ -181,10 +185,11 @@ repo_packages() {
         papirus-icon-theme adw-gtk-theme
         qt6ct nwg-look
         xdg-desktop-portal xdg-desktop-portal-gtk xdg-desktop-portal-hyprland
-        pipewire pipewire-pulse pipewire-alsa wireplumber pavucontrol
-        networkmanager bluez bluez-utils blueman
+        pipewire pipewire-pulse pipewire-alsa wireplumber libpulse pavucontrol
+        networkmanager bluez bluez-utils blueman upower accountsservice
         brightnessctl cliphist wl-clipboard playerctl jq imagemagick
-        python python-gobject gtk3
+        python python-gobject gtk3 xdg-utils
+        lm_sensors pacman-contrib
         starship xdg-user-dirs sddm
         ttf-nerd-fonts-symbols noto-fonts-emoji ttf-jetbrains-mono-nerd
         inter-font adobe-source-sans-fonts ttf-roboto ttf-ibm-plex
@@ -519,7 +524,7 @@ ensure_starship() {
 
 enable_user_services() {
     local unit
-    for unit in NetworkManager.service bluetooth.service; do
+    for unit in NetworkManager.service bluetooth.service upower.service; do
         if systemctl list-unit-files "$unit" >/dev/null 2>&1; then
             sudo systemctl enable "$unit" || warn "Could not enable $unit"
         fi
