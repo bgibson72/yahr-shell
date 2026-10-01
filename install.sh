@@ -18,8 +18,8 @@ SKIP_PACKAGES=false
 PRINT_PLAN=false
 AUR_HELPER=""
 MULTILIB=false
-MAPLE_VERSION="v7.9"
-MAPLE_URL="https://github.com/subframe7536/maple-font/releases/download/${MAPLE_VERSION}/MapleMono-NF.zip"
+HYPR_PAUSED=false
+SUDO_TIMEOUT_INSTALLED=false
 
 usage() {
     cat <<EOF
@@ -38,21 +38,23 @@ Clone root is detected as: $REPO_ROOT
 EOF
 }
 
-while [ $# -gt 0 ]; do
-    case "$1" in
-        --yolo|--with-sddm) ;;
-        --minimal) MINIMAL=true ;;
-        --skip-packages) SKIP_PACKAGES=true ;;
-        --print-plan) PRINT_PLAN=true ;;
-        --help|-h) usage; exit 0 ;;
-        *) err "Unknown option: $1"; usage; exit 1 ;;
-    esac
-    shift
-done
+if [ "${YAHR_INSTALL_SOURCE_ONLY:-0}" != 1 ]; then
+    while [ $# -gt 0 ]; do
+        case "$1" in
+            --yolo|--with-sddm) ;;
+            --minimal) MINIMAL=true ;;
+            --skip-packages) SKIP_PACKAGES=true ;;
+            --print-plan) PRINT_PLAN=true ;;
+            --help|-h) usage; exit 0 ;;
+            *) err "Unknown option: $1"; usage; exit 1 ;;
+        esac
+        shift
+    done
 
-if [ "${EUID:-$(id -u)}" -eq 0 ]; then
-    err "Do not run as root. The script will sudo when needed."
-    exit 1
+    if [ "${EUID:-$(id -u)}" -eq 0 ]; then
+        err "Do not run as root. The script will sudo when needed."
+        exit 1
+    fi
 fi
 
 command_exists() { command -v "$1" >/dev/null 2>&1; }
@@ -112,13 +114,45 @@ preflight() {
         err "Could not obtain sudo credentials."
         exit 1
     fi
-
-    # Keep sudo alive during long AUR builds
-    ( while true; do sudo -n true; sleep 60; kill -0 "$$" || exit; done ) 2>/dev/null &
-    SUDO_KEEPALIVE_PID=$!
-    trap 'kill '"$SUDO_KEEPALIVE_PID"' 2>/dev/null || true' EXIT
+    hold_sudo
 
     export PATH="$HOME/.local/bin:$PATH"
+}
+
+# Exit trap. A failed command must not change the installer's exit status,
+# and must not sit on a sudo or Hyprland prompt.
+cleanup() {
+    local status=$?
+    if [ -n "${SUDO_KEEPALIVE_PID:-}" ]; then
+        kill "$SUDO_KEEPALIVE_PID" 2>/dev/null || true
+        wait "$SUDO_KEEPALIVE_PID" 2>/dev/null || true
+    fi
+    if [ "${SUDO_TIMEOUT_INSTALLED:-false}" = true ]; then
+        sudo -n rm -f /etc/sudoers.d/99-yahr-install-timeout 2>/dev/null || true
+    fi
+    if [ "${HYPR_PAUSED:-false}" = true ]; then
+        resume_hypr_reload
+    fi
+    exit "$status"
+}
+
+hold_sudo() {
+    local tmp user
+    user="$(id -un)"
+    tmp="$(mktemp)"
+    # Default sudo tickets expire while a font package compiles. makepkg then
+    # blocks on "sudo: timed out reading password". Stretch the ticket for
+    # this user and remove the rule when the installer exits.
+    printf 'Defaults:%s timestamp_timeout=120\n' "$user" > "$tmp"
+    if sudo visudo -c -f "$tmp" >/dev/null 2>&1; then
+        sudo cp "$tmp" /etc/sudoers.d/99-yahr-install-timeout
+        sudo chmod 0440 /etc/sudoers.d/99-yahr-install-timeout
+        SUDO_TIMEOUT_INSTALLED=true
+    fi
+    rm -f "$tmp"
+    sudo -v
+    ( while true; do sudo -n -v; sleep 20; kill -0 "$$" || exit; done ) 2>/dev/null &
+    SUDO_KEEPALIVE_PID=$!
 }
 
 enable_multilib() {
@@ -160,10 +194,16 @@ pkg_install() {
     if [ "$#" -eq 0 ]; then
         return 0
     fi
+    # Refresh the ticket immediately before a build. --sudoloop keeps it
+    # alive while makepkg is compiling, which is when a bare keepalive loses
+    # the race and sudo sits until "timed out reading password".
+    sudo -v
     if [ "$AUR_HELPER" = "yay" ]; then
-        yay -S --needed --noconfirm --answerdiff None --answerclean All "$@"
+        yay -S --needed --noconfirm \
+            --answerdiff None --answeredit None --answerclean All --answerupgrade None \
+            --sudoloop --removemake "$@"
     else
-        paru -S --needed --noconfirm --skipreview "$@"
+        paru -S --needed --noconfirm --skipreview --sudoloop "$@"
     fi
 }
 
@@ -235,13 +275,14 @@ repo_packages() {
 }
 
 # AUR packages the shell needs that are not in the official repos.
+# Roboto Flex is not installed: the settings catalog falls back to Roboto
+# (ttf-roboto), and the AUR build is what stalled on a sudo password.
 aur_packages() {
     printf '%s\n' \
         papirus-folders-git \
         bibata-cursor-theme \
         ttf-manrope \
-        otf-space-grotesk \
-        ttf-roboto-flex
+        otf-space-grotesk
 }
 
 install_packages() {
@@ -263,44 +304,6 @@ install_packages() {
     ok "Packages installed."
 }
 
-install_maple_font() {
-    if fc-list 2>/dev/null | grep -qi 'Maple Mono NF'; then
-        ok "Maple Mono NF is already installed."
-        return 0
-    fi
-    info "Installing Maple Mono NF ${MAPLE_VERSION} (Ghostty)…"
-    local tmp dest
-    tmp="$(mktemp -d)"
-    dest="$HOME/.local/share/fonts/MapleMonoNF"
-    mkdir -p "$dest"
-    if ! curl -fsSL -o "$tmp/MapleMono-NF.zip" "$MAPLE_URL"; then
-        rm -rf "$tmp"
-        err "Could not download Maple Mono NF from $MAPLE_URL"
-        exit 1
-    fi
-    if ! python3 - "$tmp/MapleMono-NF.zip" "$dest" <<'PY'
-import sys
-import zipfile
-from pathlib import Path
-dest = Path(sys.argv[2])
-dest.mkdir(parents=True, exist_ok=True)
-with zipfile.ZipFile(sys.argv[1]) as archive:
-    archive.extractall(dest)
-PY
-    then
-        rm -rf "$tmp"
-        err "Could not extract Maple Mono NF."
-        exit 1
-    fi
-    rm -rf "$tmp"
-    fc-cache -f "$dest" >/dev/null 2>&1 || true
-    if ! fc-list | grep -qi 'Maple Mono NF'; then
-        err "Maple Mono NF did not register with fontconfig."
-        exit 1
-    fi
-    ok "Maple Mono NF installed."
-}
-
 configure_nvidia() {
     local gpu
     gpu="$(gpu_text)"
@@ -313,15 +316,30 @@ configure_nvidia() {
         sudo sed -i -E 's/^MODULES=\(([^)]*)\)/MODULES=(\1 nvidia nvidia_modeset nvidia_uvm nvidia_drm)/' /etc/mkinitcpio.conf
         sudo mkinitcpio -P || warn "mkinitcpio failed. Rebuild the initramfs before rebooting."
     fi
-    mkdir -p "$HOME/.config/hypr"
-    cat > "$HOME/.config/hypr/nvidia.lua" <<'EOF'
+    ok "NVIDIA modeset configured. Reboot before the first Hyprland session."
+}
+
+# nvidia.lua is machine-local. Write it after the config sync so the sync
+# cannot delete it, and drop a stale copy on machines without NVIDIA.
+write_nvidia_lua() {
+    local gpu dest
+    dest="$HOME/.config/hypr/nvidia.lua"
+    gpu="$(gpu_text)"
+    if [ -z "$gpu" ]; then
+        return 0
+    fi
+    if echo "$gpu" | grep -qi nvidia; then
+        mkdir -p "$HOME/.config/hypr"
+        cat > "$dest" <<'EOF'
 -- Written by the Yahr installer when an NVIDIA GPU is present.
 hl.env("LIBVA_DRIVER_NAME", "nvidia")
 hl.env("GBM_BACKEND", "nvidia-drm")
 hl.env("__GLX_VENDOR_LIBRARY_NAME", "nvidia")
 hl.env("WLR_NO_HARDWARE_CURSORS", "1")
 EOF
-    ok "NVIDIA modeset configured. Reboot before the first Hyprland session."
+        return 0
+    fi
+    rm -f "$dest"
 }
 
 install_sudoers() {
@@ -347,11 +365,70 @@ EOF
     fi
 }
 
-link_or_copy() {
+hyprctl_cmd() {
+    if command_exists timeout; then
+        timeout 10 hyprctl "$@"
+    else
+        hyprctl "$@"
+    fi
+}
+
+# Hyprland ≥ 0.55 reloads Lua as soon as a watched file changes. Removing
+# ~/.config/hypr, even for the moment between rm and cp, makes it try to
+# open hyprland.lua, fail, and stay in emergency mode.
+pause_hypr_reload() {
+    HYPR_PAUSED=false
+    if ! command_exists hyprctl; then
+        return 0
+    fi
+    if hyprctl_cmd eval 'hl.config({ misc = { disable_autoreload = true }, debug = { suppress_errors = true } })' >/dev/null 2>&1 \
+        || hyprctl_cmd keyword misc:disable_autoreload true >/dev/null 2>&1; then
+        HYPR_PAUSED=true
+    fi
+}
+
+resume_hypr_reload() {
+    if ! command_exists hyprctl; then
+        HYPR_PAUSED=false
+        return 0
+    fi
+    if [ -s "$HOME/.config/hypr/hyprland.lua" ]; then
+        if hyprctl_cmd reload >/dev/null 2>&1; then
+            ok "Hyprland reloaded."
+        fi
+    fi
+    hyprctl_cmd eval 'hl.config({ misc = { disable_autoreload = false }, debug = { suppress_errors = false } })' >/dev/null 2>&1 \
+        || hyprctl_cmd keyword misc:disable_autoreload false >/dev/null 2>&1 \
+        || true
+    HYPR_PAUSED=false
+}
+
+# Copy src onto dest without deleting dest first. Extra files in dest that
+# are not in src are removed afterwards. Names passed after dest are kept
+# even when src does not have them (nvidia.lua).
+sync_tree() {
     local src="$1" dest="$2"
-    mkdir -p "$(dirname "$dest")"
-    rm -rf "$dest"
-    cp -a "$src" "$dest"
+    shift 2
+    local path rel kept k list
+    mkdir -p "$dest"
+    cp -a "${src}/." "${dest}/"
+    # Snapshot the tree before deleting. find running alongside rm misses files.
+    list="$(mktemp)"
+    find "$dest" -mindepth 1 -depth -print0 > "$list"
+    while IFS= read -r -d '' path; do
+        rel="${path#"${dest}"/}"
+        kept=false
+        for k in "$@"; do
+            if [ "$rel" = "$k" ]; then
+                kept=true
+                break
+            fi
+        done
+        if [ "$kept" = false ] && [ ! -e "${src}/${rel}" ]; then
+            rm -rf "$path"
+        fi
+    done < "$list"
+    rm -f "$list"
 }
 
 install_configs() {
@@ -360,10 +437,16 @@ install_configs() {
         "$HOME/Pictures/Screenshots" "$HOME/Pictures/Wallpapers" "$HOME/.cache/yahr" \
         "$HOME/.local/share/fonts"
 
-    link_or_copy "$REPO_ROOT/hypr" "$HOME/.config/hypr"
-    link_or_copy "$REPO_ROOT/quickshell" "$HOME/.config/quickshell"
-    link_or_copy "$REPO_ROOT/ghostty" "$HOME/.config/ghostty"
-    link_or_copy "$REPO_ROOT/mako" "$HOME/.config/mako"
+    pause_hypr_reload
+    sync_tree "$REPO_ROOT/hypr" "$HOME/.config/hypr" nvidia.lua
+    write_nvidia_lua
+    sync_tree "$REPO_ROOT/quickshell" "$HOME/.config/quickshell"
+    sync_tree "$REPO_ROOT/ghostty" "$HOME/.config/ghostty"
+    sync_tree "$REPO_ROOT/mako" "$HOME/.config/mako"
+    if [ ! -s "$HOME/.config/hypr/hyprland.lua" ]; then
+        err "Hyprland config is missing at $HOME/.config/hypr/hyprland.lua"
+        exit 1
+    fi
     mkdir -p "$HOME/.config/Thunar"
     cp -a "$REPO_ROOT/thunar/." "$HOME/.config/Thunar/" 2>/dev/null || true
 
@@ -555,8 +638,6 @@ print_plan() {
     repo_packages | sed 's/^/  /'
     echo "AUR packages:"
     aur_packages | sed 's/^/  /'
-    echo "Font download:"
-    echo "  Maple Mono NF ${MAPLE_VERSION}"
     echo "User content:"
     echo "  themes:     $(find "$REPO_ROOT/themes" -name '*.json' ! -name schema.json | wc -l) palettes"
     echo "  wallpapers: $(find "$REPO_ROOT/wallpapers" -type f | wc -l) files"
@@ -565,6 +646,7 @@ print_plan() {
 }
 
 main() {
+    trap cleanup EXIT
     echo ""
     echo "  Yahr Shell installer"
     echo "  Unattended Hyprland + Quickshell setup"
@@ -582,7 +664,6 @@ main() {
 
     if [ "$SKIP_PACKAGES" = false ]; then
         install_packages
-        install_maple_font
         configure_nvidia
         install_sudoers
     else
@@ -596,6 +677,7 @@ main() {
     ensure_local_bin_path
     ensure_starship
     apply_default_theme
+    resume_hypr_reload
     configure_session
 
     local themes wallpapers
@@ -619,4 +701,6 @@ main() {
     echo ""
 }
 
-main
+if [ "${YAHR_INSTALL_SOURCE_ONLY:-0}" != 1 ]; then
+    main
+fi

@@ -103,7 +103,7 @@ def ghostty_config_base() -> str:
     return """# Ghostty — created by yahr-theme.
 # Palette is written into the yahr-theme block below; keep the rest of
 # this file for your own font / keybind / window settings.
-font-family = Maple Mono NF
+font-family = JetBrainsMono Nerd Font
 font-size = 13
 window-padding-x = 8
 window-padding-y = 8
@@ -909,7 +909,7 @@ def hyprlock_conf(palette: dict) -> str:
 # 4-col grid: date 1x1 | time 1x3
 #            system 1x1 | battery 1x1 | avatar 2x2
 #            weather 1x2              | avatar 2x2
-$font = Maple Mono NF
+$font = JetBrainsMono Nerd Font
 $ui = Inter
 $icons = Symbols Nerd Font
 $plate = rgba({bg}F2)

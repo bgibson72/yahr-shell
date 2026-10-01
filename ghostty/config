@@ -1,7 +1,7 @@
 # Ghostty — created by yahr-theme.
 # Palette is written into the yahr-theme block below; keep the rest of
 # this file for your own font / keybind / window settings.
-font-family = Maple Mono NF
+font-family = JetBrainsMono Nerd Font
 font-size = 13
 window-padding-x = 8
 window-padding-y = 8

@@ -26,6 +26,8 @@ cd yahr-shell
 
 The installer does not ask questions. It installs the desktop, fonts, bundled themes, wallpapers, and the SDDM greeter, then you reboot and sign in. It detects this clone’s path and your `$HOME` — it does not assume `~/Projects/yahr-shell` or a fixed username. Configs are copied into `~/.config/{hypr,quickshell,…}`; themes and the theme engine land under `~/.local/share/yahr-shell/`. Wallpapers are copied to `~/Pictures/Wallpapers`.
 
+If Hyprland is already running, the installer updates `~/.config/hypr` in place and reloads the session. It does not delete that directory out from under the compositor. Terminal and lock-screen text use JetBrainsMono Nerd Font. The settings font list (Inter, Source Sans, Roboto, Manrope, Overpass, Space Grotesk, IBM Plex Sans) is what gets installed.
+
 Flags:
 
 - `--minimal` — skip Firefox (the shell, fonts, themes, and greeter are still installed)
