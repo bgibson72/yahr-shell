@@ -268,9 +268,11 @@ repo_packages() {
         fi
     fi
     if echo "$gpu" | grep -qiE 'amd|radeon|advanced micro'; then
-        pkgs+=(vulkan-radeon mesa-vdpau libva-mesa-driver)
+        # Mesa 25.3 dropped VDPAU, and Arch folded the old mesa-vdpau and
+        # libva-mesa-driver split packages into mesa / lib32-mesa.
+        pkgs+=(vulkan-radeon)
         if [ "$MULTILIB" = true ]; then
-            pkgs+=(lib32-vulkan-radeon lib32-mesa-vdpau)
+            pkgs+=(lib32-vulkan-radeon)
         fi
     fi
     if echo "$gpu" | grep -qi intel; then
