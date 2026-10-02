@@ -4,7 +4,7 @@ Login screen that follows the YAHR shell: wide split plate (wallpaper welcome pa
 
 ## Sync
 
-Theme apply (`yahr-theme apply` or Settings → Theme) writes palette colors and clock formats into `theme.conf`. Changing the desktop wallpaper (with **Match desktop** on) copies a blurred still of that image into `/usr/share/sddm/themes/yahr-theme`.
+Theme apply (`yahr-theme apply` or Settings → Theme) writes palette colors and clock formats into `theme.conf`. Changing the desktop wallpaper (with **Match desktop** on) copies a blurred full-screen still plus a sharp hero crop into `/usr/share/sddm/themes/yahr-theme`.
 
 `./install.sh` writes this sudoers rule. To install it on its own:
 
