@@ -40,7 +40,7 @@ Panel {
         }
         return out
     }
-    property var wallpaperImages: []
+    property var wallpaperSections: []
     property string seedBg: "#1e1e2e"
     property string seedBlue: "#89b4fa"
     property string seedPurple: "#cba6f7"
@@ -258,6 +258,7 @@ Panel {
     }
 
     function refreshWallpapers() {
+        wpFlick.contentY = 0
         wallpaperScan.running = false
         wallpaperScan.running = true
     }
@@ -1521,7 +1522,7 @@ Panel {
             SettingsSection {
                 title: "Wallpaper"
                 Text {
-                    text: "Images from this folder (and its subfolders) appear in the gallery below. Applying a theme also sets a wallpaper from that theme’s folder; you can still pick any image here."
+                    text: "Each theme has a section for the images in its folder. Pictures left directly in this directory, not in a subfolder, are listed under Other. Applying a theme still picks a wallpaper from that theme’s folder."
                     color: ThemeManager.fgTertiary
                     font.family: ThemeManager.uiFont
                     font.pixelSize: 12
@@ -1608,76 +1609,111 @@ Panel {
                 }
             }
 
-            Item {
+            Flickable {
+                id: wpFlick
                 Layout.fillWidth: true
                 Layout.fillHeight: true
+                clip: true
+                contentWidth: width
+                contentHeight: wpGallery.implicitHeight
+                boundsBehavior: Flickable.StopAtBounds
+                ScrollBar.vertical: ScrollBar { policy: ScrollBar.AsNeeded }
 
-                Text {
-                    anchors.centerIn: parent
-                    visible: root.wallpaperImages.length === 0
-                    width: parent.width - 24
-                    horizontalAlignment: Text.AlignHCenter
-                    wrapMode: Text.WordWrap
-                    text: "No images in this folder yet. Choose a directory above, or add PNG, JPG, WebP, or GIF files to it."
-                    color: ThemeManager.fgTertiary
-                    font.family: ThemeManager.uiFont
-                    font.pixelSize: 13
-                }
+                Column {
+                    id: wpGallery
+                    width: wpFlick.width
+                    spacing: 18
 
-                GridView {
-                    id: wpGrid
-                    anchors.fill: parent
-                    visible: root.wallpaperImages.length > 0
-                    clip: true
-                    cellWidth: Math.max(160, Math.floor(width / Math.max(1, Math.floor(width / 190))))
-                    cellHeight: Math.round(cellWidth * 0.62)
-                    model: root.wallpaperImages
+                    Text {
+                        visible: root.wallpaperSections.length === 0
+                        width: parent.width
+                        horizontalAlignment: Text.AlignHCenter
+                        wrapMode: Text.WordWrap
+                        text: "No images in this folder yet. Choose a directory above, or add PNG, JPG, WebP, or GIF files to it."
+                        color: ThemeManager.fgTertiary
+                        font.family: ThemeManager.uiFont
+                        font.pixelSize: 13
+                    }
 
-                    delegate: Item {
-                        id: wpThumb
-                        required property var modelData
-                        width: wpGrid.cellWidth
-                        height: wpGrid.cellHeight
-                        readonly property bool selected: Settings.currentWallpaper === modelData
+                    Repeater {
+                        model: root.wallpaperSections
 
-                        scale: wpThumbMouse.pressed ? ThemeManager.bouncePressScale : (wpThumbMouse.containsMouse ? ThemeManager.bounceHoverScale : 1.0)
-                        Behavior on scale {
-                            SpringAnimation { spring: ThemeManager.bounceSpring; damping: ThemeManager.bounceDamping; mass: ThemeManager.bounceMass }
-                        }
+                        Column {
+                            id: wpSection
+                            required property var modelData
+                            width: wpGallery.width
+                            spacing: 8
+                            readonly property int columns: Math.max(1, Math.floor(width / 190))
+                            readonly property int cellWidth: Math.max(160, Math.floor(width / columns))
+                            readonly property int cellHeight: Math.round(cellWidth * 0.62)
 
-                        Rectangle {
-                            id: thumbFrame
-                            anchors.fill: parent
-                            anchors.margins: 6
-                            radius: 8
-                            color: wpThumb.selected ? ThemeManager.accentBlue : ThemeManager.surface1
+                            Text {
+                                width: parent.width
+                                text: wpSection.modelData.title
+                                color: ThemeManager.fgTertiary
+                                font.family: ThemeManager.uiFont
+                                font.pixelSize: 11
+                                font.weight: Font.DemiBold
+                                font.capitalization: Font.AllUppercase
+                                font.letterSpacing: 1.3
+                                elide: Text.ElideRight
+                            }
 
-                            Image {
-                                id: thumbImage
-                                anchors.fill: parent
-                                anchors.margins: wpThumb.selected ? 2 : 0
-                                source: "file://" + wpThumb.modelData
-                                fillMode: Image.PreserveAspectCrop
-                                asynchronous: true
-                                smooth: true
-                                layer.enabled: true
-                                layer.smooth: true
-                                layer.effect: OpacityMask {
-                                    maskSource: Rectangle {
-                                        width: thumbImage.width
-                                        height: thumbImage.height
-                                        radius: wpThumb.selected ? 6 : 8
+                            Grid {
+                                width: parent.width
+                                columns: wpSection.columns
+
+                                Repeater {
+                                    model: wpSection.modelData.paths
+
+                                    Item {
+                                        id: wpThumb
+                                        required property var modelData
+                                        width: wpSection.cellWidth
+                                        height: wpSection.cellHeight
+                                        readonly property bool selected: Settings.currentWallpaper === modelData
+
+                                        scale: wpThumbMouse.pressed ? ThemeManager.bouncePressScale : (wpThumbMouse.containsMouse ? ThemeManager.bounceHoverScale : 1.0)
+                                        Behavior on scale {
+                                            SpringAnimation { spring: ThemeManager.bounceSpring; damping: ThemeManager.bounceDamping; mass: ThemeManager.bounceMass }
+                                        }
+
+                                        Rectangle {
+                                            anchors.fill: parent
+                                            anchors.margins: 6
+                                            radius: 8
+                                            color: wpThumb.selected ? ThemeManager.accentBlue : ThemeManager.surface1
+
+                                            Image {
+                                                id: thumbImage
+                                                anchors.fill: parent
+                                                anchors.margins: wpThumb.selected ? 2 : 0
+                                                source: "file://" + wpThumb.modelData
+                                                fillMode: Image.PreserveAspectCrop
+                                                asynchronous: true
+                                                smooth: true
+                                                layer.enabled: true
+                                                layer.smooth: true
+                                                layer.effect: OpacityMask {
+                                                    maskSource: Rectangle {
+                                                        width: thumbImage.width
+                                                        height: thumbImage.height
+                                                        radius: wpThumb.selected ? 6 : 8
+                                                    }
+                                                }
+                                            }
+                                        }
+
+                                        MouseArea {
+                                            id: wpThumbMouse
+                                            anchors.fill: parent
+                                            hoverEnabled: true
+                                            cursorShape: Qt.PointingHandCursor
+                                            onClicked: root.applyWallpaper(wpThumb.modelData)
+                                        }
                                     }
                                 }
                             }
-                        }
-
-                        MouseArea {
-                            id: wpThumbMouse
-                            anchors.fill: parent
-                            hoverEnabled: true
-                            cursorShape: Qt.PointingHandCursor
-                            onClicked: root.applyWallpaper(wpThumb.modelData)
                         }
                     }
                 }
@@ -2856,8 +2892,12 @@ Panel {
         command: ["python3", `${Quickshell.shellDir}/scripts/list-wallpapers.py`, Settings.wallpaperDir]
         stdout: StdioCollector {
             onStreamFinished: {
-                const lines = this.text.trim().split("\n").filter(l => l.length > 0)
-                root.wallpaperImages = lines
+                try {
+                    const data = JSON.parse(this.text)
+                    root.wallpaperSections = Array.isArray(data.sections) ? data.sections : []
+                } catch (error) {
+                    root.wallpaperSections = []
+                }
             }
         }
     }
