@@ -77,8 +77,19 @@ def set_key(text: str, key: str, value: str, quoted: bool = False) -> str:
 
 
 def sudo_cp(src: Path, dest: Path) -> bool:
+    """Copy src to dest without a password prompt.
+
+    sudoers allows ``/usr/bin/cp * /usr/share/sddm/themes/yahr-theme/*`` (and
+    the faces directory). A ``*`` there does not match ``/``, so an absolute
+    source path is rejected and the greeter never receives the wallpaper.
+    Pass only the file name and run cp from the source directory.
+    """
+    src = src.resolve()
+    if not src.is_file():
+        return False
     result = subprocess.run(
-        ["sudo", "-n", "cp", str(src), str(dest)],
+        ["sudo", "-n", "cp", src.name, str(dest)],
+        cwd=src.parent,
         capture_output=True,
         text=True,
     )
@@ -115,8 +126,10 @@ def preblur(src: Path, dest: Path, radius: int) -> bool:
             result = subprocess.run(cmd, capture_output=True, text=True)
             if result.returncode != 0:
                 shutil.copy2(src, tmp_path)
-            return sudo_cp(tmp_path, dest)
-        shutil.copy2(src, tmp_path)
+        else:
+            shutil.copy2(src, tmp_path)
+        # The greeter runs as the sddm user and cannot read a private file.
+        os.chmod(tmp_path, 0o644)
         return sudo_cp(tmp_path, dest)
     finally:
         tmp_path.unlink(missing_ok=True)

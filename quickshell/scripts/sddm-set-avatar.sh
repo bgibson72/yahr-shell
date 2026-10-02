@@ -14,7 +14,8 @@ cp "$src" "$HOME/.face.icon"
 cp "$src" "$HOME/.face" 2>/dev/null || true
 
 face_dir="/usr/share/sddm/faces"
-if sudo -n cp "$src" "$face_dir/${user}.face.icon" 2>/dev/null; then
+# sudoers '*' does not match '/', so the source has to be a bare file name.
+if (cd "$(dirname "$src")" && sudo -n cp "$(basename "$src")" "$face_dir/${user}.face.icon") 2>/dev/null; then
     echo OK
     exit 0
 fi
