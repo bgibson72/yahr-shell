@@ -96,7 +96,22 @@ Rectangle {
         height: 480
         radius: 28
         color: plateColor
-        clip: true
+
+        // clip:true does not honor radius — mask the whole plate so the hero
+        // wallpaper gets the same rounded corners as the solid right side.
+        layer.enabled: true
+        layer.smooth: true
+        layer.effect: OpacityMask {
+            maskSource: Item {
+                width: plate.width
+                height: plate.height
+                Rectangle {
+                    anchors.fill: parent
+                    radius: plate.radius
+                    color: "#ffffff"
+                }
+            }
+        }
 
         Row {
             anchors.fill: parent
