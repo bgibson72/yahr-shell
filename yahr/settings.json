@@ -15,7 +15,7 @@
     "position": "top",
     "barSize": "small",
     "barStyle": "single",
-    "backgroundStyle": "translucent",
+    "backgroundStyle": "opaque",
     "barOpacity": 0.7,
     "floating": false,
     "showBorder": false,
@@ -30,7 +30,8 @@
     "position": "bottom",
     "alignment": "center",
     "floating": true,
-    "backgroundStyle": "translucent",
+    "behavior": "auto-hide",
+    "backgroundStyle": "opaque",
     "opacity": 0.7,
     "showBorder": false,
     "iconSize": 48,
@@ -39,8 +40,11 @@
   },
   "hypr": {
     "rounding": 12,
-    "showBorder": true,
+    "showBorder": false,
     "borderSize": 3,
+    "gapsIn": 10,
+    "gapsOut": 10,
+    "shadowPreset": "off",
     "blurEnabled": false,
     "blurSize": 10,
     "windowTransparent": false,
@@ -52,5 +56,8 @@
   "wallpaper": {
     "directory": "~/Pictures/Wallpapers",
     "current": ""
+  },
+  "sddm": {
+    "loginOpacity": 1.0
   }
 }

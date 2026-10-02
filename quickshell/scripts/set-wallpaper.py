@@ -113,7 +113,7 @@ def maybe_sync_sddm(image: str) -> None:
     if not script.is_file():
         return
     blur = 0 if not sddm.get("blurEnabled", True) else int(sddm.get("blurAmount", 20) or 0)
-    opacity = sddm.get("loginOpacity", 0.75)
+    opacity = sddm.get("loginOpacity", 1.0)
     subprocess.run(
         [
             sys.executable,

@@ -77,7 +77,7 @@ end
 
 hl.config({
     general = {
-        gaps_in = s.gaps_in or 5,
+        gaps_in = s.gaps_in or 10,
         gaps_out = gaps_out,
         border_size = (s.show_border == false) and 0 or (s.border_size or 3),
         col = {

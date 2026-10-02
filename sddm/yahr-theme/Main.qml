@@ -30,7 +30,7 @@ Rectangle {
     property bool showPowerButtons: config.boolValue("ShowPowerButtons") !== false
     property string timeFormat: config.stringValue("TimeFormat") || "h:mm AP"
     property string dateFormat: config.stringValue("DateFormat") || "ddd MMM d"
-    property real widgetOpacity: parseFloat(config.stringValue("WidgetOpacity") || "0.92")
+    property real widgetOpacity: parseFloat(config.stringValue("WidgetOpacity") || "1.0")
 
     property string translateLogin: config.stringValue("TranslateLogin") || textConstants.login
     property string translateLoginFailed: config.stringValue("TranslateLoginFailed") || textConstants.loginFailed

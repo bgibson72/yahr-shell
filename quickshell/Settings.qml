@@ -25,7 +25,7 @@ Item {
     property string barPosition: "top"
     property string barSize: "small"
     property string barStyle: "single"
-    property string barBackgroundStyle: "translucent"
+    property string barBackgroundStyle: "opaque"
     property real barOpacity: 0.70
     property bool barFloating: false
     property bool barShowBorder: false
@@ -43,8 +43,8 @@ Item {
     property string dockPosition: "bottom"
     property string dockAlignment: "center"
     property bool dockFloating: true
-    property string dockBehavior: "always-on-top"
-    property string dockBackgroundStyle: "translucent"
+    property string dockBehavior: "auto-hide"
+    property string dockBackgroundStyle: "opaque"
     property real dockOpacity: 0.70
     property bool dockShowBorder: false
     property bool dockFollowHyprland: false
@@ -57,17 +57,17 @@ Item {
     property var dockPinnedApps: []
 
     property int hyprRounding: 12
-    property bool hyprShowBorder: true
+    property bool hyprShowBorder: false
     property int hyprBorderSize: 3
     property bool hyprBorderTransparent: true
     property int hyprBorderTransparency: 65
     property string hyprBorderFill: "gradient"
     property int hyprBorderAngle: 45
     property string hyprBorderAnimation: "none"
-    property int hyprGapsIn: 5
+    property int hyprGapsIn: 10
     property int hyprGapsOut: 10
     property bool hyprAnimations: true
-    property string hyprShadowPreset: "moderate"
+    property string hyprShadowPreset: "off"
     property int hyprShadowRange: 20
     property int hyprShadowAlpha: 33
     property bool hyprShadowUseAccent: false
@@ -89,7 +89,7 @@ Item {
     property string sddmCustomWallpaper: ""
     property bool sddmBlurEnabled: true
     property int sddmBlurAmount: 20
-    property real sddmLoginOpacity: 0.75
+    property real sddmLoginOpacity: 1.0
 
     readonly property string settingsPath: `${Quickshell.env("HOME")}/.config/yahr/settings.json`
     property bool ready: false

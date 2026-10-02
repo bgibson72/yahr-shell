@@ -185,7 +185,7 @@ def _sync_sddm() -> None:
         return
     sddm = _settings().get("sddm") or {}
     blur = 0 if not sddm.get("blurEnabled", True) else int(sddm.get("blurAmount", 20) or 0)
-    opacity = sddm.get("loginOpacity", 0.75)
+    opacity = sddm.get("loginOpacity", 1.0)
     wallpaper = "desktop" if sddm.get("followDesktop", True) else (sddm.get("customWallpaper") or "none")
     _run([
         sys.executable,
