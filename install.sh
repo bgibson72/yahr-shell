@@ -20,6 +20,11 @@ AUR_HELPER=""
 MULTILIB=false
 HYPR_PAUSED=false
 SUDO_TIMEOUT_INSTALLED=false
+# Pinned Google Fonts file. The AUR ttf-manrope package still points at
+# https://r2.fontsource.org/fonts/manrope@5.2.5/download.zip, which 404s.
+MANROPE_COMMIT="b31870aff700ab7a1d74fa0c6887d95beb9e0037"
+MANROPE_SHA256="3ae11c49db0455a3cc33e37d380f20fdb8c7f8b41dc07625c177e3d87a9d6ae6"
+MANROPE_URL="https://raw.githubusercontent.com/google/fonts/${MANROPE_COMMIT}/ofl/manrope/Manrope%5Bwght%5D.ttf"
 
 usage() {
     cat <<EOF
@@ -276,13 +281,53 @@ repo_packages() {
 
 # AUR packages the shell needs that are not in the official repos.
 # Roboto Flex is not installed: the settings catalog falls back to Roboto
-# (ttf-roboto), and the AUR build is what stalled on a sudo password.
+# (ttf-roboto). Manrope is downloaded separately; the AUR PKGBUILD 404s.
 aur_packages() {
     printf '%s\n' \
         papirus-folders-git \
         bibata-cursor-theme \
-        ttf-manrope \
         otf-space-grotesk
+}
+
+# pacman --noconfirm answers "no" to "Remove quickshell-git?", then aborts.
+# Drop the -git build first so the repository package can take its place.
+replace_conflicting_packages() {
+    if ! command_exists pacman; then
+        return 0
+    fi
+    if pacman -Q quickshell-git &>/dev/null; then
+        info "Replacing quickshell-git with the repository quickshell package…"
+        sudo pacman -Rdd --noconfirm quickshell-git
+    fi
+}
+
+install_manrope_font() {
+    if command_exists fc-list && fc-list : family 2>/dev/null | tr ',' '\n' | sed 's/^[[:space:]]*//;s/[[:space:]]*$//' | grep -qx 'Manrope'; then
+        ok "Manrope is already installed."
+        return 0
+    fi
+    info "Installing Manrope…"
+    local tmp dest got
+    tmp="$(mktemp)"
+    dest="${YAHR_MANROPE_FONT_DIR:-/usr/share/fonts/manrope}"
+    if ! curl -fsSL -o "$tmp" "$MANROPE_URL"; then
+        rm -f "$tmp"
+        err "Could not download Manrope from $MANROPE_URL"
+        exit 1
+    fi
+    got="$(sha256sum "$tmp" | awk 'NR==1 { print $1 }')"
+    if [ "$got" != "$MANROPE_SHA256" ]; then
+        rm -f "$tmp"
+        err "Manrope checksum did not match (got $got)."
+        exit 1
+    fi
+    sudo mkdir -p "$dest"
+    sudo install -m 0644 "$tmp" "$dest/Manrope[wght].ttf"
+    rm -f "$tmp"
+    if command_exists fc-cache; then
+        fc-cache -f "$dest" >/dev/null 2>&1 || true
+    fi
+    ok "Manrope installed."
 }
 
 install_packages() {
@@ -293,6 +338,7 @@ install_packages() {
     install_aur_helper
     ok "AUR helper: $AUR_HELPER"
 
+    replace_conflicting_packages
     local repo aur
     mapfile -t repo < <(repo_packages)
     mapfile -t aur < <(aur_packages)
@@ -301,6 +347,7 @@ install_packages() {
         err "Package installation failed."
         exit 1
     fi
+    install_manrope_font
     ok "Packages installed."
 }
 
@@ -638,6 +685,8 @@ print_plan() {
     repo_packages | sed 's/^/  /'
     echo "AUR packages:"
     aur_packages | sed 's/^/  /'
+    echo "Manrope:"
+    echo "  $MANROPE_URL"
     echo "User content:"
     echo "  themes:     $(find "$REPO_ROOT/themes" -name '*.json' ! -name schema.json | wc -l) palettes"
     echo "  wallpapers: $(find "$REPO_ROOT/wallpapers" -type f | wc -l) files"
