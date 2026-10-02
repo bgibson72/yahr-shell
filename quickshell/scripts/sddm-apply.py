@@ -95,23 +95,24 @@ def sudo_write(dest: Path, text: str) -> bool:
     return result.returncode == 0
 
 
-def preblur(src: Path, dest: Path, radius: int) -> bool:
-    """Write a resized, blurred copy of src to dest via sudo cp."""
+def resize_wallpaper(src: Path, dest: Path, radius: int = 0) -> bool:
+    """Write a resized copy of src to dest via sudo cp. Optional Gaussian blur."""
     magick = shutil.which("magick") or shutil.which("convert")
     suffix = dest.suffix if dest.suffix.lower() in IMAGE_EXTS else ".png"
     with tempfile.NamedTemporaryFile(suffix=suffix, delete=False) as tmp:
         tmp_path = Path(tmp.name)
     try:
-        if magick and radius > 0:
-            sigma = max(1, min(64, radius))
+        if magick:
+            sigma = max(1, min(64, radius)) if radius > 0 else 0
             cmd = [
                 magick, str(src),
                 "-resize", "2560x1440^",
                 "-gravity", "center",
                 "-extent", "2560x1440",
-                "-blur", f"0x{sigma}",
-                str(tmp_path),
             ]
+            if sigma > 0:
+                cmd.extend(["-blur", f"0x{sigma}"])
+            cmd.append(str(tmp_path))
             result = subprocess.run(cmd, capture_output=True, text=True)
             if result.returncode != 0:
                 shutil.copy2(src, tmp_path)
@@ -120,6 +121,11 @@ def preblur(src: Path, dest: Path, radius: int) -> bool:
         return sudo_cp(tmp_path, dest)
     finally:
         tmp_path.unlink(missing_ok=True)
+
+
+def preblur(src: Path, dest: Path, radius: int) -> bool:
+    """Back-compat wrapper: write a resized, optionally blurred copy."""
+    return resize_wallpaper(src, dest, radius)
 
 
 def apply_palette(text: str, settings: dict) -> str:
@@ -164,14 +170,21 @@ def main() -> int:
     settings = load_json(HOME / ".config/yahr/settings.json")
     wallpaper = resolve_wallpaper(args.wallpaper)
     dest_name = None
+    hero_name = None
     runtime_blur = args.blur
     if wallpaper is not None:
         ext = wallpaper.suffix.lower()
         if ext not in IMAGE_EXTS:
             ext = ".png"
         dest_name = f"login-background{ext}"
+        hero_name = f"login-hero{ext}"
         dest = THEME_DIR / dest_name
-        if not preblur(wallpaper, dest, args.blur):
+        hero_dest = THEME_DIR / hero_name
+        # Full-screen background may be pre-blurred; hero panel stays sharp.
+        if not resize_wallpaper(wallpaper, dest, args.blur):
+            print("FAIL")
+            return 1
+        if not resize_wallpaper(wallpaper, hero_dest, 0):
             print("FAIL")
             return 1
         # Image is already blurred on disk; skip FastBlur in the greeter.
@@ -189,8 +202,11 @@ def main() -> int:
     text = CONF.read_text()
     text = set_key(text, "WidgetOpacity", args.opacity)
     text = set_key(text, "BackgroundBlur", str(runtime_blur))
+    text = set_key(text, "ShowHostname", "false")
     if dest_name:
         text = set_key(text, "Background", dest_name, quoted=True)
+    if hero_name:
+        text = set_key(text, "HeroBackground", hero_name, quoted=True)
     text = apply_palette(text, settings)
 
     if not sudo_write(CONF, text):

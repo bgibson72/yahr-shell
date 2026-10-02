@@ -53,11 +53,20 @@ Rectangle {
             return background
         return Qt.resolvedUrl(background)
     }
+    readonly property url heroBackgroundSource: {
+        const hero = config.stringValue("HeroBackground") || ""
+        if (hero !== "") {
+            if (hero.indexOf("/") === 0 || hero.indexOf("file:") === 0)
+                return hero
+            return Qt.resolvedUrl(hero)
+        }
+        return root.backgroundSource
+    }
     readonly property string welcomeName: {
         const name = (usernameField.text || root.lastUser || "").trim()
         if (name === "")
             return "!"
-        return name + "!"
+        return name.charAt(0).toUpperCase() + name.slice(1) + "!"
     }
 
     Image {
@@ -78,18 +87,6 @@ Rectangle {
         anchors.fill: parent
         color: bgBase
         visible: !backgroundImage.visible
-    }
-
-    // Optional hostname above the plate (kept out of the login card)
-    Text {
-        anchors.horizontalCenter: parent.horizontalCenter
-        anchors.bottom: plate.top
-        anchors.bottomMargin: 18
-        text: sddm.hostName
-        font.family: root.fontFamily
-        font.pixelSize: root.fontSize + 1
-        color: Qt.rgba(root.fgSecondary.r, root.fgSecondary.g, root.fgSecondary.b, 0.85)
-        visible: root.showHostname && sddm.hostName !== ""
     }
 
     Rectangle {
@@ -113,16 +110,13 @@ Rectangle {
                 Image {
                     id: heroImage
                     anchors.fill: parent
-                    source: root.backgroundSource
+                    // Sharp crop of the wallpaper (never blurred), separate from the
+                    // full-screen Background which may be pre-blurred on disk.
+                    source: root.heroBackgroundSource
                     fillMode: Image.PreserveAspectCrop
                     visible: status === Image.Ready
                     cache: false
                     asynchronous: true
-
-                    layer.enabled: root.backgroundBlur > 0
-                    layer.effect: FastBlur {
-                        radius: root.backgroundBlur
-                    }
                 }
 
                 Rectangle {
