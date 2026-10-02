@@ -2,8 +2,10 @@
 """Sync the YAHR SDDM greeter with the current palette, clock, and wallpaper.
 
 Writes colors from ~/.config/yahr/current.json, clock/date formats from
-settings.json, then copies a (optionally pre-blurred) wallpaper into
-/usr/share/sddm/themes/yahr-theme. Needs the yahr-sddm sudoers rule.
+settings.json, then copies a sharp wallpaper into
+/usr/share/sddm/themes/yahr-theme. Full-screen blur is applied at runtime by
+the greeter (FastBlur); the left-panel hero always uses the sharp image.
+Needs the yahr-sddm sudoers rule.
 """
 
 from __future__ import annotations
@@ -14,7 +16,6 @@ import os
 import re
 import shutil
 import subprocess
-import sys
 import tempfile
 from pathlib import Path
 
@@ -95,24 +96,21 @@ def sudo_write(dest: Path, text: str) -> bool:
     return result.returncode == 0
 
 
-def resize_wallpaper(src: Path, dest: Path, radius: int = 0) -> bool:
-    """Write a resized copy of src to dest via sudo cp. Optional Gaussian blur."""
+def resize_wallpaper(src: Path, dest: Path) -> bool:
+    """Write a resized, sharp copy of src to dest via sudo cp."""
     magick = shutil.which("magick") or shutil.which("convert")
     suffix = dest.suffix if dest.suffix.lower() in IMAGE_EXTS else ".png"
     with tempfile.NamedTemporaryFile(suffix=suffix, delete=False) as tmp:
         tmp_path = Path(tmp.name)
     try:
         if magick:
-            sigma = max(1, min(64, radius)) if radius > 0 else 0
             cmd = [
                 magick, str(src),
                 "-resize", "2560x1440^",
                 "-gravity", "center",
                 "-extent", "2560x1440",
+                str(tmp_path),
             ]
-            if sigma > 0:
-                cmd.extend(["-blur", f"0x{sigma}"])
-            cmd.append(str(tmp_path))
             result = subprocess.run(cmd, capture_output=True, text=True)
             if result.returncode != 0:
                 shutil.copy2(src, tmp_path)
@@ -123,9 +121,25 @@ def resize_wallpaper(src: Path, dest: Path, radius: int = 0) -> bool:
         tmp_path.unlink(missing_ok=True)
 
 
-def preblur(src: Path, dest: Path, radius: int) -> bool:
-    """Back-compat wrapper: write a resized, optionally blurred copy."""
-    return resize_wallpaper(src, dest, radius)
+def find_theme_main() -> Path | None:
+    """Locate Main.qml from the git clone or installed share tree."""
+    candidates: list[Path] = []
+    repo_root_file = HOME / ".config/yahr/repo-root"
+    if repo_root_file.is_file():
+        try:
+            root = Path(repo_root_file.read_text().strip()).expanduser()
+            if root.is_dir():
+                candidates.append(root / "sddm" / "yahr-theme" / "Main.qml")
+        except OSError:
+            pass
+    here = Path(__file__).resolve()
+    # repo/quickshell/scripts → repo/sddm/...
+    candidates.append(here.parents[2] / "sddm" / "yahr-theme" / "Main.qml")
+    candidates.append(HOME / ".local/share/yahr-shell/sddm/yahr-theme/Main.qml")
+    for path in candidates:
+        if path.is_file():
+            return path
+    return None
 
 
 def apply_palette(text: str, settings: dict) -> str:
@@ -171,6 +185,7 @@ def main() -> int:
     wallpaper = resolve_wallpaper(args.wallpaper)
     dest_name = None
     hero_name = None
+    # Blur is applied at runtime on the full-screen layer only; assets stay sharp.
     runtime_blur = args.blur
     if wallpaper is not None:
         ext = wallpaper.suffix.lower()
@@ -180,24 +195,20 @@ def main() -> int:
         hero_name = f"login-hero{ext}"
         dest = THEME_DIR / dest_name
         hero_dest = THEME_DIR / hero_name
-        # Full-screen background may be pre-blurred; hero panel stays sharp.
-        if not resize_wallpaper(wallpaper, dest, args.blur):
+        if not resize_wallpaper(wallpaper, dest):
             print("FAIL")
             return 1
-        if not resize_wallpaper(wallpaper, hero_dest, 0):
+        if not resize_wallpaper(wallpaper, hero_dest):
             print("FAIL")
             return 1
-        # Image is already blurred on disk; skip FastBlur in the greeter.
-        if args.blur > 0 and (shutil.which("magick") or shutil.which("convert")):
-            runtime_blur = 0
 
     face = HOME / ".face.icon"
     if face.is_file():
         sudo_cp(face, Path("/usr/share/sddm/faces") / f"{HOME.name}.face.icon")
 
-    repo_main = Path(__file__).resolve().parents[2] / "sddm" / "yahr-theme" / "Main.qml"
-    if repo_main.is_file():
-        sudo_cp(repo_main, THEME_DIR / "Main.qml")
+    theme_main = find_theme_main()
+    if theme_main is not None:
+        sudo_cp(theme_main, THEME_DIR / "Main.qml")
 
     text = CONF.read_text()
     text = set_key(text, "WidgetOpacity", args.opacity)

@@ -125,13 +125,14 @@ Rectangle {
                     visible: !heroImage.visible
                 }
 
+                // Light scrim only — keep the hero wallpaper looking sharp.
                 Rectangle {
                     anchors.fill: parent
                     gradient: Gradient {
                         orientation: Gradient.Horizontal
-                        GradientStop { position: 0.0; color: Qt.rgba(root.bgBase.r, root.bgBase.g, root.bgBase.b, 0.55) }
-                        GradientStop { position: 0.45; color: Qt.rgba(root.bgBase.r, root.bgBase.g, root.bgBase.b, 0.22) }
-                        GradientStop { position: 1.0; color: Qt.rgba(root.bgBase.r, root.bgBase.g, root.bgBase.b, 0.62) }
+                        GradientStop { position: 0.0; color: Qt.rgba(root.bgBase.r, root.bgBase.g, root.bgBase.b, 0.28) }
+                        GradientStop { position: 0.50; color: Qt.rgba(root.bgBase.r, root.bgBase.g, root.bgBase.b, 0.08) }
+                        GradientStop { position: 1.0; color: Qt.rgba(root.bgBase.r, root.bgBase.g, root.bgBase.b, 0.32) }
                     }
                 }
 
@@ -139,8 +140,8 @@ Rectangle {
                     anchors.fill: parent
                     gradient: Gradient {
                         GradientStop { position: 0.0; color: "transparent" }
-                        GradientStop { position: 0.55; color: "transparent" }
-                        GradientStop { position: 1.0; color: Qt.rgba(root.bgBase.r, root.bgBase.g, root.bgBase.b, 0.55) }
+                        GradientStop { position: 0.60; color: "transparent" }
+                        GradientStop { position: 1.0; color: Qt.rgba(root.bgBase.r, root.bgBase.g, root.bgBase.b, 0.35) }
                     }
                 }
 
