@@ -207,8 +207,9 @@ def main() -> int:
         sudo_cp(face, Path("/usr/share/sddm/faces") / f"{HOME.name}.face.icon")
 
     theme_main = find_theme_main()
+    main_copied = False
     if theme_main is not None:
-        sudo_cp(theme_main, THEME_DIR / "Main.qml")
+        main_copied = sudo_cp(theme_main, THEME_DIR / "Main.qml")
 
     text = CONF.read_text()
     text = set_key(text, "WidgetOpacity", args.opacity)
@@ -224,7 +225,17 @@ def main() -> int:
         print("FAIL")
         return 1
 
-    print("OK" if dest_name else "OK_NO_WALLPAPER")
+    # Verbose status so a stale/copied script is obvious in the terminal.
+    if dest_name:
+        print("OK")
+        print(f"background={THEME_DIR / dest_name}")
+        print(f"hero={THEME_DIR / hero_name}")
+        print(f"runtime_blur={runtime_blur}")
+        print(f"main_qml={'copied ' + str(theme_main) if main_copied else 'unchanged'}")
+    else:
+        print("OK_NO_WALLPAPER")
+        print(f"runtime_blur={runtime_blur}")
+        print(f"main_qml={'copied ' + str(theme_main) if main_copied else 'unchanged'}")
     return 0
 
 
