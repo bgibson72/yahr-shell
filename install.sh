@@ -826,7 +826,7 @@ main() {
     else
         echo "  Configs were refreshed. Packages were left as they are."
     fi
-    echo "  Super+T switches themes. Super+Return opens Ghostty."
+    echo "  Super+Z restarts Quickshell so settings changes load. Super+T switches themes."
     echo ""
 }
 
