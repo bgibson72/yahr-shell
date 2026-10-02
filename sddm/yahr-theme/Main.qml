@@ -37,21 +37,33 @@ Rectangle {
     property string translateUsername: config.stringValue("TranslateUsername") || textConstants.userName
     property string translatePassword: config.stringValue("TranslatePassword") || textConstants.password
     property string translateSession: config.stringValue("TranslateSession") || textConstants.session
-    property string translateSuspend: config.stringValue("TranslateSuspend") || textConstants.suspend
-    property string translateReboot: config.stringValue("TranslateReboot") || textConstants.reboot
-    property string translateShutdown: config.stringValue("TranslateShutdown") || textConstants.shutdown
+    property string translateSuspend: config.stringValue("TranslateSuspend") || "Sleep"
+    property string translateReboot: config.stringValue("TranslateReboot") || "Restart"
+    property string translateShutdown: config.stringValue("TranslateShutdown") || "Power Off"
 
     readonly property color plateColor: Qt.rgba(bgBase.r, bgBase.g, bgBase.b, 1.0)
     readonly property color cardColor: Qt.rgba(bgSurface.r, bgSurface.g, bgSurface.b, Math.min(1, widgetOpacity + 0.08))
     readonly property string lastUser: userModel.lastUser || ""
     readonly property string homeFace: lastUser !== "" ? "file:///home/" + lastUser + "/.face.icon" : ""
     readonly property string systemFace: lastUser !== "" ? "file:///usr/share/sddm/faces/" + lastUser + ".face.icon" : ""
+    readonly property url backgroundSource: {
+        if (background === "")
+            return ""
+        if (background.indexOf("/") === 0 || background.indexOf("file:") === 0)
+            return background
+        return Qt.resolvedUrl(background)
+    }
+    readonly property string welcomeName: {
+        const name = (usernameField.text || root.lastUser || "").trim()
+        if (name === "")
+            return "!"
+        return name + "!"
+    }
 
     Image {
         id: backgroundImage
         anchors.fill: parent
-        source: background !== "" ? (background.indexOf("/") === 0 || background.indexOf("file:") === 0
-            ? background : Qt.resolvedUrl(background)) : ""
+        source: root.backgroundSource
         fillMode: Image.PreserveAspectCrop
         visible: status === Image.Ready
         cache: false
@@ -68,304 +80,383 @@ Rectangle {
         visible: !backgroundImage.visible
     }
 
+    // Optional hostname above the plate (kept out of the login card)
+    Text {
+        anchors.horizontalCenter: parent.horizontalCenter
+        anchors.bottom: plate.top
+        anchors.bottomMargin: 18
+        text: sddm.hostName
+        font.family: root.fontFamily
+        font.pixelSize: root.fontSize + 1
+        color: Qt.rgba(root.fgSecondary.r, root.fgSecondary.g, root.fgSecondary.b, 0.85)
+        visible: root.showHostname && sddm.hostName !== ""
+    }
+
     Rectangle {
         id: plate
         anchors.centerIn: parent
-        width: 580
-        height: column.height + 80
+        width: Math.min(920, parent.width * 0.78)
+        height: 480
         radius: 28
         color: plateColor
+        clip: true
 
-        Column {
-            id: column
-            anchors.horizontalCenter: parent.horizontalCenter
-            anchors.top: parent.top
-            anchors.topMargin: 40
-            width: parent.width - 72
-            spacing: 18
+        Row {
+            anchors.fill: parent
 
-            Rectangle {
-                id: avatarFrame
-                width: 196
-                height: 196
-                radius: plate.radius
-                color: root.cardColor
-                anchors.horizontalCenter: parent.horizontalCenter
-                visible: root.enableAvatars
+            // ── Left: wallpaper crop + stacked welcome ──────────────────────
+            Item {
+                id: hero
+                width: plate.width / 2
+                height: plate.height
 
                 Image {
-                    id: avatar
-                    property int faceTry: 0
-                    readonly property var faceCandidates: root.homeFace !== "" ? [root.homeFace, root.systemFace] : []
+                    id: heroImage
                     anchors.fill: parent
-                    source: faceTry < faceCandidates.length ? faceCandidates[faceTry] : ""
+                    source: root.backgroundSource
                     fillMode: Image.PreserveAspectCrop
-                    visible: false
+                    visible: status === Image.Ready
                     cache: false
-                    onStatusChanged: {
-                        if (status === Image.Error && faceTry < faceCandidates.length - 1)
-                            faceTry++
+                    asynchronous: true
+
+                    layer.enabled: root.backgroundBlur > 0
+                    layer.effect: FastBlur {
+                        radius: root.backgroundBlur
                     }
                 }
 
                 Rectangle {
-                    id: avatarMask
                     anchors.fill: parent
-                    radius: avatarFrame.radius
-                    visible: false
+                    color: root.bgSurface
+                    visible: !heroImage.visible
                 }
 
-                OpacityMask {
+                Rectangle {
                     anchors.fill: parent
-                    source: avatar
-                    maskSource: avatarMask
-                    visible: avatar.status === Image.Ready
+                    gradient: Gradient {
+                        orientation: Gradient.Horizontal
+                        GradientStop { position: 0.0; color: Qt.rgba(root.bgBase.r, root.bgBase.g, root.bgBase.b, 0.55) }
+                        GradientStop { position: 0.45; color: Qt.rgba(root.bgBase.r, root.bgBase.g, root.bgBase.b, 0.22) }
+                        GradientStop { position: 1.0; color: Qt.rgba(root.bgBase.r, root.bgBase.g, root.bgBase.b, 0.62) }
+                    }
                 }
 
-                Text {
+                Rectangle {
+                    anchors.fill: parent
+                    gradient: Gradient {
+                        GradientStop { position: 0.0; color: "transparent" }
+                        GradientStop { position: 0.55; color: "transparent" }
+                        GradientStop { position: 1.0; color: Qt.rgba(root.bgBase.r, root.bgBase.g, root.bgBase.b, 0.55) }
+                    }
+                }
+
+                Column {
+                    anchors.left: parent.left
+                    anchors.right: parent.right
+                    anchors.bottom: parent.bottom
+                    anchors.leftMargin: 36
+                    anchors.rightMargin: 28
+                    anchors.bottomMargin: 40
+                    spacing: 0
+
+                    Text {
+                        width: parent.width
+                        text: "Welcome"
+                        font.family: root.titleFontFamily
+                        font.pixelSize: Math.max(40, Math.min(root.titleFontSize, hero.width * 0.14))
+                        font.weight: Font.Bold
+                        color: root.fgPrimary
+                        wrapMode: Text.NoWrap
+                    }
+
+                    Text {
+                        width: parent.width
+                        text: "Back,"
+                        font.family: root.titleFontFamily
+                        font.pixelSize: Math.max(40, Math.min(root.titleFontSize, hero.width * 0.14))
+                        font.weight: Font.Bold
+                        color: root.fgPrimary
+                        wrapMode: Text.NoWrap
+                    }
+
+                    Text {
+                        width: parent.width
+                        text: root.welcomeName
+                        font.family: root.titleFontFamily
+                        font.pixelSize: Math.max(40, Math.min(root.titleFontSize, hero.width * 0.14))
+                        font.weight: Font.Bold
+                        color: root.themeColor
+                        elide: Text.ElideRight
+                        wrapMode: Text.NoWrap
+                    }
+                }
+            }
+
+            // ── Right: avatar, fields, session, power ───────────────────────
+            Item {
+                id: formPanel
+                width: plate.width / 2
+                height: plate.height
+
+                Column {
+                    id: formColumn
                     anchors.centerIn: parent
-                    visible: avatar.status !== Image.Ready
-                    text: root.lastUser !== "" ? root.lastUser.charAt(0).toUpperCase() : "\uf007"
-                    font.family: root.lastUser !== "" ? root.fontFamily : "Symbols Nerd Font"
-                    font.pixelSize: root.lastUser !== "" ? 72 : 48
-                    font.weight: Font.Medium
-                    color: root.themeColor
-                }
-            }
-
-            Column {
-                width: parent.width
-                spacing: 4
-
-                Text {
-                    width: parent.width
-                    text: Qt.formatTime(timeSource.currentDateTime, root.timeFormat)
-                    font.family: root.titleFontFamily
-                    font.pixelSize: root.titleFontSize
-                    font.weight: Font.Bold
-                    color: root.fgPrimary
-                    horizontalAlignment: Text.AlignHCenter
-                }
-
-                Text {
-                    width: parent.width
-                    text: Qt.formatDate(timeSource.currentDateTime, root.dateFormat)
-                    font.family: root.fontFamily
-                    font.pixelSize: root.fontSize + 3
-                    color: root.themeColor
-                    horizontalAlignment: Text.AlignHCenter
-                }
-
-                Text {
-                    width: parent.width
-                    text: sddm.hostName
-                    font.family: root.fontFamily
-                    font.pixelSize: root.fontSize
-                    color: root.fgSecondary
-                    horizontalAlignment: Text.AlignHCenter
-                    visible: root.showHostname && sddm.hostName !== ""
-                }
-            }
-
-            Rectangle {
-                width: parent.width
-                height: 52
-                radius: 18
-                color: root.cardColor
-
-                TextField {
-                    id: usernameField
-                    anchors.fill: parent
-                    anchors.leftMargin: 16
-                    anchors.rightMargin: 16
-                    placeholderText: root.translateUsername
-                    placeholderTextColor: Qt.rgba(root.fgSecondary.r, root.fgSecondary.g, root.fgSecondary.b, 0.65)
-                    text: userModel.lastUser
-                    font.family: root.fontFamily
-                    font.pixelSize: root.fontSize + 1
-                    color: root.fgPrimary
-                    selectionColor: root.themeColor
-                    selectedTextColor: root.bgBase
-                    background: Item {}
-                    Keys.onReturnPressed: passwordField.forceActiveFocus()
-                    Keys.onTabPressed: passwordField.forceActiveFocus()
-                }
-            }
-
-            Rectangle {
-                width: parent.width
-                height: 52
-                radius: 18
-                color: root.cardColor
-                border.width: passwordField.activeFocus ? 2 : 0
-                border.color: root.themeColor
-
-                TextField {
-                    id: passwordField
-                    anchors.fill: parent
-                    anchors.leftMargin: 16
-                    anchors.rightMargin: 16
-                    placeholderText: root.translatePassword
-                    placeholderTextColor: Qt.rgba(root.fgSecondary.r, root.fgSecondary.g, root.fgSecondary.b, 0.65)
-                    font.family: root.fontFamily
-                    font.pixelSize: root.fontSize + 1
-                    color: root.fgPrimary
-                    echoMode: TextInput.Password
-                    focus: true
-                    selectionColor: root.themeColor
-                    selectedTextColor: root.bgBase
-                    background: Item {}
-                    Keys.onReturnPressed: sddm.login(usernameField.text, passwordField.text, sessionCombo.index)
-                    Keys.onEscapePressed: passwordField.text = ""
-                    onTextChanged: loginFailedText.visible = false
-                }
-            }
-
-            Text {
-                id: loginFailedText
-                width: parent.width
-                text: root.translateLoginFailed
-                font.family: root.fontFamily
-                font.pixelSize: root.fontSize
-                color: root.failColor
-                horizontalAlignment: Text.AlignHCenter
-                visible: false
-
-                Connections {
-                    target: sddm
-                    function onLoginFailed() {
-                        loginFailedText.visible = true
-                        passwordField.selectAll()
-                    }
-                }
-            }
-
-            Rectangle {
-                width: parent.width
-                height: 52
-                radius: 18
-                color: loginMouse.containsPress ? Qt.rgba(root.themeColor.r, root.themeColor.g, root.themeColor.b, 0.40)
-                     : loginMouse.containsMouse ? Qt.rgba(root.themeColor.r, root.themeColor.g, root.themeColor.b, 0.28)
-                     : Qt.rgba(root.themeColor.r, root.themeColor.g, root.themeColor.b, 0.18)
-
-                Text {
-                    anchors.centerIn: parent
-                    text: root.translateLogin
-                    font.family: root.fontFamily
-                    font.pixelSize: root.fontSize + 2
-                    font.weight: Font.DemiBold
-                    color: root.themeColor
-                }
-
-                MouseArea {
-                    id: loginMouse
-                    anchors.fill: parent
-                    hoverEnabled: true
-                    cursorShape: Qt.PointingHandCursor
-                    onClicked: sddm.login(usernameField.text, passwordField.text, sessionCombo.index)
-                }
-            }
-
-            Rectangle {
-                id: sessionCombo
-                visible: root.showSessionButton
-                width: 200
-                height: 52
-                radius: 26
-                color: root.cardColor
-                anchors.horizontalCenter: parent.horizontalCenter
-                property int index: sessionModel.lastIndex
-
-                Repeater {
-                    id: sessionRepeater
-                    model: sessionModel
-                    Item {
-                        property string sessionName: model.name || ""
-                    }
-                }
-
-                Text {
-                    anchors.centerIn: parent
-                    width: parent.width - 20
-                    horizontalAlignment: Text.AlignHCenter
-                    elide: Text.ElideRight
-                    font.family: root.fontFamily
-                    font.pixelSize: root.fontSize
-                    color: root.fgPrimary
-                    text: {
-                        sessionCombo.index
-                        if (sessionRepeater.count === 0)
-                            return root.translateSession
-                        const item = sessionRepeater.itemAt(sessionCombo.index)
-                        return (item && item.sessionName) ? item.sessionName : root.translateSession
-                    }
-                }
-
-                MouseArea {
-                    anchors.fill: parent
-                    hoverEnabled: true
-                    cursorShape: Qt.PointingHandCursor
-                    onClicked: {
-                        if (sessionRepeater.count < 2)
-                            return
-                        sessionCombo.index = (sessionCombo.index + 1) % sessionRepeater.count
-                    }
-                }
-            }
-
-            Row {
-                anchors.horizontalCenter: parent.horizontalCenter
-                spacing: 12
-                visible: root.showPowerButtons
-
-                Repeater {
-                    model: [
-                        { glyph: "󰒲", kind: "suspend" },
-                        { glyph: "󰜉", kind: "reboot" },
-                        { glyph: "󰐥", kind: "shutdown" }
-                    ]
+                    width: parent.width - 88
+                    spacing: 14
 
                     Rectangle {
-                        width: 44
-                        height: 44
-                        radius: 22
-                        color: powerMouse.containsMouse ? Qt.rgba(root.themeColor.r, root.themeColor.g, root.themeColor.b, 0.22) : root.cardColor
+                        id: avatarFrame
+                        width: 96
+                        height: 96
+                        radius: 48
+                        color: root.cardColor
+                        anchors.horizontalCenter: parent.horizontalCenter
+                        visible: root.enableAvatars
+                        border.width: 3
+                        border.color: Qt.rgba(root.themeColor.r, root.themeColor.g, root.themeColor.b, 0.40)
+
+                        Image {
+                            id: avatar
+                            property int faceTry: 0
+                            readonly property var faceCandidates: root.homeFace !== "" ? [root.homeFace, root.systemFace] : []
+                            anchors.fill: parent
+                            anchors.margins: 3
+                            source: faceTry < faceCandidates.length ? faceCandidates[faceTry] : ""
+                            fillMode: Image.PreserveAspectCrop
+                            visible: false
+                            cache: false
+                            onStatusChanged: {
+                                if (status === Image.Error && faceTry < faceCandidates.length - 1)
+                                    faceTry++
+                            }
+                        }
+
+                        Rectangle {
+                            id: avatarMask
+                            anchors.fill: avatar
+                            radius: width / 2
+                            visible: false
+                        }
+
+                        OpacityMask {
+                            anchors.fill: avatar
+                            source: avatar
+                            maskSource: avatarMask
+                            visible: avatar.status === Image.Ready
+                        }
 
                         Text {
                             anchors.centerIn: parent
-                            text: modelData.glyph
-                            font.family: "Symbols Nerd Font"
-                            font.pixelSize: 18
-                            color: modelData.kind === "shutdown" ? root.failColor : root.fgPrimary
+                            visible: avatar.status !== Image.Ready
+                            text: {
+                                const name = usernameField.text || root.lastUser
+                                if (name !== "")
+                                    return name.charAt(0).toUpperCase()
+                                return "\uf007"
+                            }
+                            font.family: (usernameField.text || root.lastUser) !== "" ? root.fontFamily : "Symbols Nerd Font"
+                            font.pixelSize: (usernameField.text || root.lastUser) !== "" ? 40 : 28
+                            font.weight: Font.Medium
+                            color: root.themeColor
+                        }
+                    }
+
+                    Rectangle {
+                        width: parent.width
+                        height: 48
+                        radius: 16
+                        color: root.cardColor
+
+                        TextField {
+                            id: usernameField
+                            anchors.fill: parent
+                            anchors.leftMargin: 16
+                            anchors.rightMargin: 16
+                            placeholderText: root.translateUsername
+                            placeholderTextColor: Qt.rgba(root.fgSecondary.r, root.fgSecondary.g, root.fgSecondary.b, 0.65)
+                            text: userModel.lastUser
+                            font.family: root.fontFamily
+                            font.pixelSize: root.fontSize + 1
+                            color: root.fgPrimary
+                            selectionColor: root.themeColor
+                            selectedTextColor: root.bgBase
+                            background: Item {}
+                            Keys.onReturnPressed: passwordField.forceActiveFocus()
+                            Keys.onTabPressed: passwordField.forceActiveFocus()
+                        }
+                    }
+
+                    Rectangle {
+                        width: parent.width
+                        height: 48
+                        radius: 16
+                        color: root.cardColor
+                        border.width: passwordField.activeFocus ? 2 : 0
+                        border.color: root.themeColor
+
+                        TextField {
+                            id: passwordField
+                            anchors.fill: parent
+                            anchors.leftMargin: 16
+                            anchors.rightMargin: 16
+                            placeholderText: root.translatePassword
+                            placeholderTextColor: Qt.rgba(root.fgSecondary.r, root.fgSecondary.g, root.fgSecondary.b, 0.65)
+                            font.family: root.fontFamily
+                            font.pixelSize: root.fontSize + 1
+                            color: root.fgPrimary
+                            echoMode: TextInput.Password
+                            focus: true
+                            selectionColor: root.themeColor
+                            selectedTextColor: root.bgBase
+                            background: Item {}
+                            Keys.onReturnPressed: sddm.login(usernameField.text, passwordField.text, sessionCombo.index)
+                            Keys.onEscapePressed: passwordField.text = ""
+                            onTextChanged: loginFailedText.visible = false
+                        }
+                    }
+
+                    Text {
+                        id: loginFailedText
+                        width: parent.width
+                        text: root.translateLoginFailed
+                        font.family: root.fontFamily
+                        font.pixelSize: root.fontSize
+                        color: root.failColor
+                        horizontalAlignment: Text.AlignHCenter
+                        visible: false
+
+                        Connections {
+                            target: sddm
+                            function onLoginFailed() {
+                                loginFailedText.visible = true
+                                passwordField.selectAll()
+                            }
+                        }
+                    }
+
+                    Rectangle {
+                        width: parent.width
+                        height: 48
+                        radius: 16
+                        color: loginMouse.containsPress ? Qt.rgba(root.themeColor.r, root.themeColor.g, root.themeColor.b, 0.40)
+                             : loginMouse.containsMouse ? Qt.rgba(root.themeColor.r, root.themeColor.g, root.themeColor.b, 0.28)
+                             : Qt.rgba(root.themeColor.r, root.themeColor.g, root.themeColor.b, 0.18)
+
+                        Text {
+                            anchors.centerIn: parent
+                            text: root.translateLogin
+                            font.family: root.fontFamily
+                            font.pixelSize: root.fontSize + 2
+                            font.weight: Font.DemiBold
+                            color: root.themeColor
                         }
 
                         MouseArea {
-                            id: powerMouse
+                            id: loginMouse
+                            anchors.fill: parent
+                            hoverEnabled: true
+                            cursorShape: Qt.PointingHandCursor
+                            onClicked: sddm.login(usernameField.text, passwordField.text, sessionCombo.index)
+                        }
+                    }
+
+                    Rectangle {
+                        id: sessionCombo
+                        visible: root.showSessionButton
+                        width: Math.min(200, parent.width)
+                        height: 40
+                        radius: 20
+                        color: root.cardColor
+                        anchors.horizontalCenter: parent.horizontalCenter
+                        property int index: sessionModel.lastIndex
+
+                        Repeater {
+                            id: sessionRepeater
+                            model: sessionModel
+                            Item {
+                                property string sessionName: model.name || ""
+                            }
+                        }
+
+                        Text {
+                            anchors.centerIn: parent
+                            width: parent.width - 20
+                            horizontalAlignment: Text.AlignHCenter
+                            elide: Text.ElideRight
+                            font.family: root.fontFamily
+                            font.pixelSize: root.fontSize
+                            color: root.fgPrimary
+                            text: {
+                                sessionCombo.index
+                                if (sessionRepeater.count === 0)
+                                    return root.translateSession
+                                const item = sessionRepeater.itemAt(sessionCombo.index)
+                                return (item && item.sessionName) ? item.sessionName : root.translateSession
+                            }
+                        }
+
+                        MouseArea {
                             anchors.fill: parent
                             hoverEnabled: true
                             cursorShape: Qt.PointingHandCursor
                             onClicked: {
-                                if (modelData.kind === "suspend")
-                                    sddm.suspend()
-                                else if (modelData.kind === "reboot")
-                                    sddm.reboot()
-                                else
-                                    sddm.powerOff()
+                                if (sessionRepeater.count < 2)
+                                    return
+                                sessionCombo.index = (sessionCombo.index + 1) % sessionRepeater.count
+                            }
+                        }
+                    }
+
+                    Row {
+                        anchors.horizontalCenter: parent.horizontalCenter
+                        spacing: 10
+                        visible: root.showPowerButtons
+
+                        Repeater {
+                            model: [
+                                { label: root.translateSuspend, kind: "suspend" },
+                                { label: root.translateReboot, kind: "reboot" },
+                                { label: root.translateShutdown, kind: "shutdown" }
+                            ]
+
+                            Rectangle {
+                                height: 36
+                                width: Math.max(72, powerLabel.implicitWidth + 24)
+                                radius: 14
+                                color: powerMouse.containsMouse
+                                    ? Qt.rgba(root.themeColor.r, root.themeColor.g, root.themeColor.b, 0.22)
+                                    : root.cardColor
+
+                                Text {
+                                    id: powerLabel
+                                    anchors.centerIn: parent
+                                    text: modelData.label
+                                    font.family: root.fontFamily
+                                    font.pixelSize: root.fontSize - 1
+                                    font.weight: Font.DemiBold
+                                    color: modelData.kind === "shutdown" ? root.failColor : root.fgPrimary
+                                }
+
+                                MouseArea {
+                                    id: powerMouse
+                                    anchors.fill: parent
+                                    hoverEnabled: true
+                                    cursorShape: Qt.PointingHandCursor
+                                    onClicked: {
+                                        if (modelData.kind === "suspend")
+                                            sddm.suspend()
+                                        else if (modelData.kind === "reboot")
+                                            sddm.reboot()
+                                        else
+                                            sddm.powerOff()
+                                    }
+                                }
                             }
                         }
                     }
                 }
             }
         }
-    }
-
-    Timer {
-        id: timeSource
-        property var currentDateTime: new Date()
-        interval: 1000
-        repeat: true
-        running: true
-        onTriggered: currentDateTime = new Date()
     }
 
     Component.onCompleted: {

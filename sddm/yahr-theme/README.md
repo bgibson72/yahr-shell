@@ -1,6 +1,6 @@
 # YAHR SDDM theme
 
-Login screen that follows the YAHR shell: Inter type, rounded plate, card-colored fields, and a pre-blurred desktop wallpaper.
+Login screen that follows the YAHR shell: wide split plate (wallpaper welcome panel + form), Inter type, card-colored fields, and a pre-blurred desktop wallpaper.
 
 ## Sync
 
