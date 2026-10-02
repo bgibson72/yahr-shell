@@ -203,12 +203,15 @@ pkg_install() {
     # alive while makepkg is compiling, which is when a bare keepalive loses
     # the race and sudo sits until "timed out reading password".
     sudo -v
+    # --aur keeps these names off the repository provider search. Without it,
+    # yay treats an installed mesa-rk35xx-git as the provider of mesa and
+    # rebuilds that Rockchip fork.
     if [ "$AUR_HELPER" = "yay" ]; then
-        yay -S --needed --noconfirm \
+        yay -S --aur --needed --noconfirm \
             --answerdiff None --answeredit None --answerclean All --answerupgrade None \
             --sudoloop --removemake "$@"
     else
-        paru -S --needed --noconfirm --skipreview --sudoloop "$@"
+        paru -S --aur --needed --noconfirm --skipreview --sudoloop "$@"
     fi
 }
 
@@ -289,16 +292,27 @@ aur_packages() {
         otf-space-grotesk
 }
 
-# pacman --noconfirm answers "no" to "Remove quickshell-git?", then aborts.
-# Drop the -git build first so the repository package can take its place.
+# pacman --noconfirm answers "no" to "Remove <package>?", then aborts.
+# Drop the conflicting -git builds first so the repository packages can
+# take their place. mesa-rk35xx-git provides mesa, but it is a Rockchip
+# fork whose Rust build does not finish on this desktop.
 replace_conflicting_packages() {
     if ! command_exists pacman; then
         return 0
     fi
-    if pacman -Q quickshell-git &>/dev/null; then
-        info "Replacing quickshell-git with the repository quickshell package…"
-        sudo pacman -Rdd --noconfirm quickshell-git
-    fi
+    local pkg replacement
+    local -a swaps=(
+        "quickshell-git:quickshell"
+        "mesa-rk35xx-git:mesa"
+    )
+    for pkg in "${swaps[@]}"; do
+        replacement="${pkg#*:}"
+        pkg="${pkg%%:*}"
+        if pacman -Q "$pkg" &>/dev/null; then
+            info "Replacing $pkg with the repository $replacement package…"
+            sudo pacman -Rdd --noconfirm "$pkg"
+        fi
+    done
 }
 
 install_manrope_font() {
@@ -342,8 +356,15 @@ install_packages() {
     local repo aur
     mapfile -t repo < <(repo_packages)
     mapfile -t aur < <(aur_packages)
-    info "Installing the desktop, fonts, and greeter…"
-    if ! pkg_install "${repo[@]}" "${aur[@]}"; then
+    # Repository packages go through pacman. yay would also search the AUR
+    # and can select mesa-rk35xx-git as the provider of mesa.
+    info "Installing repository packages…"
+    if ! sudo pacman -S --needed --noconfirm "${repo[@]}"; then
+        err "Package installation failed."
+        exit 1
+    fi
+    info "Installing AUR packages…"
+    if ! pkg_install "${aur[@]}"; then
         err "Package installation failed."
         exit 1
     fi
