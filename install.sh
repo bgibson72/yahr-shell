@@ -332,8 +332,10 @@ install_sudoers() {
     cat > "$tmp" <<EOF
 # Yahr Shell: greeter theme sync and Papirus folder colors.
 $user ALL=(ALL) NOPASSWD: /usr/bin/cp * /usr/share/sddm/themes/yahr-theme/*
+$user ALL=(ALL) NOPASSWD: /usr/bin/chmod 644 /usr/share/sddm/themes/yahr-theme/*
 $user ALL=(ALL) NOPASSWD: /usr/bin/tee /usr/share/sddm/themes/yahr-theme/theme.conf
 $user ALL=(ALL) NOPASSWD: /usr/bin/cp * /usr/share/sddm/faces/*
+$user ALL=(ALL) NOPASSWD: /usr/bin/chmod 644 /usr/share/sddm/faces/*
 $user ALL=(ALL) NOPASSWD: /usr/bin/papirus-folders
 EOF
     sudo cp "$tmp" "$dest"

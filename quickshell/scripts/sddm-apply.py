@@ -78,12 +78,33 @@ def set_key(text: str, key: str, value: str, quoted: bool = False) -> str:
 
 
 def sudo_cp(src: Path, dest: Path) -> bool:
+    # Tempfiles are often mode 600; force world-readable so the sddm greeter
+    # (and greeter --test-mode) can open theme assets under /usr/share.
+    try:
+        os.chmod(src, 0o644)
+    except OSError:
+        pass
     result = subprocess.run(
-        ["sudo", "-n", "cp", str(src), str(dest)],
+        ["sudo", "-n", "cp", "--no-preserve=mode", str(src), str(dest)],
         capture_output=True,
         text=True,
     )
-    return result.returncode == 0
+    if result.returncode != 0:
+        # Older cp without --no-preserve=mode
+        result = subprocess.run(
+            ["sudo", "-n", "cp", str(src), str(dest)],
+            capture_output=True,
+            text=True,
+        )
+    if result.returncode != 0:
+        return False
+    # Ensure destination is readable even if cp preserved a restrictive mode.
+    subprocess.run(
+        ["sudo", "-n", "chmod", "644", str(dest)],
+        capture_output=True,
+        text=True,
+    )
+    return True
 
 
 def sudo_write(dest: Path, text: str) -> bool:
@@ -97,7 +118,7 @@ def sudo_write(dest: Path, text: str) -> bool:
 
 
 def resize_wallpaper(src: Path, dest: Path) -> bool:
-    """Write a resized, sharp copy of src to dest via sudo cp."""
+    """Write a resized, sharp, world-readable copy of src to dest via sudo cp."""
     magick = shutil.which("magick") or shutil.which("convert")
     suffix = dest.suffix if dest.suffix.lower() in IMAGE_EXTS else ".png"
     with tempfile.NamedTemporaryFile(suffix=suffix, delete=False) as tmp:
@@ -114,8 +135,9 @@ def resize_wallpaper(src: Path, dest: Path) -> bool:
             result = subprocess.run(cmd, capture_output=True, text=True)
             if result.returncode != 0:
                 shutil.copy2(src, tmp_path)
-            return sudo_cp(tmp_path, dest)
-        shutil.copy2(src, tmp_path)
+        else:
+            shutil.copy2(src, tmp_path)
+        os.chmod(tmp_path, 0o644)
         return sudo_cp(tmp_path, dest)
     finally:
         tmp_path.unlink(missing_ok=True)
@@ -226,10 +248,16 @@ def main() -> int:
         return 1
 
     # Verbose status so a stale/copied script is obvious in the terminal.
+    def _mode(path: Path) -> str:
+        try:
+            return oct(path.stat().st_mode & 0o777)
+        except OSError:
+            return "missing"
+
     if dest_name:
         print("OK")
-        print(f"background={THEME_DIR / dest_name}")
-        print(f"hero={THEME_DIR / hero_name}")
+        print(f"background={THEME_DIR / dest_name} mode={_mode(THEME_DIR / dest_name)}")
+        print(f"hero={THEME_DIR / hero_name} mode={_mode(THEME_DIR / hero_name)}")
         print(f"runtime_blur={runtime_blur}")
         print(f"main_qml={'copied ' + str(theme_main) if main_copied else 'unchanged'}")
     else:
