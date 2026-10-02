@@ -656,6 +656,62 @@ ensure_local_bin_path() {
     fi
 }
 
+# An older installer appended this to the login shell:
+#   if VT 1 and no WAYLAND_DISPLAY; then exec Hyprland; fi
+# SDDM starts its session by re-execing that login shell on VT 1, before
+# WAYLAND_DISPLAY exists, so the hook replaces start-hyprland. Hyprland then
+# warns that it was launched without start-hyprland.
+remove_tty_hyprland_hook() {
+    local profile removed
+    for profile in "$HOME/.bash_profile" "$HOME/.bash_login" "$HOME/.profile" "$HOME/.zprofile" "$HOME/.zlogin"; do
+        [ -f "$profile" ] || continue
+        removed="$(python3 - "$profile" <<'PY'
+import pathlib, re, sys
+path = pathlib.Path(sys.argv[1])
+text = path.read_text()
+lines = text.splitlines(keepends=True)
+exec_re = re.compile(
+    r"exec\s+(?:/\S+/)?(?:start-)?hyprland\s*$",
+    re.IGNORECASE,
+)
+cond = 'if [ -z "${WAYLAND_DISPLAY:-}" ] && [ "${XDG_VTNR:-0}" = 1 ]; then'
+comments = {
+    "# Yahr Shell — start Hyprland on TTY1",
+    "# Yahr Shell - start Hyprland on TTY1",
+}
+out = []
+i = 0
+found = False
+while i < len(lines):
+    if (
+        lines[i].strip() in comments
+        and i + 3 < len(lines)
+        and lines[i + 1].strip() == cond
+        and exec_re.fullmatch(lines[i + 2].strip())
+        and lines[i + 3].strip() == "fi"
+    ):
+        if out and out[-1].strip() == "":
+            out.pop()
+        found = True
+        i += 4
+        continue
+    out.append(lines[i])
+    i += 1
+if not found:
+    raise SystemExit(0)
+updated = "".join(out)
+if updated and not updated.endswith("\n"):
+    updated += "\n"
+path.write_text(updated)
+print(path)
+PY
+)" || true
+        if [ -n "$removed" ]; then
+            ok "Removed the TTY Hyprland hook from $removed"
+        fi
+    done
+}
+
 ensure_starship() {
     if ! command_exists starship; then
         return 0
@@ -748,6 +804,7 @@ main() {
     fi
     ensure_local_bin_path
     ensure_starship
+    remove_tty_hyprland_hook
     apply_default_theme
     resume_hypr_reload
     configure_session
