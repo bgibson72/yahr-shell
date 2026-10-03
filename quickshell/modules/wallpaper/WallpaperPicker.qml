@@ -422,35 +422,6 @@ Item {
                             }
                         }
 
-                        // Reflection under the cover
-                        Item {
-                            anchors.top: plate.bottom
-                            anchors.horizontalCenter: plate.horizontalCenter
-                            width: plate.width
-                            height: plate.height * 0.28
-                            opacity: cover.isCenter ? 0.35 : 0.12
-                            clip: true
-
-                            Image {
-                                width: parent.width
-                                height: plate.height
-                                source: root.fileUrl(cover.modelData)
-                                fillMode: Image.PreserveAspectCrop
-                                asynchronous: true
-                                cache: true
-                                opacity: 0.55
-                                transform: Scale { yScale: -1; origin.y: height / 2 }
-                            }
-
-                            Rectangle {
-                                anchors.fill: parent
-                                gradient: Gradient {
-                                    GradientStop { position: 0.0; color: Qt.rgba(0, 0, 0, 0.15) }
-                                    GradientStop { position: 1.0; color: Qt.rgba(0, 0, 0, 0.95) }
-                                }
-                            }
-                        }
-
                         HoverHandler {
                             cursorShape: Qt.PointingHandCursor
                         }
