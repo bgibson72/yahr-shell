@@ -1,25 +1,37 @@
 #!/usr/bin/env bash
 # Run the yahr-theme CLI without depending on PATH.
 # Hyprland-launched Quickshell often lacks ~/.local/bin.
+#
+# Resolution order:
+#   1. theme-engine next to a full yahr-shell checkout (dev)
+#   2. ~/.local/bin/yahr-theme (install.sh wrapper → share copy)
+#   3. python -m against ~/.local/share/yahr-shell/theme-engine
+#   4. yahr-theme on PATH
 set -euo pipefail
 
 script_dir="$(cd "$(dirname "$0")" && pwd)"
-repo_root="$(cd "$script_dir/../.." && pwd)"
+# quickshell/scripts → repo root when running from a checkout; ~/.config when
+# quickshell was copied to ~/.config/quickshell by install.sh.
+maybe_repo="$(cd "$script_dir/../.." && pwd)"
+share_engine="${HOME}/.local/share/yahr-shell/theme-engine"
+installed_bin="${HOME}/.local/bin/yahr-theme"
 
-candidates=(
-    "$repo_root/theme-engine/yahr-theme"
-    "${HOME}/.local/bin/yahr-theme"
-)
+if [[ -x "$maybe_repo/theme-engine/yahr-theme" && -d "$maybe_repo/theme-engine/yahr_theme" ]]; then
+    exec "$maybe_repo/theme-engine/yahr-theme" "$@"
+fi
 
-for bin in "${candidates[@]}"; do
-    if [[ -x "$bin" ]]; then
-        exec "$bin" "$@"
-    fi
-done
+if [[ -x "$installed_bin" ]]; then
+    exec "$installed_bin" "$@"
+fi
+
+if [[ -d "$share_engine/yahr_theme" ]]; then
+    export PYTHONPATH="${share_engine}${PYTHONPATH:+:$PYTHONPATH}"
+    exec python3 -m yahr_theme "$@"
+fi
 
 if command -v yahr-theme >/dev/null 2>&1; then
     exec yahr-theme "$@"
 fi
 
-echo "yahr-theme CLI not found" >&2
+echo "yahr-theme CLI not found (checked checkout, ~/.local/bin, and $share_engine)" >&2
 exit 127
