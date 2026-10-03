@@ -18,6 +18,7 @@ Item {
     signal toggleAudio()
     signal toggleClipboard()
     signal toggleScreenshot()
+    signal toggleWallpaper()
     signal toggleInfoPanel()
     signal toggleSettings()
 
@@ -121,6 +122,7 @@ Item {
 
         QuickAccessDrawer {
             onToggleScreenshot: bar.toggleScreenshot()
+            onToggleWallpaper: bar.toggleWallpaper()
             onToggleSettings: bar.toggleSettings()
         }
     }
