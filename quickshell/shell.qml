@@ -196,6 +196,7 @@ ShellRoot {
                 onToggleAudio: root.toggleAudioPanel()
                 onToggleClipboard: root.clipboardVisible = !root.clipboardVisible
                 onToggleScreenshot: root.screenshotVisible = !root.screenshotVisible
+                onToggleWallpaper: root.wallpaperPickerVisible = !root.wallpaperPickerVisible
                 onToggleInfoPanel: root.infoPanelVisible = !root.infoPanelVisible
                 onToggleSettings: root.settingsVisible = !root.settingsVisible
             }
