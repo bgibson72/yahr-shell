@@ -14,6 +14,7 @@ import "modules/power"
 import "modules/audio"
 import "modules/settings"
 import "modules/theme"
+import "modules/wallpaper"
 import "modules/clipboard"
 import "modules/screenshot"
 import "modules/trash"
@@ -29,6 +30,7 @@ ShellRoot {
     property bool launcherVisible: false
     property bool powerMenuVisible: false
     property bool settingsVisible: false
+    property bool wallpaperPickerVisible: false
     property bool networkVisible: false
     property bool bluetoothVisible: false
     property bool batteryVisible: false
@@ -47,7 +49,7 @@ ShellRoot {
     property real dockHideAt: 0
 
     readonly property bool panelOverlayOpen: launcherVisible || powerMenuVisible || settingsVisible
-        || networkVisible || bluetoothVisible || batteryVisible || audioVisible
+        || wallpaperPickerVisible || networkVisible || bluetoothVisible || batteryVisible || audioVisible
         || clipboardVisible || screenshotVisible || trashVisible || infoPanelVisible
         || calendarVisible || calculatorVisible || keybindsVisible || dockAppPickerVisible || themeLoadingVisible
 
@@ -55,6 +57,7 @@ ShellRoot {
         launcherVisible = false
         powerMenuVisible = false
         settingsVisible = false
+        wallpaperPickerVisible = false
         networkVisible = false
         bluetoothVisible = false
         batteryVisible = false
@@ -106,12 +109,7 @@ ShellRoot {
         function togglePowerMenu() { root.powerMenuVisible = !root.powerMenuVisible }
         function toggleSettings() { root.settingsVisible = !root.settingsVisible }
         function toggleWallpaper() {
-            if (root.settingsVisible && settingsPanel.tab === "wallpaper") {
-                root.settingsVisible = false
-                return
-            }
-            settingsPanel.tab = "wallpaper"
-            root.settingsVisible = true
+            root.wallpaperPickerVisible = !root.wallpaperPickerVisible
         }
         function toggleControlCenter() { root.toggleAudioPanel() }
         function toggleNetwork() { root.toggleNetworkPanel() }
@@ -561,8 +559,34 @@ ShellRoot {
             y: (parent.height - height) / 2
             isVisible: root.settingsVisible
             onRequestClose: root.settingsVisible = false
+            onOpenWallpaperPicker: {
+                root.settingsVisible = false
+                root.wallpaperPickerVisible = true
+            }
             onThemeApplyStarted: name => { root.themeLoadingName = name; root.themeLoadingVisible = true }
             onThemeApplyFinished: root.themeLoadingVisible = false
+        }
+    }
+
+    PanelWindow {
+        visible: root.wallpaperPickerVisible || wallpaperPickerPanel.onScreen
+        color: "transparent"
+        exclusionMode: ExclusionMode.Ignore
+        WlrLayershell.layer: WlrLayer.Overlay
+        WlrLayershell.keyboardFocus: WlrKeyboardFocus.OnDemand
+        anchors { top: true; left: true; right: true; bottom: true }
+
+        mask: Region {
+            item: wallpaperPickerPanel
+            radius: wallpaperPickerPanel.chromeRadius
+        }
+
+        WallpaperPicker {
+            id: wallpaperPickerPanel
+            x: (parent.width - width) / 2
+            y: (parent.height - height) / 2
+            isVisible: root.wallpaperPickerVisible
+            onRequestClose: root.wallpaperPickerVisible = false
         }
     }
 
