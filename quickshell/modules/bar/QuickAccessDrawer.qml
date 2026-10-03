@@ -60,8 +60,8 @@ Item {
                 Repeater {
                     model: [
                         { glyph: "\uf07c", action: "files" },
-                        { glyph: "\uf120", action: "terminal" },
-                        { glyph: "\uf269", action: "browser" },
+                        { glyph: "󰊠", action: "terminal", md: true },
+                        { glyph: "\uf269", action: "browser" }
                         { glyph: "\uf030", action: "screenshot" },
                         { glyph: "\uf03e", action: "wallpaper" },
                         { glyph: "󰒓", action: "settings", md: true }
