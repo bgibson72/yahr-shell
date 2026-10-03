@@ -1075,7 +1075,7 @@ Panel {
                     onToggled: { Settings.showNetworkSpeed = !checked; Settings.save() }
                 }
                 Text {
-                    text: "Shows live download and upload rates next to the network icon while connected."
+                    text: "Shows download and upload rates next to the network icon while connected. Values are a rolling average over the last minute so the tray stays steady."
                     color: ThemeManager.fgTertiary
                     font.family: ThemeManager.uiFont
                     font.pixelSize: 12

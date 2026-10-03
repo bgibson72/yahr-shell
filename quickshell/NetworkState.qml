@@ -14,12 +14,14 @@ Item {
     readonly property string downloadSpeedText: formatSpeed(downloadBps)
     readonly property string uploadSpeedText: formatSpeed(uploadBps)
 
-    property real _prevRx: -1
-    property real _prevTx: -1
-    property real _prevTs: 0
+    // Sliding window of byte counters. Displayed rates are the average over
+    // this window (or whatever history we have until it fills), so the bar
+    // stays calm instead of flickering with per-second spikes.
+    readonly property int speedWindowSecs: 60
+    property var _samples: []
 
     // Keep rates short and unit-suffixed so the bar's fixed-width fields
-    // ("999.9M") cover every value we emit without clipping.
+    // ("1024M") cover every value we emit without clipping.
     function formatSpeed(bps) {
         if (!(bps > 0))
             return "0B"
@@ -44,9 +46,40 @@ Item {
     function resetSpeeds() {
         root.downloadBps = 0
         root.uploadBps = 0
-        root._prevRx = -1
-        root._prevTx = -1
-        root._prevTs = 0
+        root._samples = []
+    }
+
+    function ingestCounters(rx, tx) {
+        const now = Date.now() / 1000
+        const prev = root._samples
+        if (prev.length > 0) {
+            const last = prev[prev.length - 1]
+            if (rx < last.rx || tx < last.tx) {
+                root.resetSpeeds()
+            }
+        }
+
+        const next = []
+        const cutoff = now - root.speedWindowSecs
+        for (let i = 0; i < root._samples.length; i++) {
+            const sample = root._samples[i]
+            if (sample.t >= cutoff)
+                next.push(sample)
+        }
+        next.push({ t: now, rx: rx, tx: tx })
+        root._samples = next
+
+        if (next.length < 2)
+            return
+
+        const first = next[0]
+        const last = next[next.length - 1]
+        const dt = last.t - first.t
+        if (dt < 0.5)
+            return
+
+        root.downloadBps = Math.max(0, (last.rx - first.rx) / dt)
+        root.uploadBps = Math.max(0, (last.tx - first.tx) / dt)
     }
 
     Timer {
@@ -69,7 +102,9 @@ Item {
 
     Timer {
         id: speedPoll
-        interval: 1000
+        // Sample a few times a minute; the displayed value is the average
+        // across the whole window, so sub-second polling is unnecessary.
+        interval: 5000
         running: Settings.showNetworkSpeed
             && root.device.length > 0
             && root.connectionType !== "none"
@@ -121,18 +156,7 @@ Item {
                 const tx = Number(parts[1])
                 if (!isFinite(rx) || !isFinite(tx))
                     return
-                const now = Date.now() / 1000
-                if (root._prevRx >= 0 && root._prevTs > 0 && rx >= root._prevRx && tx >= root._prevTx) {
-                    const dt = Math.max(0.001, now - root._prevTs)
-                    root.downloadBps = Math.max(0, (rx - root._prevRx) / dt)
-                    root.uploadBps = Math.max(0, (tx - root._prevTx) / dt)
-                } else if (root._prevRx >= 0 && (rx < root._prevRx || tx < root._prevTx)) {
-                    root.downloadBps = 0
-                    root.uploadBps = 0
-                }
-                root._prevRx = rx
-                root._prevTx = tx
-                root._prevTs = now
+                root.ingestCounters(rx, tx)
             }
         }
     }
