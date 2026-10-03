@@ -568,6 +568,10 @@ ShellRoot {
         }
     }
 
+    WallpaperSlideshow {
+        id: wallpaperSlideshow
+    }
+
     PanelWindow {
         visible: root.wallpaperPickerVisible || wallpaperPickerPanel.onScreen
         color: "transparent"
@@ -581,6 +585,10 @@ ShellRoot {
             anchors.fill: parent
             isVisible: root.wallpaperPickerVisible
             onRequestClose: root.wallpaperPickerVisible = false
+            onWallpaperApplied: path => {
+                // Keep slideshow index aligned if the user re-enables slideshow later
+                wallpaperSlideshow.syncIndexToCurrent()
+            }
         }
     }
 

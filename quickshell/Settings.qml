@@ -83,6 +83,12 @@ Item {
     property string wallpaperDir: "~/Pictures/Wallpapers"
     property string currentWallpaper: ""
     property string wallpaperTransition: "fade"
+    // "theme" → only images under the active theme folder; "all" → recurse the wallpaper root
+    property string wallpaperSource: "theme"
+    // "static" → single wallpaper; "slideshow" → cycle using wallpaperSlideshowInterval
+    property string wallpaperMode: "static"
+    // Slideshow step in seconds (10 … 3600)
+    property int wallpaperSlideshowInterval: 300
     property string calendarFilePath: "~/.config/yahr/calendar.ics"
     property int calendarRefreshInterval: 15
     property string calendarWeekStart: "sunday"
@@ -188,7 +194,10 @@ Item {
             wallpaper: {
                 directory: wallpaperDir,
                 current: currentWallpaper,
-                transition: wallpaperTransition
+                transition: wallpaperTransition,
+                source: wallpaperSource,
+                mode: wallpaperMode,
+                slideshowInterval: wallpaperSlideshowInterval
             },
             calendar: {
                 filePath: calendarFilePath,
@@ -298,6 +307,9 @@ Item {
         if (w.directory !== undefined) wallpaperDir = w.directory
         if (w.current !== undefined) currentWallpaper = w.current
         if (w.transition !== undefined) wallpaperTransition = w.transition
+        if (w.source !== undefined) wallpaperSource = w.source
+        if (w.mode !== undefined) wallpaperMode = w.mode
+        if (w.slideshowInterval !== undefined) wallpaperSlideshowInterval = w.slideshowInterval
 
         const c = data.calendar || {}
         if (c.filePath !== undefined) calendarFilePath = c.filePath

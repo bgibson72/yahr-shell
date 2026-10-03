@@ -51,6 +51,10 @@
   },
   "wallpaper": {
     "directory": "~/Pictures/Wallpapers",
-    "current": ""
+    "current": "",
+    "transition": "fade",
+    "source": "theme",
+    "mode": "static",
+    "slideshowInterval": 300
   }
 }
