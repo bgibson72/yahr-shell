@@ -576,15 +576,9 @@ ShellRoot {
         WlrLayershell.keyboardFocus: WlrKeyboardFocus.OnDemand
         anchors { top: true; left: true; right: true; bottom: true }
 
-        mask: Region {
-            item: wallpaperPickerPanel
-            radius: wallpaperPickerPanel.chromeRadius
-        }
-
         WallpaperPicker {
             id: wallpaperPickerPanel
-            x: (parent.width - width) / 2
-            y: (parent.height - height) / 2
+            anchors.fill: parent
             isVisible: root.wallpaperPickerVisible
             onRequestClose: root.wallpaperPickerVisible = false
         }
