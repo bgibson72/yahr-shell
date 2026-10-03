@@ -179,7 +179,7 @@ repo_packages() {
         qt6-base qt6-declarative qt6-wayland qt6-svg qt6-imageformats \
         qt6-5compat qt6-shadertools
         hyprland quickshell ghostty mako libnotify swww
-        hyprlock hypridle hyprshot hyprpolkitagent grim slurp
+        hyprlock hypridle hyprshot hyprpicker hyprpolkitagent grim slurp
         thunar tumbler gvfs ffmpegthumbnailer
         thunar-archive-plugin thunar-media-tags-plugin thunar-volman file-roller
         papirus-icon-theme adw-gtk-theme
