@@ -9,13 +9,13 @@ import "../.."
 
 Panel {
     id: root
-    width: 840
-    height: 620
+    width: 980
+    height: 720
     floatCenter: true
     slideOffsetY: 0
     entranceScale: 0.92
     property string tab: "widgets"
-    property bool sidebarExpanded: false
+    property bool sidebarExpanded: true
     readonly property int sidebarCollapsedWidth: 60
     readonly property int sidebarExpandedWidth: 176
     readonly property var tabsModel: [
@@ -69,6 +69,7 @@ Panel {
 
     onIsVisibleChanged: {
         if (isVisible) {
+            root.sidebarExpanded = true
             themeList.running = true
             if (root.tab === "wallpaper")
                 root.refreshWallpapers()
@@ -280,7 +281,7 @@ Panel {
     }
 
     function endFilePicker() {
-        if (wallpaperFolderPicker.running || calFilePicker.running || sddmImagePicker.running || sddmWallpaperPicker.running)
+        if (wallpaperFolderPicker.running || sddmImagePicker.running || sddmWallpaperPicker.running)
             return
         filePickerOpen = false
     }
@@ -395,8 +396,8 @@ Panel {
             spacing: 22
 
             // Left nav rail: rounded card, slightly lighter than the panel
-            // background. Collapsed to icons-only by default; the chevron at
-            // the bottom expands it to reveal labels alongside each icon.
+            // background. Opens with icon + label; the chevron collapses it
+            // to icons-only.
             Rectangle {
                 id: sidebar
                 Layout.fillHeight: true
@@ -554,152 +555,112 @@ Panel {
 
             SettingsSection {
                 title: "Clock & Date"
-                ToggleRow { label: "24-hour clock"; checked: Settings.clockFormat24hr; onToggled: { Settings.clockFormat24hr = !checked; Settings.save() } }
-                ToggleRow { label: "Show seconds"; checked: Settings.showSeconds; onToggled: { Settings.showSeconds = !checked; Settings.save() } }
-                ToggleRow { label: "Day of week"; checked: Settings.showDayOfWeek; onToggled: { Settings.showDayOfWeek = !checked; Settings.save() } }
-                ToggleRow { label: "Long date"; checked: Settings.dateLong; onToggled: { Settings.dateLong = !checked; Settings.save() } }
-                ColumnLayout {
-                    Layout.fillWidth: true
-                    spacing: 8
-                    Text {
-                        text: "Date format"
-                        color: ThemeManager.fgPrimary
-                        font.family: ThemeManager.uiFont
-                        font.pixelSize: 13
-                    }
-                    ChoiceChipRow {
-                        options: [
-                            { id: "MDY", label: "MM/DD/YYYY" },
-                            { id: "DMY", label: "DD/MM/YYYY" }
-                        ]
-                        current: Settings.dateFormat
-                        onPicked: id => { Settings.dateFormat = id; Settings.save() }
-                    }
+                SettingsCard {
+                    ToggleRow { label: "24-hour clock"; checked: Settings.clockFormat24hr; onToggled: { Settings.clockFormat24hr = !checked; Settings.save() } }
+                    ToggleRow { label: "Show seconds"; checked: Settings.showSeconds; onToggled: { Settings.showSeconds = !checked; Settings.save() } }
                 }
-            }
-
-            SettingsSection {
-                title: "Calendar"
-                ColumnLayout {
-                    Layout.fillWidth: true
-                    spacing: 8
-                    Text {
-                        text: "Calendar import"
-                        color: ThemeManager.fgPrimary
-                        font.family: ThemeManager.uiFont
-                        font.pixelSize: 13
-                    }
-                    Text {
-                        text: "The clock popup uses this path for event dots. Open Yahr Calendar from the app launcher for month, week, and day views, multiple ICS calendars, and reminders."
-                        color: ThemeManager.fgTertiary
-                        font.family: ThemeManager.uiFont
-                        font.pixelSize: 12
-                        wrapMode: Text.WordWrap
-                        Layout.fillWidth: true
-                    }
-                    RowLayout {
+                SettingsCard {
+                    ToggleRow { label: "Day of week"; checked: Settings.showDayOfWeek; onToggled: { Settings.showDayOfWeek = !checked; Settings.save() } }
+                    ToggleRow { label: "Long date"; checked: Settings.dateLong; onToggled: { Settings.dateLong = !checked; Settings.save() } }
+                    ColumnLayout {
                         Layout.fillWidth: true
                         spacing: 8
-                        InputField {
-                            id: calPathField
-                            Layout.fillWidth: true
-                            height: 30
-                            text: Settings.calendarFilePath
-                            font.pixelSize: 12
-                            background: Rectangle {
-                                color: ThemeManager.surface1
-                                radius: 6
-                            }
-                            onEditingFinished: { Settings.calendarFilePath = text; Settings.save() }
+                        Text {
+                            text: "Date format"
+                            color: ThemeManager.fgPrimary
+                            font.family: ThemeManager.uiFont
+                            font.pixelSize: 13
                         }
-                        Rectangle {
-                            Layout.preferredWidth: 88
-                            Layout.preferredHeight: 30
-                            width: 88
-                            height: 30
-                            radius: 6
-                            color: ThemeManager.accentBlue
-                            scale: calBrowseMouse.pressed ? ThemeManager.bouncePressScale : (calBrowseMouse.containsMouse ? ThemeManager.bounceHoverScale : 1.0)
-                            Behavior on scale {
-                                SpringAnimation { spring: ThemeManager.bounceSpring; damping: ThemeManager.bounceDamping; mass: ThemeManager.bounceMass }
-                            }
-                            Text {
-                                anchors.centerIn: parent
-                                text: "Browse"
-                                color: ThemeManager.bgBase
-                                font.family: ThemeManager.uiFont
-                                font.pixelSize: 12
-                            }
-                            MouseArea {
-                                id: calBrowseMouse
-                                anchors.fill: parent
-                                hoverEnabled: true
-                                cursorShape: Qt.PointingHandCursor
-                                onClicked: {
-                                    calFilePicker.startPath = Settings.calendarFilePath
-                                    root.startFilePicker(calFilePicker)
-                                }
-                            }
+                        ChoiceChipRow {
+                            options: [
+                            { id: "MDY", label: "MM/DD/YYYY" },
+                            { id: "DMY", label: "DD/MM/YYYY" }
+                            ]
+                            current: Settings.dateFormat
+                            onPicked: id => { Settings.dateFormat = id; Settings.save() }
                         }
                     }
-                }
-                ColumnLayout {
-                    Layout.fillWidth: true
-                    spacing: 8
-                    Text {
-                        text: "First day of the week"
-                        color: ThemeManager.fgPrimary
-                        font.family: ThemeManager.uiFont
-                        font.pixelSize: 13
-                    }
-                    ChoiceChipRow {
-                        options: [
+                    ColumnLayout {
+                        Layout.fillWidth: true
+                        spacing: 8
+                        Text {
+                            text: "First day of the week"
+                            color: ThemeManager.fgPrimary
+                            font.family: ThemeManager.uiFont
+                            font.pixelSize: 13
+                        }
+                        ChoiceChipRow {
+                            options: [
                             { id: "sunday", label: "Sunday" },
                             { id: "monday", label: "Monday" }
-                        ]
-                        current: Settings.calendarWeekStart
-                        onPicked: id => { Settings.calendarWeekStart = id; Settings.save() }
+                            ]
+                            current: Settings.calendarWeekStart
+                            onPicked: id => { Settings.calendarWeekStart = id; Settings.save() }
+                        }
                     }
                 }
             }
 
             SettingsSection {
                 title: "Weather"
-                ToggleRow { label: "Weather in \u00b0F"; checked: Settings.weatherUseFahrenheit; onToggled: { Settings.weatherUseFahrenheit = !checked; Settings.save() } }
-
-                RowLayout {
-                    Layout.fillWidth: true
-                    spacing: 10
-                    Text {
-                        text: "Weather location"
-                        color: ThemeManager.fgSecondary
-                        font.family: ThemeManager.uiFont
-                        font.pixelSize: 13
-                    }
-                    Item {
+                SettingsCard {
+                    ColumnLayout {
                         Layout.fillWidth: true
-                        Layout.preferredHeight: 30
-                        height: 30
-                        InputField {
-                            id: locField
-                            anchors.fill: parent
-                            text: Settings.weatherLocation
-                            font.pixelSize: 12
-                            background: Rectangle {
-                                color: ThemeManager.surface1
-                                radius: 6
-                            }
-                            onEditingFinished: { Settings.weatherLocation = text; Settings.save() }
-                        }
+                        spacing: 8
                         Text {
-                            visible: locField.text.length === 0
-                            text: "auto (IP-based)"
-                            color: ThemeManager.placeholderColor
+                            text: "Weather units"
+                            color: ThemeManager.fgPrimary
                             font.family: ThemeManager.uiFont
-                            font.pixelSize: 12
-                            anchors.verticalCenter: parent.verticalCenter
-                            anchors.left: parent.left
-                            anchors.leftMargin: 8
+                            font.pixelSize: 13
+                        }
+                        ChoiceChipRow {
+                            options: [
+                            { id: "fahrenheit", label: "Fahrenheit" },
+                            { id: "celsius", label: "Celsius" }
+                            ]
+                            current: Settings.weatherUseFahrenheit ? "fahrenheit" : "celsius"
+                            onPicked: id => {
+                                Settings.weatherUseFahrenheit = id === "fahrenheit"
+                                Settings.save()
+                            }
+                        }
+                    }
+                }
+                SettingsCard {
+                    ColumnLayout {
+                        Layout.fillWidth: true
+                        spacing: 8
+                        Text {
+                            text: "Weather location"
+                            color: ThemeManager.fgPrimary
+                            font.family: ThemeManager.uiFont
+                            font.pixelSize: 13
+                        }
+                        Item {
+                            Layout.fillWidth: true
+                            Layout.preferredHeight: 30
+                            height: 30
+                            InputField {
+                                id: locField
+                                anchors.fill: parent
+                                text: Settings.weatherLocation
+                                font.pixelSize: 12
+                                background: Rectangle {
+                                    color: ThemeManager.surface1
+                                    radius: 6
+                                }
+                                onEditingFinished: { Settings.weatherLocation = text; Settings.save() }
+                            }
+                            Text {
+                                visible: locField.text.length === 0
+                                text: "auto (IP-based)"
+                                color: ThemeManager.placeholderColor
+                                font.family: ThemeManager.uiFont
+                                font.pixelSize: 12
+                                anchors.verticalCenter: parent.verticalCenter
+                                anchors.left: parent.left
+                                anchors.leftMargin: 8
+                            }
                         }
                     }
                 }
@@ -707,34 +668,32 @@ Panel {
 
             SettingsSection {
                 title: "Interface"
-                ToggleRow {
-                    label: "Follow Hyprland Window Rules"
-                    checked: Settings.followHyprlandRules
-                    onToggled: { Settings.followHyprlandRules = !checked; Settings.save() }
-                }
-                Text {
-                    text: Settings.followHyprlandRules
+                SettingsCard {
+                    ToggleRow {
+                        label: "Follow Hyprland Window Rules"
+                        checked: Settings.followHyprlandRules
+                        onToggled: { Settings.followHyprlandRules = !checked; Settings.save() }
+                    }
+                    Text {
+                        text: Settings.followHyprlandRules
                         ? "Rounding, border thickness, and border fill/opacity match the Hyprland tab."
                         : "Widget chrome can be set independently. Turn this on to match Hyprland window rules."
-                    color: ThemeManager.fgTertiary
-                    font.family: ThemeManager.uiFont
-                    font.pixelSize: 12
-                    wrapMode: Text.WordWrap
-                    Layout.fillWidth: true
+                        color: ThemeManager.fgTertiary
+                        font.family: ThemeManager.uiFont
+                        font.pixelSize: 12
+                        wrapMode: Text.WordWrap
+                        Layout.fillWidth: true
+                    }
                 }
-                ColumnLayout {
-                    Layout.fillWidth: true
-                    spacing: 10
+                SettingsCard {
                     enabled: !Settings.followHyprlandRules
-                    opacity: Settings.followHyprlandRules ? 0.4 : 1.0
-
                     ToggleRow {
                         label: "Transparent backgrounds"
                         checked: Settings.widgetTransparent
                         onToggled: {
                             Settings.widgetTransparent = !checked
                             if (!checked && Settings.widgetOpacity >= 0.99)
-                                Settings.widgetOpacity = 0.70
+                            Settings.widgetOpacity = 0.70
                             Settings.save()
                         }
                     }
@@ -752,6 +711,9 @@ Panel {
                         onChanged: value => Settings.widgetOpacity = value
                         onReleased: Settings.save()
                     }
+                }
+                SettingsCard {
+                    enabled: !Settings.followHyprlandRules
                     ToggleRow {
                         label: "Widget borders"
                         checked: Settings.showWidgetBorders
@@ -762,13 +724,18 @@ Panel {
                         color: ThemeManager.fgTertiary
                         font.family: ThemeManager.uiFont
                         font.pixelSize: 12
+                        wrapMode: Text.WordWrap
+                        Layout.fillWidth: true
                     }
+                }
+                SettingsCard {
+                    enabled: !Settings.followHyprlandRules
+                    visible: Settings.showWidgetBorders || (Settings.followHyprlandRules && Settings.hyprShowBorder)
                     ColumnLayout {
-                        visible: Settings.showWidgetBorders || (Settings.followHyprlandRules && Settings.hyprShowBorder)
                         Layout.fillWidth: true
                         spacing: 8
                         Text {
-                            text: `Thickness: ${Settings.hyprBorderSize}px`
+                            text: `Border thickness: ${Settings.hyprBorderSize}px`
                             color: ThemeManager.fgPrimary
                             font.family: ThemeManager.uiFont
                         }
@@ -783,12 +750,14 @@ Panel {
 
             SettingsSection {
                 title: "UI Font"
-                Text {
-                    text: "Fonts used by the shell, independent of other system fonts."
-                    color: ThemeManager.fgTertiary
-                    font.family: ThemeManager.uiFont
-                    font.pixelSize: 12
-                }
+                SettingsCard {
+                    Text {
+                        text: "Fonts used by the shell, independent of other system fonts."
+                        color: ThemeManager.fgTertiary
+                        font.family: ThemeManager.uiFont
+                        font.pixelSize: 12
+                        Layout.fillWidth: true
+                    }
                     FontChipFlow {
                         Layout.fillWidth: true
                         current: Settings.uiFont
@@ -797,6 +766,7 @@ Panel {
                             Settings.save()
                         }
                     }
+                }
             }
             }
         }
@@ -817,184 +787,112 @@ Panel {
 
             SettingsSection {
                 title: "Position & Size"
-                ColumnLayout {
-                    Layout.fillWidth: true
-                    spacing: 8
-                    Text {
-                        text: "Bar position"
-                        color: ThemeManager.fgPrimary
-                        font.family: ThemeManager.uiFont
-                        font.pixelSize: 13
-                    }
-                    ChoiceChipRow {
-                        options: [
-                            { id: "top", label: "Top" },
-                            { id: "bottom", label: "Bottom" }
-                        ]
-                        current: Settings.barPosition
-                        onPicked: id => {
-                            Settings.barPosition = id
-                            if (id === "bottom")
-                                Settings.dockEnabled = false
-                            Settings.save()
-                        }
-                    }
-                    Text {
-                        visible: Settings.barPosition === "bottom"
-                        text: "The dock is turned off while the bar is on the bottom."
-                        color: ThemeManager.fgTertiary
-                        font.family: ThemeManager.uiFont
-                        font.pixelSize: 12
-                        wrapMode: Text.WordWrap
-                        Layout.fillWidth: true
-                    }
-                }
-                ToggleRow { label: "Large bar"; checked: Settings.barSize === "large"; onToggled: { Settings.barSize = !checked ? "large" : "small"; Settings.save() } }
-                ToggleRow {
-                    label: "Floating bar"
-                    enabled: Settings.barStyle !== "islands"
-                    checked: Settings.barFloating
-                    onToggled: {
-                        Settings.barFloating = !checked
-                        if (checked)
-                            Settings.barStyle = "single"
-                        Settings.save()
-                    }
-                }
-                Text {
-                    visible: Settings.barStyle === "islands"
-                    text: "Islands stay floating. Switch to Single to dock the bar."
-                    color: ThemeManager.fgTertiary
-                    font.family: ThemeManager.uiFont
-                    font.pixelSize: 12
-                    wrapMode: Text.WordWrap
-                    Layout.fillWidth: true
-                }
-            }
-
-            SettingsSection {
-                title: "Appearance"
-                ColumnLayout {
-                    Layout.fillWidth: true
-                    spacing: 8
-                    Text {
-                        text: "Bar style"
-                        color: ThemeManager.fgPrimary
-                        font.family: ThemeManager.uiFont
-                        font.pixelSize: 13
-                    }
-                    ChoiceChipRow {
-                        options: [
-                            { id: "single", label: "Single" },
-                            { id: "islands", label: "Islands" }
-                        ]
-                        current: Settings.barStyle
-                        disabledIds: Settings.barFloating ? [] : ["islands"]
-                        onPicked: id => {
-                            Settings.barStyle = id
-                            if (id === "islands")
-                                Settings.barFloating = true
-                            Settings.save()
-                        }
-                    }
-                    Text {
-                        text: Settings.barStyle === "islands"
-                            ? "Left, center, and right each sit in their own pill. Islands require a floating bar."
-                            : (Settings.barFloating
-                                ? "One continuous bar. Panels open with an elastic pop while the bar is floating."
-                                : "One continuous bar. Widgets emerge from a screen frame. Float the bar to use islands.")
-                        color: ThemeManager.fgTertiary
-                        font.family: ThemeManager.uiFont
-                        font.pixelSize: 12
-                        wrapMode: Text.WordWrap
-                        Layout.fillWidth: true
-                    }
-                }
-                ToggleRow { label: "Numbered workspaces"; checked: Settings.workspaceStyle === "numbers"; onToggled: { Settings.workspaceStyle = !checked ? "numbers" : "dots"; Settings.save() } }
-                ToggleRow {
-                    label: "Follow Hyprland Window Rules"
-                    checked: Settings.barFollowHyprland
-                    onToggled: { Settings.barFollowHyprland = !checked; Settings.save() }
-                }
-                Text {
-                    text: Settings.barFollowHyprland
-                        ? "Fill, borders, and thickness match the Hyprland tab."
-                        : "Bar chrome can be set independently. Turn this on to match Hyprland window rules."
-                    color: ThemeManager.fgTertiary
-                    font.family: ThemeManager.uiFont
-                    font.pixelSize: 12
-                    wrapMode: Text.WordWrap
-                    Layout.fillWidth: true
-                }
-                ColumnLayout {
-                    Layout.fillWidth: true
-                    spacing: 10
-                    enabled: !Settings.barFollowHyprland
-                    opacity: Settings.barFollowHyprland ? 0.4 : 1.0
-
+                SettingsCard {
                     ColumnLayout {
                         Layout.fillWidth: true
                         spacing: 8
                         Text {
-                            text: "Background fill"
+                            text: "Bar position"
                             color: ThemeManager.fgPrimary
                             font.family: ThemeManager.uiFont
                             font.pixelSize: 13
                         }
                         ChoiceChipRow {
                             options: [
-                                { id: "opaque", label: "Solid" },
-                                { id: "translucent", label: "Transparent" }
+                            { id: "top", label: "Top" },
+                            { id: "bottom", label: "Bottom" }
                             ]
-                            current: Settings.barBackgroundStyle === "opaque" ? "opaque" : "translucent"
-                            onPicked: id => { Settings.barBackgroundStyle = id; Settings.save() }
+                            current: Settings.barPosition
+                            onPicked: id => {
+                                Settings.barPosition = id
+                                if (id === "bottom")
+                                Settings.dockEnabled = false
+                                Settings.save()
+                            }
+                        }
+                        Text {
+                            visible: Settings.barPosition === "bottom"
+                            text: "The dock is turned off while the bar is on the bottom."
+                            color: ThemeManager.fgTertiary
+                            font.family: ThemeManager.uiFont
+                            font.pixelSize: 12
+                            wrapMode: Text.WordWrap
+                            Layout.fillWidth: true
                         }
                     }
-                    TransparencySlider {
-                        visible: Settings.barBackgroundStyle !== "opaque"
-                        opacityValue: Settings.barOpacity
-                        onChanged: value => Settings.barOpacity = value
-                        onReleased: Settings.save()
-                    }
+                    ToggleRow { label: "Large bar"; checked: Settings.barSize === "large"; onToggled: { Settings.barSize = !checked ? "large" : "small"; Settings.save() } }
                     ToggleRow {
-                        label: "Bar border"
-                        checked: Settings.barShowBorder
-                        onToggled: { Settings.barShowBorder = !checked; Settings.save() }
+                        label: "Floating bar"
+                        enabled: Settings.barStyle !== "islands"
+                        checked: Settings.barFloating
+                        onToggled: {
+                            Settings.barFloating = !checked
+                            if (checked)
+                            Settings.barStyle = "single"
+                            Settings.save()
+                        }
                     }
+                    Text {
+                        visible: Settings.barStyle === "islands"
+                        text: "Islands stay floating. Switch to Single to dock the bar."
+                        color: ThemeManager.fgTertiary
+                        font.family: ThemeManager.uiFont
+                        font.pixelSize: 12
+                        wrapMode: Text.WordWrap
+                        Layout.fillWidth: true
+                    }
+                }
+            }
+
+            SettingsSection {
+                title: "Appearance"
+                SettingsCard {
                     ColumnLayout {
-                        visible: Settings.barShowBorder || (Settings.barFollowHyprland && Settings.hyprShowBorder)
                         Layout.fillWidth: true
                         spacing: 8
                         Text {
-                            text: `Border size: ${Settings.hyprBorderSize}px`
+                            text: "Bar style"
                             color: ThemeManager.fgPrimary
                             font.family: ThemeManager.uiFont
+                            font.pixelSize: 13
                         }
-                        ValueChipRow {
-                            values: [1, 2, 3, 4, 5]
-                            current: Settings.hyprBorderSize
-                            onPicked: value => root.applyBorderSize(value)
+                        ChoiceChipRow {
+                            options: [
+                            { id: "single", label: "Single" },
+                            { id: "islands", label: "Islands" }
+                            ]
+                            current: Settings.barStyle
+                            disabledIds: Settings.barFloating ? [] : ["islands"]
+                            onPicked: id => {
+                                Settings.barStyle = id
+                                if (id === "islands")
+                                Settings.barFloating = true
+                                Settings.save()
+                            }
+                        }
+                        Text {
+                            text: Settings.barStyle === "islands"
+                            ? "Left, center, and right each sit in their own pill. Islands require a floating bar."
+                            : (Settings.barFloating
+                            ? "One continuous bar. Panels open with an elastic pop while the bar is floating."
+                            : "One continuous bar. Widgets emerge from a screen frame. Float the bar to use islands.")
+                            color: ThemeManager.fgTertiary
+                            font.family: ThemeManager.uiFont
+                            font.pixelSize: 12
+                            wrapMode: Text.WordWrap
+                            Layout.fillWidth: true
                         }
                     }
-                }
-                ColumnLayout {
-                    Layout.fillWidth: true
-                    spacing: 8
-                    Text {
-                        text: "Corner radius"
-                        color: ThemeManager.fgPrimary
-                        font.family: ThemeManager.uiFont
-                        font.pixelSize: 13
-                    }
+                    ToggleRow { label: "Numbered workspaces"; checked: Settings.workspaceStyle === "numbers"; onToggled: { Settings.workspaceStyle = !checked ? "numbers" : "dots"; Settings.save() } }
                     ToggleRow {
-                        label: "Follow Hyprland rounding"
-                        checked: Settings.barRoundingFollowHyprland
-                        onToggled: { Settings.barRoundingFollowHyprland = !checked; Settings.save() }
+                        label: "Follow Hyprland Window Rules"
+                        checked: Settings.barFollowHyprland
+                        onToggled: { Settings.barFollowHyprland = !checked; Settings.save() }
                     }
                     Text {
-                        text: Settings.barRoundingFollowHyprland
-                            ? `Using Hyprland window rounding (${Settings.hyprRounding}px). Docked frame bars stay square against the screen edge.`
-                            : "Set an independent radius for floating single and island bars. Docked frame bars stay square against the screen edge."
+                        text: Settings.barFollowHyprland
+                        ? "Fill, borders, and thickness match the Hyprland tab."
+                        : "Bar chrome can be set independently. Turn this on to match Hyprland window rules."
                         color: ThemeManager.fgTertiary
                         font.family: ThemeManager.uiFont
                         font.pixelSize: 12
@@ -1002,85 +900,161 @@ Panel {
                         Layout.fillWidth: true
                     }
                     ColumnLayout {
-                        visible: !Settings.barRoundingFollowHyprland
+                        Layout.fillWidth: true
+                        spacing: 10
+                        enabled: !Settings.barFollowHyprland
+                        opacity: Settings.barFollowHyprland ? 0.4 : 1.0
+
+                        ColumnLayout {
+                            Layout.fillWidth: true
+                            spacing: 8
+                            Text {
+                                text: "Background fill"
+                                color: ThemeManager.fgPrimary
+                                font.family: ThemeManager.uiFont
+                                font.pixelSize: 13
+                            }
+                            ChoiceChipRow {
+                                options: [
+                                { id: "opaque", label: "Solid" },
+                                { id: "translucent", label: "Transparent" }
+                                ]
+                                current: Settings.barBackgroundStyle === "opaque" ? "opaque" : "translucent"
+                                onPicked: id => { Settings.barBackgroundStyle = id; Settings.save() }
+                            }
+                        }
+                        TransparencySlider {
+                            visible: Settings.barBackgroundStyle !== "opaque"
+                            opacityValue: Settings.barOpacity
+                            onChanged: value => Settings.barOpacity = value
+                            onReleased: Settings.save()
+                        }
+                        ToggleRow {
+                            label: "Bar border"
+                            checked: Settings.barShowBorder
+                            onToggled: { Settings.barShowBorder = !checked; Settings.save() }
+                        }
+                        ColumnLayout {
+                            visible: Settings.barShowBorder || (Settings.barFollowHyprland && Settings.hyprShowBorder)
+                            Layout.fillWidth: true
+                            spacing: 8
+                            Text {
+                                text: `Border size: ${Settings.hyprBorderSize}px`
+                                color: ThemeManager.fgPrimary
+                                font.family: ThemeManager.uiFont
+                            }
+                            ValueChipRow {
+                                values: [1, 2, 3, 4, 5]
+                                current: Settings.hyprBorderSize
+                                onPicked: value => root.applyBorderSize(value)
+                            }
+                        }
+                    }
+                    ColumnLayout {
                         Layout.fillWidth: true
                         spacing: 8
                         Text {
-                            text: `Corner radius: ${Settings.barRounding}px`
+                            text: "Corner radius"
                             color: ThemeManager.fgPrimary
                             font.family: ThemeManager.uiFont
+                            font.pixelSize: 13
                         }
-                        ValueChipRow {
-                            values: [0, 4, 8, 12, 16, 20, 24]
-                            current: Settings.barRounding
-                            onPicked: value => { Settings.barRounding = value; Settings.save() }
+                        ToggleRow {
+                            label: "Follow Hyprland rounding"
+                            checked: Settings.barRoundingFollowHyprland
+                            onToggled: { Settings.barRoundingFollowHyprland = !checked; Settings.save() }
+                        }
+                        Text {
+                            text: Settings.barRoundingFollowHyprland
+                            ? `Using Hyprland window rounding (${Settings.hyprRounding}px). Docked frame bars stay square against the screen edge.`
+                            : "Set an independent radius for floating single and island bars. Docked frame bars stay square against the screen edge."
+                            color: ThemeManager.fgTertiary
+                            font.family: ThemeManager.uiFont
+                            font.pixelSize: 12
+                            wrapMode: Text.WordWrap
+                            Layout.fillWidth: true
+                        }
+                        ColumnLayout {
+                            visible: !Settings.barRoundingFollowHyprland
+                            Layout.fillWidth: true
+                            spacing: 8
+                            Text {
+                                text: `Corner radius: ${Settings.barRounding}px`
+                                color: ThemeManager.fgPrimary
+                                font.family: ThemeManager.uiFont
+                            }
+                            ValueChipRow {
+                                values: [0, 4, 8, 12, 16, 20, 24]
+                                current: Settings.barRounding
+                                onPicked: value => { Settings.barRounding = value; Settings.save() }
+                            }
                         }
                     }
-                }
-                ToggleRow {
-                    label: "Application tray icons"
-                    checked: Settings.showSystemTray
-                    onToggled: { Settings.showSystemTray = !checked; Settings.save() }
-                }
-                Text {
-                    text: "Icons that apps put in the tray, such as Cursor. Off by default because those pixmaps rarely line up with the bar icons."
-                    color: ThemeManager.fgTertiary
-                    font.family: ThemeManager.uiFont
-                    font.pixelSize: 12
-                    wrapMode: Text.WordWrap
-                    Layout.fillWidth: true
-                }
-                ToggleRow {
-                    label: "Show weather in bar"
-                    checked: Settings.showWeatherInBar
-                    onToggled: { Settings.showWeatherInBar = !checked; Settings.save() }
-                }
-                Text {
-                    text: "Condition icon and current temperature sit between the date and time."
-                    color: ThemeManager.fgTertiary
-                    font.family: ThemeManager.uiFont
-                    font.pixelSize: 12
-                    wrapMode: Text.WordWrap
-                    Layout.fillWidth: true
-                }
-                ToggleRow {
-                    label: "Show battery percentage"
-                    checked: Settings.showBatteryPercent
-                    onToggled: { Settings.showBatteryPercent = !checked; Settings.save() }
-                }
-                Text {
-                    text: "Shows the charge percentage to the right of the battery icon. Desktops on AC power still show the adapter icon."
-                    color: ThemeManager.fgTertiary
-                    font.family: ThemeManager.uiFont
-                    font.pixelSize: 12
-                    wrapMode: Text.WordWrap
-                    Layout.fillWidth: true
-                }
-                ToggleRow {
-                    label: "Show volume percentage"
-                    checked: Settings.showVolumePercent
-                    onToggled: { Settings.showVolumePercent = !checked; Settings.save() }
-                }
-                Text {
-                    text: "Shows the current output volume to the right of the speaker icon."
-                    color: ThemeManager.fgTertiary
-                    font.family: ThemeManager.uiFont
-                    font.pixelSize: 12
-                    wrapMode: Text.WordWrap
-                    Layout.fillWidth: true
-                }
-                ToggleRow {
-                    label: "Show network up/down speeds"
-                    checked: Settings.showNetworkSpeed
-                    onToggled: { Settings.showNetworkSpeed = !checked; Settings.save() }
-                }
-                Text {
-                    text: "Shows download and upload rates next to the network icon while connected. Values are a rolling average over the last minute so the tray stays steady."
-                    color: ThemeManager.fgTertiary
-                    font.family: ThemeManager.uiFont
-                    font.pixelSize: 12
-                    wrapMode: Text.WordWrap
-                    Layout.fillWidth: true
+                    ToggleRow {
+                        label: "Application tray icons"
+                        checked: Settings.showSystemTray
+                        onToggled: { Settings.showSystemTray = !checked; Settings.save() }
+                    }
+                    Text {
+                        text: "Icons that apps put in the tray, such as Cursor. Off by default because those pixmaps rarely line up with the bar icons."
+                        color: ThemeManager.fgTertiary
+                        font.family: ThemeManager.uiFont
+                        font.pixelSize: 12
+                        wrapMode: Text.WordWrap
+                        Layout.fillWidth: true
+                    }
+                    ToggleRow {
+                        label: "Show weather in bar"
+                        checked: Settings.showWeatherInBar
+                        onToggled: { Settings.showWeatherInBar = !checked; Settings.save() }
+                    }
+                    Text {
+                        text: "Condition icon and current temperature sit between the date and time."
+                        color: ThemeManager.fgTertiary
+                        font.family: ThemeManager.uiFont
+                        font.pixelSize: 12
+                        wrapMode: Text.WordWrap
+                        Layout.fillWidth: true
+                    }
+                    ToggleRow {
+                        label: "Show battery percentage"
+                        checked: Settings.showBatteryPercent
+                        onToggled: { Settings.showBatteryPercent = !checked; Settings.save() }
+                    }
+                    Text {
+                        text: "Shows the charge percentage to the right of the battery icon. Desktops on AC power still show the adapter icon."
+                        color: ThemeManager.fgTertiary
+                        font.family: ThemeManager.uiFont
+                        font.pixelSize: 12
+                        wrapMode: Text.WordWrap
+                        Layout.fillWidth: true
+                    }
+                    ToggleRow {
+                        label: "Show volume percentage"
+                        checked: Settings.showVolumePercent
+                        onToggled: { Settings.showVolumePercent = !checked; Settings.save() }
+                    }
+                    Text {
+                        text: "Shows the current output volume to the right of the speaker icon."
+                        color: ThemeManager.fgTertiary
+                        font.family: ThemeManager.uiFont
+                        font.pixelSize: 12
+                        wrapMode: Text.WordWrap
+                        Layout.fillWidth: true
+                    }
+                    ToggleRow {
+                        label: "Show network up/down speeds"
+                        checked: Settings.showNetworkSpeed
+                        onToggled: { Settings.showNetworkSpeed = !checked; Settings.save() }
+                    }
+                    Text {
+                        text: "Shows download and upload rates next to the network icon while connected. Values are a rolling average over the last minute so the tray stays steady."
+                        color: ThemeManager.fgTertiary
+                        font.family: ThemeManager.uiFont
+                        font.pixelSize: 12
+                        wrapMode: Text.WordWrap
+                        Layout.fillWidth: true
+                    }
                 }
             }
             }
@@ -1102,120 +1076,126 @@ Panel {
 
             SettingsSection {
                 title: "Dock"
-                ToggleRow { label: "Enable dock"; checked: Settings.dockEnabled; onToggled: { Settings.dockEnabled = !checked; Settings.save() } }
-                ToggleRow {
-                    label: "Floating dock"
-                    checked: Settings.dockFloating
-                    onToggled: { Settings.dockFloating = !checked; Settings.save() }
-                }
-                Text {
-                    text: Settings.dockFloating
+                SettingsCard {
+                    ToggleRow { label: "Enable dock"; checked: Settings.dockEnabled; onToggled: { Settings.dockEnabled = !checked; Settings.save() } }
+                    ToggleRow {
+                        label: "Floating dock"
+                        checked: Settings.dockFloating
+                        onToggled: { Settings.dockFloating = !checked; Settings.save() }
+                    }
+                    Text {
+                        text: Settings.dockFloating
                         ? "Inset from the screen edge with a small gap."
                         : (ThemeManager.useFrameEmerge
-                            ? "Joins the screen frame, with the same inverse corners as the widget panels."
-                            : "Flush against the screen edge.")
-                    color: ThemeManager.fgTertiary
-                    font.family: ThemeManager.uiFont
-                    font.pixelSize: 12
-                    wrapMode: Text.WordWrap
-                    Layout.fillWidth: true
+                        ? "Joins the screen frame, with the same inverse corners as the widget panels."
+                        : "Flush against the screen edge.")
+                        color: ThemeManager.fgTertiary
+                        font.family: ThemeManager.uiFont
+                        font.pixelSize: 12
+                        wrapMode: Text.WordWrap
+                        Layout.fillWidth: true
+                    }
                 }
             }
 
             SettingsSection {
                 title: "Position"
-                ChoiceChipRow {
-                    options: [
+                SettingsCard {
+                    ChoiceChipRow {
+                        options: [
                         { id: "bottom", label: "Bottom" },
                         { id: "left", label: "Left" },
                         { id: "right", label: "Right" }
-                    ]
-                    current: Settings.dockPosition
-                    onPicked: id => { Settings.dockPosition = id; Settings.save() }
-                }
-                Text {
-                    text: "Alignment"
-                    color: ThemeManager.fgPrimary
-                    font.family: ThemeManager.uiFont
-                    font.pixelSize: 13
-                }
-                ChoiceChipRow {
-                    options: [
+                        ]
+                        current: Settings.dockPosition
+                        onPicked: id => { Settings.dockPosition = id; Settings.save() }
+                    }
+                    Text {
+                        text: "Alignment"
+                        color: ThemeManager.fgPrimary
+                        font.family: ThemeManager.uiFont
+                        font.pixelSize: 13
+                    }
+                    ChoiceChipRow {
+                        options: [
                         { id: "start", label: "Start" },
                         { id: "center", label: "Center" },
                         { id: "end", label: "End" }
-                    ]
-                    current: Settings.dockAlignment
-                    onPicked: id => { Settings.dockAlignment = id; Settings.save() }
-                }
-                ToggleRow {
-                    label: (Settings.dockPosition === "left" || Settings.dockPosition === "right")
+                        ]
+                        current: Settings.dockAlignment
+                        onPicked: id => { Settings.dockAlignment = id; Settings.save() }
+                    }
+                    ToggleRow {
+                        label: (Settings.dockPosition === "left" || Settings.dockPosition === "right")
                         ? "Span full height"
                         : "Span full width"
-                    checked: Settings.dockSpanFullWidth
-                    onToggled: { Settings.dockSpanFullWidth = !checked; Settings.save() }
+                        checked: Settings.dockSpanFullWidth
+                        onToggled: { Settings.dockSpanFullWidth = !checked; Settings.save() }
+                    }
                 }
             }
 
             SettingsSection {
                 title: "Window Behavior"
-                Text {
-                    text: "Works together with Floating dock. Dodge reserves space for windows; the others overlay."
-                    color: ThemeManager.fgTertiary
-                    font.family: ThemeManager.uiFont
-                    font.pixelSize: 12
-                    wrapMode: Text.WordWrap
-                    Layout.fillWidth: true
-                }
-                GridLayout {
-                    Layout.fillWidth: true
-                    columns: 2
-                    columnSpacing: 8
-                    rowSpacing: 8
-                    Repeater {
-                        model: [
+                SettingsCard {
+                    Text {
+                        text: "Works together with Floating dock. Dodge reserves space for windows; the others overlay."
+                        color: ThemeManager.fgTertiary
+                        font.family: ThemeManager.uiFont
+                        font.pixelSize: 12
+                        wrapMode: Text.WordWrap
+                        Layout.fillWidth: true
+                    }
+                    GridLayout {
+                        Layout.fillWidth: true
+                        columns: 2
+                        columnSpacing: 8
+                        rowSpacing: 8
+                        Repeater {
+                            model: [
                             { id: "always-on-top", label: "Always On Top", desc: "Stays above app windows" },
                             { id: "behind-windows", label: "Behind", desc: "Windows can cover the dock" },
                             { id: "dodge", label: "Dodge", desc: "Windows shrink to avoid it" },
                             { id: "auto-hide", label: "Auto-Hide", desc: "Hides until you hover the edge" }
-                        ]
-                        Rectangle {
-                            id: behaviorCard
-                            required property var modelData
-                            readonly property bool active: Settings.dockBehavior === modelData.id
-                            Layout.fillWidth: true
-                            Layout.preferredHeight: 56
-                            height: 56
-                            radius: 8
-                            color: active ? Qt.rgba(ThemeManager.accentBlue.r, ThemeManager.accentBlue.g, ThemeManager.accentBlue.b, 0.30) : ThemeManager.surface1
-                            scale: behaviorMouse.pressed ? ThemeManager.bouncePressScale : (behaviorMouse.containsMouse ? ThemeManager.bounceHoverScale : 1.0)
-                            Behavior on scale {
-                                SpringAnimation { spring: ThemeManager.bounceSpring; damping: ThemeManager.bounceDamping; mass: ThemeManager.bounceMass }
-                            }
-                            Column {
-                                anchors.centerIn: parent
-                                spacing: 2
-                                Text {
-                                    text: behaviorCard.modelData.label
-                                    color: ThemeManager.fgPrimary
-                                    font.family: ThemeManager.uiFont
-                                    font.pixelSize: 13
-                                    anchors.horizontalCenter: parent.horizontalCenter
+                            ]
+                            Rectangle {
+                                id: behaviorCard
+                                required property var modelData
+                                readonly property bool active: Settings.dockBehavior === modelData.id
+                                Layout.fillWidth: true
+                                Layout.preferredHeight: 56
+                                height: 56
+                                radius: 8
+                                color: active ? Qt.rgba(ThemeManager.accentBlue.r, ThemeManager.accentBlue.g, ThemeManager.accentBlue.b, 0.30) : ThemeManager.surface1
+                                scale: behaviorMouse.pressed ? ThemeManager.bouncePressScale : (behaviorMouse.containsMouse ? ThemeManager.bounceHoverScale : 1.0)
+                                Behavior on scale {
+                                    SpringAnimation { spring: ThemeManager.bounceSpring; damping: ThemeManager.bounceDamping; mass: ThemeManager.bounceMass }
                                 }
-                                Text {
-                                    text: behaviorCard.modelData.desc
-                                    color: ThemeManager.fgTertiary
-                                    font.family: ThemeManager.uiFont
-                                    font.pixelSize: 11
-                                    anchors.horizontalCenter: parent.horizontalCenter
+                                Column {
+                                    anchors.centerIn: parent
+                                    spacing: 2
+                                    Text {
+                                        text: behaviorCard.modelData.label
+                                        color: ThemeManager.fgPrimary
+                                        font.family: ThemeManager.uiFont
+                                        font.pixelSize: 13
+                                        anchors.horizontalCenter: parent.horizontalCenter
+                                    }
+                                    Text {
+                                        text: behaviorCard.modelData.desc
+                                        color: ThemeManager.fgTertiary
+                                        font.family: ThemeManager.uiFont
+                                        font.pixelSize: 11
+                                        anchors.horizontalCenter: parent.horizontalCenter
+                                    }
                                 }
-                            }
-                            MouseArea {
-                                id: behaviorMouse
-                                anchors.fill: parent
-                                hoverEnabled: true
-                                cursorShape: Qt.PointingHandCursor
-                                onClicked: { Settings.dockBehavior = behaviorCard.modelData.id; Settings.save() }
+                                MouseArea {
+                                    id: behaviorMouse
+                                    anchors.fill: parent
+                                    hoverEnabled: true
+                                    cursorShape: Qt.PointingHandCursor
+                                    onClicked: { Settings.dockBehavior = behaviorCard.modelData.id; Settings.save() }
+                                }
                             }
                         }
                     }
@@ -1224,102 +1204,104 @@ Panel {
 
             SettingsSection {
                 title: "Appearance"
-                ColumnLayout {
-                    Layout.fillWidth: true
-                    spacing: 8
-                    Text {
-                        text: "Dock shape"
-                        color: ThemeManager.fgPrimary
-                        font.family: ThemeManager.uiFont
-                        font.pixelSize: 13
-                    }
-                    ChoiceChipRow {
-                        options: [
-                            { id: "square", label: "Square corners" },
-                            { id: "rounded", label: "Rounded corners" }
-                        ]
-                        current: Settings.dockShape
-                        onPicked: id => { Settings.dockShape = id; Settings.save() }
-                    }
-                }
-                ColumnLayout {
-                    visible: Settings.dockShape === "rounded"
-                    Layout.fillWidth: true
-                    spacing: 8
-                    Text {
-                        text: `Corner radius: ${Settings.dockRounding}px`
-                        color: ThemeManager.fgPrimary
-                        font.family: ThemeManager.uiFont
-                    }
-                    ValueChipRow {
-                        values: [0, 4, 8, 12, 16, 20]
-                        current: Settings.dockRounding
-                        onPicked: value => { Settings.dockRounding = value; Settings.save() }
-                    }
-                }
-                ToggleRow {
-                    label: "Follow Hyprland Window Rules"
-                    checked: Settings.dockFollowHyprland
-                    onToggled: { Settings.dockFollowHyprland = !checked; Settings.save() }
-                }
-                Text {
-                    text: Settings.dockFollowHyprland
-                        ? "Fill, borders, and thickness match the Hyprland tab."
-                        : "Dock chrome can be set independently. Turn this on to match Hyprland window rules."
-                    color: ThemeManager.fgTertiary
-                    font.family: ThemeManager.uiFont
-                    font.pixelSize: 12
-                    wrapMode: Text.WordWrap
-                    Layout.fillWidth: true
-                }
-                ColumnLayout {
-                    Layout.fillWidth: true
-                    spacing: 10
-                    enabled: !Settings.dockFollowHyprland
-                    opacity: Settings.dockFollowHyprland ? 0.4 : 1.0
-
+                SettingsCard {
                     ColumnLayout {
                         Layout.fillWidth: true
                         spacing: 8
                         Text {
-                            text: "Background fill"
+                            text: "Dock shape"
                             color: ThemeManager.fgPrimary
                             font.family: ThemeManager.uiFont
                             font.pixelSize: 13
                         }
                         ChoiceChipRow {
                             options: [
-                                { id: "opaque", label: "Solid" },
-                                { id: "translucent", label: "Transparent" }
+                            { id: "square", label: "Square corners" },
+                            { id: "rounded", label: "Rounded corners" }
                             ]
-                            current: Settings.dockBackgroundStyle === "opaque" ? "opaque" : "translucent"
-                            onPicked: id => { Settings.dockBackgroundStyle = id; Settings.save() }
+                            current: Settings.dockShape
+                            onPicked: id => { Settings.dockShape = id; Settings.save() }
                         }
                     }
-                    TransparencySlider {
-                        visible: Settings.dockBackgroundStyle !== "opaque"
-                        opacityValue: Settings.dockOpacity
-                        onChanged: value => Settings.dockOpacity = value
-                        onReleased: Settings.save()
-                    }
-                    ToggleRow {
-                        label: "Dock border"
-                        checked: Settings.dockShowBorder
-                        onToggled: { Settings.dockShowBorder = !checked; Settings.save() }
-                    }
                     ColumnLayout {
-                        visible: Settings.dockShowBorder || (Settings.dockFollowHyprland && Settings.hyprShowBorder)
+                        visible: Settings.dockShape === "rounded"
                         Layout.fillWidth: true
                         spacing: 8
                         Text {
-                            text: `Border size: ${Settings.hyprBorderSize}px`
+                            text: `Corner radius: ${Settings.dockRounding}px`
                             color: ThemeManager.fgPrimary
                             font.family: ThemeManager.uiFont
                         }
                         ValueChipRow {
-                            values: [1, 2, 3, 4, 5]
-                            current: Settings.hyprBorderSize
-                            onPicked: value => root.applyBorderSize(value)
+                            values: [0, 4, 8, 12, 16, 20]
+                            current: Settings.dockRounding
+                            onPicked: value => { Settings.dockRounding = value; Settings.save() }
+                        }
+                    }
+                    ToggleRow {
+                        label: "Follow Hyprland Window Rules"
+                        checked: Settings.dockFollowHyprland
+                        onToggled: { Settings.dockFollowHyprland = !checked; Settings.save() }
+                    }
+                    Text {
+                        text: Settings.dockFollowHyprland
+                        ? "Fill, borders, and thickness match the Hyprland tab."
+                        : "Dock chrome can be set independently. Turn this on to match Hyprland window rules."
+                        color: ThemeManager.fgTertiary
+                        font.family: ThemeManager.uiFont
+                        font.pixelSize: 12
+                        wrapMode: Text.WordWrap
+                        Layout.fillWidth: true
+                    }
+                    ColumnLayout {
+                        Layout.fillWidth: true
+                        spacing: 10
+                        enabled: !Settings.dockFollowHyprland
+                        opacity: Settings.dockFollowHyprland ? 0.4 : 1.0
+
+                        ColumnLayout {
+                            Layout.fillWidth: true
+                            spacing: 8
+                            Text {
+                                text: "Background fill"
+                                color: ThemeManager.fgPrimary
+                                font.family: ThemeManager.uiFont
+                                font.pixelSize: 13
+                            }
+                            ChoiceChipRow {
+                                options: [
+                                { id: "opaque", label: "Solid" },
+                                { id: "translucent", label: "Transparent" }
+                                ]
+                                current: Settings.dockBackgroundStyle === "opaque" ? "opaque" : "translucent"
+                                onPicked: id => { Settings.dockBackgroundStyle = id; Settings.save() }
+                            }
+                        }
+                        TransparencySlider {
+                            visible: Settings.dockBackgroundStyle !== "opaque"
+                            opacityValue: Settings.dockOpacity
+                            onChanged: value => Settings.dockOpacity = value
+                            onReleased: Settings.save()
+                        }
+                        ToggleRow {
+                            label: "Dock border"
+                            checked: Settings.dockShowBorder
+                            onToggled: { Settings.dockShowBorder = !checked; Settings.save() }
+                        }
+                        ColumnLayout {
+                            visible: Settings.dockShowBorder || (Settings.dockFollowHyprland && Settings.hyprShowBorder)
+                            Layout.fillWidth: true
+                            spacing: 8
+                            Text {
+                                text: `Border size: ${Settings.hyprBorderSize}px`
+                                color: ThemeManager.fgPrimary
+                                font.family: ThemeManager.uiFont
+                            }
+                            ValueChipRow {
+                                values: [1, 2, 3, 4, 5]
+                                current: Settings.hyprBorderSize
+                                onPicked: value => root.applyBorderSize(value)
+                            }
                         }
                     }
                 }
@@ -1327,23 +1309,25 @@ Panel {
 
             SettingsSection {
                 title: "Icons"
-                ToggleRow {
-                    label: "Show settings icon"
-                    checked: Settings.dockShowSettingsIcon
-                    onToggled: { Settings.dockShowSettingsIcon = !checked; Settings.save() }
-                }
-                ToggleRow {
-                    label: "Show trash icon"
-                    checked: Settings.dockShowTrashIcon
-                    onToggled: { Settings.dockShowTrashIcon = !checked; Settings.save() }
-                }
-                Text {
-                    text: "Pin apps with the Add icon on the dock. Right-click a pinned app to unpin it."
-                    color: ThemeManager.fgTertiary
-                    font.family: ThemeManager.uiFont
-                    font.pixelSize: 12
-                    wrapMode: Text.WordWrap
-                    Layout.fillWidth: true
+                SettingsCard {
+                    ToggleRow {
+                        label: "Show settings icon"
+                        checked: Settings.dockShowSettingsIcon
+                        onToggled: { Settings.dockShowSettingsIcon = !checked; Settings.save() }
+                    }
+                    ToggleRow {
+                        label: "Show trash icon"
+                        checked: Settings.dockShowTrashIcon
+                        onToggled: { Settings.dockShowTrashIcon = !checked; Settings.save() }
+                    }
+                    Text {
+                        text: "Pin apps with the Add icon on the dock. Right-click a pinned app to unpin it."
+                        color: ThemeManager.fgTertiary
+                        font.family: ThemeManager.uiFont
+                        font.pixelSize: 12
+                        wrapMode: Text.WordWrap
+                        Layout.fillWidth: true
+                    }
                 }
             }
             }
@@ -1365,89 +1349,91 @@ Panel {
 
                 SettingsSection {
                     title: "Presets"
-                    ChoiceChipRow {
-                        options: [
+                    SettingsCard {
+                        ChoiceChipRow {
+                            options: [
                             { id: "dark", label: "Dark" },
                             { id: "light", label: "Light" }
-                        ]
-                        current: Settings.themeMode
-                        onPicked: id => { Settings.themeMode = id; Settings.save() }
-                    }
-                    GridLayout {
-                        Layout.fillWidth: true
-                        columns: 3
-                        columnSpacing: 8
-                        rowSpacing: 8
-                        Repeater {
-                            model: root.filteredThemes
-                            Rectangle {
-                                id: themeCard
-                                required property var modelData
-                                readonly property color chipBg: modelData.bgBase || ThemeManager.surface1
-                                readonly property color chipFg: modelData.fgPrimary || ThemeManager.fgPrimary
-                                readonly property color chipAccent: modelData.accentBlue || ThemeManager.accentBlue
-                                readonly property color chipBorder: modelData.border0 || ThemeManager.border0
-                                Layout.fillWidth: true
-                                Layout.preferredHeight: 56
-                                height: 56
-                                radius: 8
-                                color: chipBg
-
-                                scale: themeCardMouse.pressed ? ThemeManager.bouncePressScale : (themeCardMouse.containsMouse ? ThemeManager.bounceHoverScale : 1.0)
-                                Behavior on scale {
-                                    SpringAnimation { spring: ThemeManager.bounceSpring; damping: ThemeManager.bounceDamping; mass: ThemeManager.bounceMass }
-                                }
-
-                                Column {
-                                    anchors.centerIn: parent
-                                    spacing: 4
-                                    ThemePreview {
-                                        anchors.horizontalCenter: parent.horizontalCenter
-                                        themeId: themeCard.modelData.id
-                                        implicitWidth: 120
-                                        implicitHeight: 14
-                                    }
-                                    Text {
-                                        text: themeCard.modelData.name
-                                        color: themeCard.chipFg
-                                        font.family: ThemeManager.uiFont
-                                        font.pixelSize: 13
-                                        anchors.horizontalCenter: parent.horizontalCenter
-                                    }
-                                    Text {
-                                        visible: themeCard.modelData.custom
-                                        text: "custom"
-                                        color: themeCard.modelData.fgTertiary || themeCard.chipFg
-                                        font.pixelSize: 10
-                                        anchors.horizontalCenter: parent.horizontalCenter
-                                    }
-                                }
+                            ]
+                            current: Settings.themeMode
+                            onPicked: id => { Settings.themeMode = id; Settings.save() }
+                        }
+                        GridLayout {
+                            Layout.fillWidth: true
+                            columns: 3
+                            columnSpacing: 8
+                            rowSpacing: 8
+                            Repeater {
+                                model: root.filteredThemes
                                 Rectangle {
-                                    visible: themeCard.modelData.active
-                                    anchors.horizontalCenter: parent.horizontalCenter
-                                    anchors.bottom: parent.bottom
-                                    anchors.bottomMargin: 5
-                                    width: 28
-                                    height: 3
-                                    radius: 2
-                                    color: themeCard.chipAccent
-                                }
-                                MouseArea {
-                                    id: themeCardMouse
-                                    anchors.fill: parent
-                                    hoverEnabled: true
-                                    acceptedButtons: Qt.LeftButton | Qt.RightButton
-                                    cursorShape: Qt.PointingHandCursor
-                                    onClicked: mouse => {
-                                        if (mouse.button === Qt.RightButton && themeCard.modelData.custom) {
-                                            deleteTheme.themeId = themeCard.modelData.id
-                                            deleteTheme.running = true
-                                            return
+                                    id: themeCard
+                                    required property var modelData
+                                    readonly property color chipBg: modelData.bgBase || ThemeManager.surface1
+                                    readonly property color chipFg: modelData.fgPrimary || ThemeManager.fgPrimary
+                                    readonly property color chipAccent: modelData.accentBlue || ThemeManager.accentBlue
+                                    readonly property color chipBorder: modelData.border0 || ThemeManager.border0
+                                    Layout.fillWidth: true
+                                    Layout.preferredHeight: 56
+                                    height: 56
+                                    radius: 8
+                                    color: chipBg
+
+                                    scale: themeCardMouse.pressed ? ThemeManager.bouncePressScale : (themeCardMouse.containsMouse ? ThemeManager.bounceHoverScale : 1.0)
+                                    Behavior on scale {
+                                        SpringAnimation { spring: ThemeManager.bounceSpring; damping: ThemeManager.bounceDamping; mass: ThemeManager.bounceMass }
+                                    }
+
+                                    Column {
+                                        anchors.centerIn: parent
+                                        spacing: 4
+                                        ThemePreview {
+                                            anchors.horizontalCenter: parent.horizontalCenter
+                                            themeId: themeCard.modelData.id
+                                            implicitWidth: 120
+                                            implicitHeight: 14
                                         }
-                                        Settings.themeMode = themeCard.modelData.mode || Settings.themeMode
-                                        Settings.save()
-                                        applyTheme.themeId = themeCard.modelData.id
-                                        applyTheme.running = true
+                                        Text {
+                                            text: themeCard.modelData.name
+                                            color: themeCard.chipFg
+                                            font.family: ThemeManager.uiFont
+                                            font.pixelSize: 13
+                                            anchors.horizontalCenter: parent.horizontalCenter
+                                        }
+                                        Text {
+                                            visible: themeCard.modelData.custom
+                                            text: "custom"
+                                            color: themeCard.modelData.fgTertiary || themeCard.chipFg
+                                            font.pixelSize: 10
+                                            anchors.horizontalCenter: parent.horizontalCenter
+                                        }
+                                    }
+                                    Rectangle {
+                                        visible: themeCard.modelData.active
+                                        anchors.horizontalCenter: parent.horizontalCenter
+                                        anchors.bottom: parent.bottom
+                                        anchors.bottomMargin: 5
+                                        width: 28
+                                        height: 3
+                                        radius: 2
+                                        color: themeCard.chipAccent
+                                    }
+                                    MouseArea {
+                                        id: themeCardMouse
+                                        anchors.fill: parent
+                                        hoverEnabled: true
+                                        acceptedButtons: Qt.LeftButton | Qt.RightButton
+                                        cursorShape: Qt.PointingHandCursor
+                                        onClicked: mouse => {
+                                            if (mouse.button === Qt.RightButton && themeCard.modelData.custom) {
+                                                deleteTheme.themeId = themeCard.modelData.id
+                                                deleteTheme.running = true
+                                                return
+                                            }
+                                            Settings.themeMode = themeCard.modelData.mode || Settings.themeMode
+                                            Settings.save()
+                                            applyTheme.themeId = themeCard.modelData.id
+                                            applyTheme.running = true
+                                        }
                                     }
                                 }
                             }
@@ -1457,42 +1443,43 @@ Panel {
 
                 SettingsSection {
                     title: "Custom Theme"
-                    Text {
-                        text: "Background + 8 accents (hex). Right-click a custom preset above to delete it."
-                        color: ThemeManager.fgSecondary
-                        font.family: ThemeManager.uiFont
-                        font.pixelSize: 12
-                    }
+                    SettingsCard {
+                        Text {
+                            text: "Background + 8 accents (hex). Right-click a custom preset above to delete it."
+                            color: ThemeManager.fgSecondary
+                            font.family: ThemeManager.uiFont
+                            font.pixelSize: 12
+                        }
 
-                    GridLayout {
-                        Layout.fillWidth: true
-                        columns: 3
-                        columnSpacing: 8
-                        rowSpacing: 8
-                        ColorSeed { label: "Background"; text: root.seedBg; onEdited: root.seedBg = value }
-                        ColorSeed { label: "Blue"; text: root.seedBlue; onEdited: root.seedBlue = value }
-                        ColorSeed { label: "Purple"; text: root.seedPurple; onEdited: root.seedPurple = value }
-                        ColorSeed { label: "Pink"; text: root.seedPink; onEdited: root.seedPink = value }
-                        ColorSeed { label: "Red"; text: root.seedRed; onEdited: root.seedRed = value }
-                        ColorSeed { label: "Orange"; text: root.seedOrange; onEdited: root.seedOrange = value }
-                        ColorSeed { label: "Yellow"; text: root.seedYellow; onEdited: root.seedYellow = value }
-                        ColorSeed { label: "Green"; text: root.seedGreen; onEdited: root.seedGreen = value }
-                        ColorSeed { label: "Teal"; text: root.seedTeal; onEdited: root.seedTeal = value }
-                    }
+                        GridLayout {
+                            Layout.fillWidth: true
+                            columns: 3
+                            columnSpacing: 8
+                            rowSpacing: 8
+                            ColorSeed { label: "Background"; text: root.seedBg; onEdited: root.seedBg = value }
+                            ColorSeed { label: "Blue"; text: root.seedBlue; onEdited: root.seedBlue = value }
+                            ColorSeed { label: "Purple"; text: root.seedPurple; onEdited: root.seedPurple = value }
+                            ColorSeed { label: "Pink"; text: root.seedPink; onEdited: root.seedPink = value }
+                            ColorSeed { label: "Red"; text: root.seedRed; onEdited: root.seedRed = value }
+                            ColorSeed { label: "Orange"; text: root.seedOrange; onEdited: root.seedOrange = value }
+                            ColorSeed { label: "Yellow"; text: root.seedYellow; onEdited: root.seedYellow = value }
+                            ColorSeed { label: "Green"; text: root.seedGreen; onEdited: root.seedGreen = value }
+                            ColorSeed { label: "Teal"; text: root.seedTeal; onEdited: root.seedTeal = value }
+                        }
 
-                    Text {
-                        text: "Papirus folder color. Auto picks the closest Papirus shade to the Blue accent."
-                        color: ThemeManager.fgSecondary
-                        font.family: ThemeManager.uiFont
-                        font.pixelSize: 12
-                        wrapMode: Text.WordWrap
-                        Layout.fillWidth: true
-                    }
-                    ComboBox {
-                        id: papirusFolderBox
-                        Layout.preferredWidth: 280
-                        Layout.preferredHeight: 32
-                        model: [
+                        Text {
+                            text: "Papirus folder color. Auto picks the closest Papirus shade to the Blue accent."
+                            color: ThemeManager.fgSecondary
+                            font.family: ThemeManager.uiFont
+                            font.pixelSize: 12
+                            wrapMode: Text.WordWrap
+                            Layout.fillWidth: true
+                        }
+                        ComboBox {
+                            id: papirusFolderBox
+                            Layout.preferredWidth: 280
+                            Layout.preferredHeight: 32
+                            model: [
                             { id: "auto", label: "Auto (closest to accent)" },
                             { id: "adwaita", label: "adwaita" },
                             { id: "black", label: "black" },
@@ -1519,58 +1506,59 @@ Panel {
                             { id: "white", label: "white" },
                             { id: "yaru", label: "yaru" },
                             { id: "yellow", label: "yellow" }
-                        ]
-                        textRole: "label"
-                        currentIndex: {
-                            const rows = papirusFolderBox.model
-                            for (let i = 0; i < rows.length; i++) {
-                                if (rows[i].id === root.seedPapirus)
+                            ]
+                            textRole: "label"
+                            currentIndex: {
+                                const rows = papirusFolderBox.model
+                                for (let i = 0; i < rows.length; i++) {
+                                    if (rows[i].id === root.seedPapirus)
                                     return i
+                                }
+                                return 0
                             }
-                            return 0
+                            onActivated: index => root.seedPapirus = model[index].id
+                            background: Rectangle {
+                                implicitWidth: 280
+                                implicitHeight: 32
+                                color: ThemeManager.surface1
+                                radius: 6
+                            }
+                            contentItem: Text {
+                                leftPadding: 10
+                                rightPadding: 28
+                                text: papirusFolderBox.displayText
+                                color: ThemeManager.fgPrimary
+                                font.family: ThemeManager.uiFont
+                                font.pixelSize: 12
+                                verticalAlignment: Text.AlignVCenter
+                                elide: Text.ElideRight
+                            }
                         }
-                        onActivated: index => root.seedPapirus = model[index].id
-                        background: Rectangle {
-                            implicitWidth: 280
-                            implicitHeight: 32
-                            color: ThemeManager.surface1
-                            radius: 6
-                        }
-                        contentItem: Text {
-                            leftPadding: 10
-                            rightPadding: 28
-                            text: papirusFolderBox.displayText
-                            color: ThemeManager.fgPrimary
-                            font.family: ThemeManager.uiFont
-                            font.pixelSize: 12
-                            verticalAlignment: Text.AlignVCenter
-                            elide: Text.ElideRight
-                        }
-                    }
 
-                    RowLayout {
-                        Layout.fillWidth: true
-                        spacing: 8
-                        InputField {
-                            id: nameField
+                        RowLayout {
                             Layout.fillWidth: true
-                            text: root.saveName
-                            onTextChanged: root.saveName = text
-                            background: Rectangle { color: ThemeManager.surface1; radius: 6 }
-                        }
-                        Rectangle {
-                            Layout.preferredWidth: 110
-                            Layout.preferredHeight: 32
-                            width: 110
-                            height: 32
-                            radius: 6
-                            color: ThemeManager.accentBlue
-                            scale: saveMouse.pressed ? ThemeManager.bouncePressScale : (saveMouse.containsMouse ? ThemeManager.bounceHoverScale : 1.0)
-                            Behavior on scale {
-                                SpringAnimation { spring: ThemeManager.bounceSpring; damping: ThemeManager.bounceDamping; mass: ThemeManager.bounceMass }
+                            spacing: 8
+                            InputField {
+                                id: nameField
+                                Layout.fillWidth: true
+                                text: root.saveName
+                                onTextChanged: root.saveName = text
+                                background: Rectangle { color: ThemeManager.surface1; radius: 6 }
                             }
-                            Text { anchors.centerIn: parent; text: "Save & Apply"; color: ThemeManager.bgBase; font.pixelSize: 12 }
-                            MouseArea { id: saveMouse; anchors.fill: parent; hoverEnabled: true; cursorShape: Qt.PointingHandCursor; onClicked: saveTheme.running = true }
+                            Rectangle {
+                                Layout.preferredWidth: 110
+                                Layout.preferredHeight: 32
+                                width: 110
+                                height: 32
+                                radius: 6
+                                color: ThemeManager.accentBlue
+                                scale: saveMouse.pressed ? ThemeManager.bouncePressScale : (saveMouse.containsMouse ? ThemeManager.bounceHoverScale : 1.0)
+                                Behavior on scale {
+                                    SpringAnimation { spring: ThemeManager.bounceSpring; damping: ThemeManager.bounceDamping; mass: ThemeManager.bounceMass }
+                                }
+                                Text { anchors.centerIn: parent; text: "Save & Apply"; color: ThemeManager.bgBase; font.pixelSize: 12 }
+                                MouseArea { id: saveMouse; anchors.fill: parent; hoverEnabled: true; cursorShape: Qt.PointingHandCursor; onClicked: saveTheme.running = true }
+                            }
                         }
                     }
                 }
@@ -1586,73 +1574,74 @@ Panel {
 
             SettingsSection {
                 title: "Wallpaper"
-                Text {
-                    text: "Images from this folder (and its subfolders) appear in the gallery below. Applying a theme also sets a wallpaper from that theme’s folder; you can still pick any image here."
-                    color: ThemeManager.fgTertiary
-                    font.family: ThemeManager.uiFont
-                    font.pixelSize: 12
-                    wrapMode: Text.WordWrap
-                    Layout.fillWidth: true
-                }
-                RowLayout {
-                    Layout.fillWidth: true
-                    spacing: 8
-                    InputField {
-                        id: wpDirField
-                        Layout.fillWidth: true
-                        height: 30
-                        text: Settings.wallpaperDir
+                SettingsCard {
+                    Text {
+                        text: "Images from this folder (and its subfolders) appear in the gallery below. Applying a theme also sets a wallpaper from that theme’s folder; you can still pick any image here."
+                        color: ThemeManager.fgTertiary
+                        font.family: ThemeManager.uiFont
                         font.pixelSize: 12
-                        background: Rectangle {
-                            color: ThemeManager.surface1
-                            radius: 6
-                        }
-                        onEditingFinished: {
-                            Settings.wallpaperDir = text
-                            Settings.save()
-                            root.refreshWallpapers()
-                        }
+                        wrapMode: Text.WordWrap
+                        Layout.fillWidth: true
                     }
-                    Rectangle {
-                        width: 88
-                        height: 30
-                        radius: 6
-                        color: ThemeManager.accentBlue
-                        scale: wpBrowseMouse.pressed ? ThemeManager.bouncePressScale : (wpBrowseMouse.containsMouse ? ThemeManager.bounceHoverScale : 1.0)
-                        Behavior on scale {
-                            SpringAnimation { spring: ThemeManager.bounceSpring; damping: ThemeManager.bounceDamping; mass: ThemeManager.bounceMass }
-                        }
-                        Text {
-                            anchors.centerIn: parent
-                            text: "Browse"
-                            color: ThemeManager.bgBase
-                            font.family: ThemeManager.uiFont
+                    RowLayout {
+                        Layout.fillWidth: true
+                        spacing: 8
+                        InputField {
+                            id: wpDirField
+                            Layout.fillWidth: true
+                            height: 30
+                            text: Settings.wallpaperDir
                             font.pixelSize: 12
+                            background: Rectangle {
+                                color: ThemeManager.surface1
+                                radius: 6
+                            }
+                            onEditingFinished: {
+                                Settings.wallpaperDir = text
+                                Settings.save()
+                                root.refreshWallpapers()
+                            }
                         }
-                        MouseArea {
-                            id: wpBrowseMouse
-                            anchors.fill: parent
-                            hoverEnabled: true
-                            cursorShape: Qt.PointingHandCursor
-                            onClicked: {
-                                wallpaperFolderPicker.startPath = Settings.wallpaperDir
-                                root.startFilePicker(wallpaperFolderPicker)
+                        Rectangle {
+                            width: 88
+                            height: 30
+                            radius: 6
+                            color: ThemeManager.accentBlue
+                            scale: wpBrowseMouse.pressed ? ThemeManager.bouncePressScale : (wpBrowseMouse.containsMouse ? ThemeManager.bounceHoverScale : 1.0)
+                            Behavior on scale {
+                                SpringAnimation { spring: ThemeManager.bounceSpring; damping: ThemeManager.bounceDamping; mass: ThemeManager.bounceMass }
+                            }
+                            Text {
+                                anchors.centerIn: parent
+                                text: "Browse"
+                                color: ThemeManager.bgBase
+                                font.family: ThemeManager.uiFont
+                                font.pixelSize: 12
+                            }
+                            MouseArea {
+                                id: wpBrowseMouse
+                                anchors.fill: parent
+                                hoverEnabled: true
+                                cursorShape: Qt.PointingHandCursor
+                                onClicked: {
+                                    wallpaperFolderPicker.startPath = Settings.wallpaperDir
+                                    root.startFilePicker(wallpaperFolderPicker)
+                                }
                             }
                         }
                     }
-                }
-                ColumnLayout {
-                    Layout.fillWidth: true
-                    spacing: 8
-                    Text {
-                        text: "Transition"
-                        color: ThemeManager.fgPrimary
-                        font.family: ThemeManager.uiFont
-                        font.pixelSize: 13
-                    }
-                    ChoiceChipFlow {
+                    ColumnLayout {
                         Layout.fillWidth: true
-                        options: [
+                        spacing: 8
+                        Text {
+                            text: "Transition"
+                            color: ThemeManager.fgPrimary
+                            font.family: ThemeManager.uiFont
+                            font.pixelSize: 13
+                        }
+                        ChoiceChipFlow {
+                            Layout.fillWidth: true
+                            options: [
                             { id: "none", label: "None" },
                             { id: "simple", label: "Simple" },
                             { id: "fade", label: "Fade" },
@@ -1667,9 +1656,10 @@ Panel {
                             { id: "any", label: "Any" },
                             { id: "outer", label: "Outer" },
                             { id: "random", label: "Random" }
-                        ]
-                        current: Settings.wallpaperTransition
-                        onPicked: id => { Settings.wallpaperTransition = id; Settings.save() }
+                            ]
+                            current: Settings.wallpaperTransition
+                            onPicked: id => { Settings.wallpaperTransition = id; Settings.save() }
+                        }
                     }
                 }
             }
@@ -1766,132 +1756,136 @@ Panel {
 
             SettingsSection {
                 title: "Window Rounding"
-                Text {
-                    text: ThemeManager.useFrameEmerge
+                SettingsCard {
+                    Text {
+                        text: ThemeManager.useFrameEmerge
                         ? "In framed (solid + docked) mode, window corners use this same radius as the inner frame corners."
                         : "These rules apply to Hyprland windows. Widgets can follow them from the Widgets tab."
-                    color: ThemeManager.fgTertiary
-                    font.family: ThemeManager.uiFont
-                    font.pixelSize: 12
-                    wrapMode: Text.WordWrap
-                    Layout.fillWidth: true
-                }
-                Text {
-                    text: `Corner radius: ${Settings.hyprRounding}px`
-                    color: ThemeManager.fgPrimary
-                    font.family: ThemeManager.uiFont
-                }
-                ValueChipRow {
-                    values: [0, 4, 8, 12, 16, 20, 24, 28, 32, 36]
-                    current: Settings.hyprRounding
-                    onPicked: value => {
-                        Settings.hyprRounding = value
-                        Settings.save()
-                        ThemeManager.applyHyprWorkspaceLayout()
+                        color: ThemeManager.fgTertiary
+                        font.family: ThemeManager.uiFont
+                        font.pixelSize: 12
+                        wrapMode: Text.WordWrap
+                        Layout.fillWidth: true
+                    }
+                    Text {
+                        text: `Corner radius: ${Settings.hyprRounding}px`
+                        color: ThemeManager.fgPrimary
+                        font.family: ThemeManager.uiFont
+                    }
+                    ValueChipRow {
+                        values: [0, 4, 8, 12, 16, 20, 24, 28, 32, 36]
+                        current: Settings.hyprRounding
+                        onPicked: value => {
+                            Settings.hyprRounding = value
+                            Settings.save()
+                            ThemeManager.applyHyprWorkspaceLayout()
+                        }
                     }
                 }
             }
 
             SettingsSection {
                 title: "Window Borders"
-                ToggleRow {
-                    label: "Show borders"
-                    checked: Settings.hyprShowBorder
-                    onToggled: {
-                        Settings.hyprShowBorder = !checked
-                        Settings.save()
-                        root.applyHyprBorderSizeLive()
-                    }
-                }
-                ColumnLayout {
-                    visible: Settings.hyprShowBorder
-                    Layout.fillWidth: true
-                    spacing: 16
-                    Text {
-                        text: `Thickness: ${Settings.hyprBorderSize}px`
-                        color: ThemeManager.fgPrimary
-                        font.family: ThemeManager.uiFont
-                    }
-                    ValueChipRow {
-                        values: [1, 2, 3, 4, 5]
-                        current: Settings.hyprBorderSize
-                        onPicked: value => root.applyBorderSize(value)
-                    }
-                    Text {
-                        text: "Fill"
-                        color: ThemeManager.fgPrimary
-                        font.family: ThemeManager.uiFont
-                        font.pixelSize: 13
-                    }
-                    ChoiceChipRow {
-                        options: [
-                            { id: "solid", label: "Solid" },
-                            { id: "gradient", label: "Gradient" }
-                        ]
-                        current: Settings.hyprBorderFill
-                        onPicked: id => {
-                            Settings.hyprBorderFill = id
+                SettingsCard {
+                    ToggleRow {
+                        label: "Show borders"
+                        checked: Settings.hyprShowBorder
+                        onToggled: {
+                            Settings.hyprShowBorder = !checked
                             Settings.save()
-                            root.applyWindowBorder()
-                        }
-                    }
-                    IntSlider {
-                        visible: Settings.hyprBorderFill === "gradient"
-                        Layout.fillWidth: true
-                        label: `Gradient angle: ${Settings.hyprBorderAngle}°`
-                        value: Settings.hyprBorderAngle
-                        minValue: 0
-                        maxValue: 360
-                        onChanged: value => Settings.hyprBorderAngle = value
-                        onReleased: {
-                            Settings.save()
-                            root.applyWindowBorder()
+                            root.applyHyprBorderSizeLive()
                         }
                     }
                     ColumnLayout {
-                        visible: Settings.hyprBorderFill === "gradient"
+                        visible: Settings.hyprShowBorder
                         Layout.fillWidth: true
-                        spacing: 8
+                        spacing: 16
                         Text {
-                            text: "Border animation"
+                            text: `Thickness: ${Settings.hyprBorderSize}px`
+                            color: ThemeManager.fgPrimary
+                            font.family: ThemeManager.uiFont
+                        }
+                        ValueChipRow {
+                            values: [1, 2, 3, 4, 5]
+                            current: Settings.hyprBorderSize
+                            onPicked: value => root.applyBorderSize(value)
+                        }
+                        Text {
+                            text: "Fill"
                             color: ThemeManager.fgPrimary
                             font.family: ThemeManager.uiFont
                             font.pixelSize: 13
                         }
                         ChoiceChipRow {
                             options: [
+                            { id: "solid", label: "Solid" },
+                            { id: "gradient", label: "Gradient" }
+                            ]
+                            current: Settings.hyprBorderFill
+                            onPicked: id => {
+                                Settings.hyprBorderFill = id
+                                Settings.save()
+                                root.applyWindowBorder()
+                            }
+                        }
+                        IntSlider {
+                            visible: Settings.hyprBorderFill === "gradient"
+                            Layout.fillWidth: true
+                            label: `Gradient angle: ${Settings.hyprBorderAngle}°`
+                            value: Settings.hyprBorderAngle
+                            minValue: 0
+                            maxValue: 360
+                            onChanged: value => Settings.hyprBorderAngle = value
+                            onReleased: {
+                                Settings.save()
+                                root.applyWindowBorder()
+                            }
+                        }
+                        ColumnLayout {
+                            visible: Settings.hyprBorderFill === "gradient"
+                            Layout.fillWidth: true
+                            spacing: 8
+                            Text {
+                                text: "Border animation"
+                                color: ThemeManager.fgPrimary
+                                font.family: ThemeManager.uiFont
+                                font.pixelSize: 13
+                            }
+                            ChoiceChipRow {
+                                options: [
                                 { id: "none", label: "None" },
                                 { id: "once", label: "Once" },
                                 { id: "loop", label: "Loop" }
-                            ]
-                            current: Settings.hyprBorderAnimation
-                            onPicked: id => {
-                                Settings.hyprBorderAnimation = id
-                                Settings.save()
-                                root.applyBorderAngleAnim()
+                                ]
+                                current: Settings.hyprBorderAnimation
+                                onPicked: id => {
+                                    Settings.hyprBorderAnimation = id
+                                    Settings.save()
+                                    root.applyBorderAngleAnim()
+                                }
                             }
                         }
-                    }
-                    ToggleRow {
-                        label: "Transparent borders"
-                        checked: Settings.hyprBorderTransparent
-                        onToggled: {
-                            Settings.hyprBorderTransparent = !checked
-                            Settings.save()
-                            root.applyWindowBorder()
+                        ToggleRow {
+                            label: "Transparent borders"
+                            checked: Settings.hyprBorderTransparent
+                            onToggled: {
+                                Settings.hyprBorderTransparent = !checked
+                                Settings.save()
+                                root.applyWindowBorder()
+                            }
                         }
-                    }
-                    IntSlider {
-                        visible: Settings.hyprBorderTransparent
-                        Layout.fillWidth: true
-                        label: `Transparency: ${Settings.hyprBorderTransparency}%`
-                        value: Settings.hyprBorderTransparency
-                        minValue: 0
-                        maxValue: 90
-                        onChanged: value => Settings.hyprBorderTransparency = value
-                        onReleased: {
-                            Settings.save()
-                            root.applyWindowBorder()
+                        IntSlider {
+                            visible: Settings.hyprBorderTransparent
+                            Layout.fillWidth: true
+                            label: `Transparency: ${Settings.hyprBorderTransparency}%`
+                            value: Settings.hyprBorderTransparency
+                            minValue: 0
+                            maxValue: 90
+                            onChanged: value => Settings.hyprBorderTransparency = value
+                            onReleased: {
+                                Settings.save()
+                                root.applyWindowBorder()
+                            }
                         }
                     }
                 }
@@ -1899,133 +1893,143 @@ Panel {
 
             SettingsSection {
                 title: "Window Gaps"
-                Text {
-                    text: `Inner gaps: ${Settings.hyprGapsIn}px`
-                    color: ThemeManager.fgPrimary
-                    font.family: ThemeManager.uiFont
-                }
-                ValueChipRow {
-                    values: [0, 2, 4, 6, 8, 10, 12, 16, 20]
-                    current: Settings.hyprGapsIn
-                    onPicked: value => {
-                        Settings.hyprGapsIn = value
-                        Settings.save()
-                        Quickshell.execDetached(["hyprctl", "eval", `hl.config({general={gaps_in=${value}}})`])
+                SettingsCard {
+                    Text {
+                        text: `Inner gaps: ${Settings.hyprGapsIn}px`
+                        color: ThemeManager.fgPrimary
+                        font.family: ThemeManager.uiFont
                     }
-                }
-                Text {
-                    text: ThemeManager.useFrameEmerge
+                    ValueChipRow {
+                        values: [0, 2, 4, 6, 8, 10, 12, 16, 20]
+                        current: Settings.hyprGapsIn
+                        onPicked: value => {
+                            Settings.hyprGapsIn = value
+                            Settings.save()
+                            Quickshell.execDetached(["hyprctl", "eval", `hl.config({general={gaps_in=${value}}})`])
+                        }
+                    }
+                    Text {
+                        text: ThemeManager.useFrameEmerge
                         ? `Outer gaps: ${Settings.hyprGapsOut}px (frame thickness; windows sit inside the hole)`
                         : `Outer gaps: ${Settings.hyprGapsOut}px`
-                    color: ThemeManager.fgPrimary
-                    font.family: ThemeManager.uiFont
-                }
-                ValueChipRow {
-                    values: [0, 2, 4, 6, 8, 10, 12, 16, 20]
-                    current: Settings.hyprGapsOut
-                    onPicked: value => {
-                        Settings.hyprGapsOut = value
-                        Settings.save()
-                        ThemeManager.applyHyprWorkspaceLayout()
+                        color: ThemeManager.fgPrimary
+                        font.family: ThemeManager.uiFont
+                    }
+                    ValueChipRow {
+                        values: [0, 2, 4, 6, 8, 10, 12, 16, 20]
+                        current: Settings.hyprGapsOut
+                        onPicked: value => {
+                            Settings.hyprGapsOut = value
+                            Settings.save()
+                            ThemeManager.applyHyprWorkspaceLayout()
+                        }
                     }
                 }
             }
 
             SettingsSection {
                 title: "Window Animations"
-                ToggleRow {
-                    label: "Enable animations"
-                    checked: Settings.hyprAnimations
-                    onToggled: {
-                        Settings.hyprAnimations = !checked
-                        Settings.save()
-                        Quickshell.execDetached(["hyprctl", "eval", `hl.config({animations={enabled=${Settings.hyprAnimations}}})`])
+                SettingsCard {
+                    ToggleRow {
+                        label: "Enable animations"
+                        checked: Settings.hyprAnimations
+                        onToggled: {
+                            Settings.hyprAnimations = !checked
+                            Settings.save()
+                            Quickshell.execDetached(["hyprctl", "eval", `hl.config({animations={enabled=${Settings.hyprAnimations}}})`])
+                        }
                     }
                 }
             }
 
             SettingsSection {
                 title: "Window Shadows"
-                Text {
-                    text: "Presets set distance and transparency together."
-                    color: ThemeManager.fgTertiary
-                    font.family: ThemeManager.uiFont
-                    font.pixelSize: 12
-                    wrapMode: Text.WordWrap
-                    Layout.fillWidth: true
-                }
-                ChoiceChipRow {
-                    options: [
+                SettingsCard {
+                    Text {
+                        text: "Presets set distance and transparency together."
+                        color: ThemeManager.fgTertiary
+                        font.family: ThemeManager.uiFont
+                        font.pixelSize: 12
+                        wrapMode: Text.WordWrap
+                        Layout.fillWidth: true
+                    }
+                    ChoiceChipRow {
+                        options: [
                         { id: "off", label: "Off" },
                         { id: "light", label: "Light" },
                         { id: "moderate", label: "Moderate" },
                         { id: "heavy", label: "Heavy" }
-                    ]
-                    current: Settings.hyprShadowPreset
-                    onPicked: id => root.applyShadowPreset(id)
-                }
-                ToggleRow {
-                    enabled: Settings.hyprShadowPreset !== "off"
-                    opacity: Settings.hyprShadowPreset !== "off" ? 1.0 : 0.4
-                    label: "Accent-colored shadow"
-                    checked: Settings.hyprShadowUseAccent
-                    onToggled: {
-                        Settings.hyprShadowUseAccent = !checked
-                        Settings.save()
-                        root.applyWindowShadowColor()
+                        ]
+                        current: Settings.hyprShadowPreset
+                        onPicked: id => root.applyShadowPreset(id)
+                    }
+                    ToggleRow {
+                        enabled: Settings.hyprShadowPreset !== "off"
+                        opacity: Settings.hyprShadowPreset !== "off" ? 1.0 : 0.4
+                        label: "Accent-colored shadow"
+                        checked: Settings.hyprShadowUseAccent
+                        onToggled: {
+                            Settings.hyprShadowUseAccent = !checked
+                            Settings.save()
+                            root.applyWindowShadowColor()
+                        }
                     }
                 }
             }
 
             SettingsSection {
                 title: "Background Blur"
-                ToggleRow {
-                    label: "Enable blur"
-                    checked: Settings.hyprBlurEnabled
-                    onToggled: {
-                        Settings.hyprBlurEnabled = !checked
-                        root.applyHyprBlur()
+                SettingsCard {
+                    ToggleRow {
+                        label: "Enable blur"
+                        checked: Settings.hyprBlurEnabled
+                        onToggled: {
+                            Settings.hyprBlurEnabled = !checked
+                            root.applyHyprBlur()
+                        }
                     }
-                }
-                IntSlider {
-                    visible: Settings.hyprBlurEnabled
-                    Layout.fillWidth: true
-                    label: `Intensity: ${Settings.hyprBlurSize}`
-                    value: Settings.hyprBlurSize
-                    minValue: 1
-                    maxValue: 20
-                    onChanged: value => Settings.hyprBlurSize = value
-                    onReleased: {
-                        Settings.save()
-                        Quickshell.execDetached(["hyprctl", "eval", `hl.config({decoration={blur={size=${Settings.hyprBlurSize}}}})`])
+                    IntSlider {
+                        visible: Settings.hyprBlurEnabled
+                        Layout.fillWidth: true
+                        label: `Intensity: ${Settings.hyprBlurSize}`
+                        value: Settings.hyprBlurSize
+                        minValue: 1
+                        maxValue: 20
+                        onChanged: value => Settings.hyprBlurSize = value
+                        onReleased: {
+                            Settings.save()
+                            Quickshell.execDetached(["hyprctl", "eval", `hl.config({decoration={blur={size=${Settings.hyprBlurSize}}}})`])
+                        }
                     }
                 }
             }
 
             SettingsSection {
                 title: "Window Transparency"
-                ToggleRow {
-                    label: "Transparent app windows"
-                    checked: Settings.hyprWindowTransparent
-                    onToggled: {
-                        Settings.hyprWindowTransparent = !checked
-                        root.applyWindowOpacity()
+                SettingsCard {
+                    ToggleRow {
+                        label: "Transparent app windows"
+                        checked: Settings.hyprWindowTransparent
+                        onToggled: {
+                            Settings.hyprWindowTransparent = !checked
+                            root.applyWindowOpacity()
+                        }
                     }
-                }
-                Text {
-                    text: "Thunar, Ghostty, VS Code / Codium, Cursor, and Zed. Wallpaper shows through when Background Blur is on."
-                    color: ThemeManager.fgTertiary
-                    font.family: ThemeManager.uiFont
-                    font.pixelSize: 12
-                    wrapMode: Text.WordWrap
-                    Layout.fillWidth: true
-                }
-                TransparencySlider {
-                    visible: Settings.hyprWindowTransparent
-                    minOpacity: 0.50
-                    opacityValue: Settings.hyprWindowOpacity
-                    onChanged: value => Settings.hyprWindowOpacity = value
-                    onReleased: root.applyWindowOpacity()
+                    Text {
+                        text: "Thunar, Ghostty, VS Code / Codium, Cursor, and Zed. Wallpaper shows through when Background Blur is on."
+                        color: ThemeManager.fgTertiary
+                        font.family: ThemeManager.uiFont
+                        font.pixelSize: 12
+                        wrapMode: Text.WordWrap
+                        Layout.fillWidth: true
+                    }
+                    TransparencySlider {
+                        visible: Settings.hyprWindowTransparent
+                        minOpacity: 0.50
+                        opacityValue: Settings.hyprWindowOpacity
+                        onChanged: value => Settings.hyprWindowOpacity = value
+                        onReleased: root.applyWindowOpacity()
+                    }
                 }
             }
             }
@@ -2046,142 +2050,144 @@ Panel {
 
                 SettingsSection {
                     title: "User Avatar"
-                    Text {
-                        text: "Shown on the SDDM login screen in place of the first-letter placeholder. The image is saved to ~/.face.icon and copied into /usr/share/sddm/faces."
-                        color: ThemeManager.fgTertiary
-                        font.family: ThemeManager.uiFont
-                        font.pixelSize: 12
-                        wrapMode: Text.WordWrap
-                        Layout.fillWidth: true
-                    }
-                    RowLayout {
-                        Layout.fillWidth: true
-                        spacing: 16
-
-                        Rectangle {
-                            id: avatarRing
-                            width: 80
-                            height: 80
-                            radius: 40
-                            color: ThemeManager.surface1
-
-                            Image {
-                                id: sddmAvatarImage
-                                anchors.fill: parent
-                                source: root.sddmAvatarPreview
-                                fillMode: Image.PreserveAspectCrop
-                                visible: root.sddmAvatarExists && status === Image.Ready
-                                cache: false
-                                asynchronous: true
-                                layer.enabled: true
-                                layer.effect: OpacityMask {
-                                    maskSource: Rectangle {
-                                        width: sddmAvatarImage.width
-                                        height: sddmAvatarImage.height
-                                        radius: width / 2
-                                    }
-                                }
-                            }
-
-                            Text {
-                                anchors.centerIn: parent
-                                visible: !sddmAvatarImage.visible
-                                text: (Quickshell.env("USER") || "?").charAt(0).toUpperCase()
-                                font.family: ThemeManager.uiFont
-                                font.pixelSize: 32
-                                font.weight: Font.DemiBold
-                                color: ThemeManager.accentBlue
-                            }
-                        }
-
-                        ColumnLayout {
+                    SettingsCard {
+                        Text {
+                            text: "Shown on the SDDM login screen in place of the first-letter placeholder. The image is saved to ~/.face.icon and copied into /usr/share/sddm/faces."
+                            color: ThemeManager.fgTertiary
+                            font.family: ThemeManager.uiFont
+                            font.pixelSize: 12
+                            wrapMode: Text.WordWrap
                             Layout.fillWidth: true
-                            spacing: 8
+                        }
+                        RowLayout {
+                            Layout.fillWidth: true
+                            spacing: 16
 
-                            Text {
-                                text: root.sddmAvatarExists ? "Current: ~/.face.icon" : "No avatar set — login will show your first initial"
-                                color: root.sddmAvatarExists ? ThemeManager.accentGreen : ThemeManager.fgTertiary
-                                font.family: ThemeManager.uiFont
-                                font.pixelSize: 12
-                                wrapMode: Text.WordWrap
-                                Layout.fillWidth: true
-                            }
+                            Rectangle {
+                                id: avatarRing
+                                width: 80
+                                height: 80
+                                radius: 40
+                                color: ThemeManager.surface1
 
-                            InputField {
-                                id: sddmAvatarPathField
-                                Layout.fillWidth: true
-                                height: 30
-                                placeholderText: "Path to image, e.g. ~/Pictures/avatar.png"
-                                text: root.sddmAvatarPath
-                                font.pixelSize: 12
-                                background: Rectangle {
-                                    color: ThemeManager.surface1
-                                    radius: 6
-                                }
-                                onTextChanged: root.sddmAvatarPath = text
-                            }
-
-                            Row {
-                                spacing: 8
-
-                                Rectangle {
-                                    width: 88
-                                    height: 30
-                                    radius: 6
-                                    color: ThemeManager.accentBlue
-                                    scale: sddmBrowseMouse.pressed ? ThemeManager.bouncePressScale : (sddmBrowseMouse.containsMouse ? ThemeManager.bounceHoverScale : 1.0)
-                                    Behavior on scale {
-                                        SpringAnimation { spring: ThemeManager.bounceSpring; damping: ThemeManager.bounceDamping; mass: ThemeManager.bounceMass }
-                                    }
-                                    Text {
-                                        anchors.centerIn: parent
-                                        text: "Browse"
-                                        color: ThemeManager.bgBase
-                                        font.family: ThemeManager.uiFont
-                                        font.pixelSize: 12
-                                    }
-                                    MouseArea {
-                                        id: sddmBrowseMouse
-                                        anchors.fill: parent
-                                        hoverEnabled: true
-                                        cursorShape: Qt.PointingHandCursor
-                                        onClicked: {
-                                            sddmImagePicker.startPath = root.sddmAvatarPath || `${Quickshell.env("HOME")}/Pictures`
-                                            root.startFilePicker(sddmImagePicker)
+                                Image {
+                                    id: sddmAvatarImage
+                                    anchors.fill: parent
+                                    source: root.sddmAvatarPreview
+                                    fillMode: Image.PreserveAspectCrop
+                                    visible: root.sddmAvatarExists && status === Image.Ready
+                                    cache: false
+                                    asynchronous: true
+                                    layer.enabled: true
+                                    layer.effect: OpacityMask {
+                                        maskSource: Rectangle {
+                                            width: sddmAvatarImage.width
+                                            height: sddmAvatarImage.height
+                                            radius: width / 2
                                         }
                                     }
                                 }
 
-                                Rectangle {
-                                    width: 110
+                                Text {
+                                    anchors.centerIn: parent
+                                    visible: !sddmAvatarImage.visible
+                                    text: (Quickshell.env("USER") || "?").charAt(0).toUpperCase()
+                                    font.family: ThemeManager.uiFont
+                                    font.pixelSize: 32
+                                    font.weight: Font.DemiBold
+                                    color: ThemeManager.accentBlue
+                                }
+                            }
+
+                            ColumnLayout {
+                                Layout.fillWidth: true
+                                spacing: 8
+
+                                Text {
+                                    text: root.sddmAvatarExists ? "Current: ~/.face.icon" : "No avatar set — login will show your first initial"
+                                    color: root.sddmAvatarExists ? ThemeManager.accentGreen : ThemeManager.fgTertiary
+                                    font.family: ThemeManager.uiFont
+                                    font.pixelSize: 12
+                                    wrapMode: Text.WordWrap
+                                    Layout.fillWidth: true
+                                }
+
+                                InputField {
+                                    id: sddmAvatarPathField
+                                    Layout.fillWidth: true
                                     height: 30
-                                    radius: 6
-                                    color: ThemeManager.surface1
-                                    scale: sddmSetMouse.pressed ? ThemeManager.bouncePressScale : (sddmSetMouse.containsMouse ? ThemeManager.bounceHoverScale : 1.0)
-                                    Behavior on scale {
-                                        SpringAnimation { spring: ThemeManager.bounceSpring; damping: ThemeManager.bounceDamping; mass: ThemeManager.bounceMass }
+                                    placeholderText: "Path to image, e.g. ~/Pictures/avatar.png"
+                                    text: root.sddmAvatarPath
+                                    font.pixelSize: 12
+                                    background: Rectangle {
+                                        color: ThemeManager.surface1
+                                        radius: 6
                                     }
-                                    Text {
-                                        anchors.centerIn: parent
-                                        text: root.sddmAvatarSuccess ? "Set!" : "Set Avatar"
-                                        color: root.sddmAvatarSuccess ? ThemeManager.accentGreen : ThemeManager.accentBlue
-                                        font.family: ThemeManager.uiFont
-                                        font.pixelSize: 12
+                                    onTextChanged: root.sddmAvatarPath = text
+                                }
+
+                                Row {
+                                    spacing: 8
+
+                                    Rectangle {
+                                        width: 88
+                                        height: 30
+                                        radius: 6
+                                        color: ThemeManager.accentBlue
+                                        scale: sddmBrowseMouse.pressed ? ThemeManager.bouncePressScale : (sddmBrowseMouse.containsMouse ? ThemeManager.bounceHoverScale : 1.0)
+                                        Behavior on scale {
+                                            SpringAnimation { spring: ThemeManager.bounceSpring; damping: ThemeManager.bounceDamping; mass: ThemeManager.bounceMass }
+                                        }
+                                        Text {
+                                            anchors.centerIn: parent
+                                            text: "Browse"
+                                            color: ThemeManager.bgBase
+                                            font.family: ThemeManager.uiFont
+                                            font.pixelSize: 12
+                                        }
+                                        MouseArea {
+                                            id: sddmBrowseMouse
+                                            anchors.fill: parent
+                                            hoverEnabled: true
+                                            cursorShape: Qt.PointingHandCursor
+                                            onClicked: {
+                                                sddmImagePicker.startPath = root.sddmAvatarPath || `${Quickshell.env("HOME")}/Pictures`
+                                                root.startFilePicker(sddmImagePicker)
+                                            }
+                                        }
                                     }
-                                    MouseArea {
-                                        id: sddmSetMouse
-                                        anchors.fill: parent
-                                        hoverEnabled: true
-                                        cursorShape: Qt.PointingHandCursor
-                                        onClicked: {
-                                            let imgPath = root.sddmAvatarPath.trim()
-                                            if (!imgPath)
+
+                                    Rectangle {
+                                        width: 110
+                                        height: 30
+                                        radius: 6
+                                        color: ThemeManager.surface1
+                                        scale: sddmSetMouse.pressed ? ThemeManager.bouncePressScale : (sddmSetMouse.containsMouse ? ThemeManager.bounceHoverScale : 1.0)
+                                        Behavior on scale {
+                                            SpringAnimation { spring: ThemeManager.bounceSpring; damping: ThemeManager.bounceDamping; mass: ThemeManager.bounceMass }
+                                        }
+                                        Text {
+                                            anchors.centerIn: parent
+                                            text: root.sddmAvatarSuccess ? "Set!" : "Set Avatar"
+                                            color: root.sddmAvatarSuccess ? ThemeManager.accentGreen : ThemeManager.accentBlue
+                                            font.family: ThemeManager.uiFont
+                                            font.pixelSize: 12
+                                        }
+                                        MouseArea {
+                                            id: sddmSetMouse
+                                            anchors.fill: parent
+                                            hoverEnabled: true
+                                            cursorShape: Qt.PointingHandCursor
+                                            onClicked: {
+                                                let imgPath = root.sddmAvatarPath.trim()
+                                                if (!imgPath)
                                                 return
-                                            if (imgPath.startsWith("~"))
+                                                if (imgPath.startsWith("~"))
                                                 imgPath = Quickshell.env("HOME") + imgPath.slice(1)
-                                            root.sddmStatusMessage = ""
-                                            sddmAvatarCopier.command = ["bash", `${Quickshell.shellDir}/scripts/sddm-set-avatar.sh`, imgPath]
-                                            sddmAvatarCopier.running = true
+                                                root.sddmStatusMessage = ""
+                                                sddmAvatarCopier.command = ["bash", `${Quickshell.shellDir}/scripts/sddm-set-avatar.sh`, imgPath]
+                                                sddmAvatarCopier.running = true
+                                            }
                                         }
                                     }
                                 }
@@ -2192,210 +2198,214 @@ Panel {
 
                 SettingsSection {
                     title: "Login Background"
-                    Text {
-                        text: "Match the desktop wallpaper, or pick a different image. Theme colors update with Settings → Theme. Wallpaper and blur refresh when the desktop wallpaper changes (if Match desktop is on) or when you Apply."
-                        color: ThemeManager.fgTertiary
-                        font.family: ThemeManager.uiFont
-                        font.pixelSize: 12
-                        wrapMode: Text.WordWrap
-                        Layout.fillWidth: true
-                    }
-                    ColumnLayout {
-                        Layout.fillWidth: true
-                        spacing: 8
+                    SettingsCard {
                         Text {
-                            text: "Wallpaper source"
-                            color: ThemeManager.fgPrimary
-                            font.family: ThemeManager.uiFont
-                            font.pixelSize: 13
-                        }
-                        ChoiceChipRow {
-                            options: [
-                                { id: "desktop", label: "Match desktop" },
-                                { id: "custom", label: "Custom image" }
-                            ]
-                            current: Settings.sddmFollowDesktop ? "desktop" : "custom"
-                            onPicked: id => {
-                                Settings.sddmFollowDesktop = id === "desktop"
-                                Settings.save()
-                            }
-                        }
-                    }
-                    Text {
-                        visible: Settings.sddmFollowDesktop
-                        text: {
-                            const p = root.sddmWallpaperPath()
-                            return p ? `Current: ${root.tidyHomePath(p)}` : "No desktop wallpaper set yet"
-                        }
-                        color: ThemeManager.fgTertiary
-                        font.family: ThemeManager.uiFont
-                        font.pixelSize: 12
-                        wrapMode: Text.WordWrap
-                        Layout.fillWidth: true
-                    }
-                    ColumnLayout {
-                        visible: !Settings.sddmFollowDesktop
-                        Layout.fillWidth: true
-                        spacing: 8
-                        InputField {
-                            id: sddmWallpaperPathField
-                            Layout.fillWidth: true
-                            height: 30
-                            placeholderText: "Path to image in your wallpaper folder"
-                            text: Settings.sddmCustomWallpaper
-                            font.pixelSize: 12
-                            background: Rectangle {
-                                color: ThemeManager.surface1
-                                radius: 6
-                            }
-                            onTextChanged: Settings.sddmCustomWallpaper = text
-                        }
-                        Rectangle {
-                            width: 88
-                            height: 30
-                            radius: 6
-                            color: ThemeManager.accentBlue
-                            scale: sddmWpBrowseMouse.pressed ? ThemeManager.bouncePressScale : (sddmWpBrowseMouse.containsMouse ? ThemeManager.bounceHoverScale : 1.0)
-                            Behavior on scale {
-                                SpringAnimation { spring: ThemeManager.bounceSpring; damping: ThemeManager.bounceDamping; mass: ThemeManager.bounceMass }
-                            }
-                            Text {
-                                anchors.centerIn: parent
-                                text: "Browse"
-                                color: ThemeManager.bgBase
-                                font.family: ThemeManager.uiFont
-                                font.pixelSize: 12
-                            }
-                            MouseArea {
-                                id: sddmWpBrowseMouse
-                                anchors.fill: parent
-                                hoverEnabled: true
-                                cursorShape: Qt.PointingHandCursor
-                                onClicked: {
-                                    const start = root.expandHome(Settings.sddmCustomWallpaper || Settings.wallpaperDir)
-                                    sddmWallpaperPicker.startPath = start || `${Quickshell.env("HOME")}/Pictures/Wallpapers`
-                                    root.startFilePicker(sddmWallpaperPicker)
-                                }
-                            }
-                        }
-                    }
-                    Rectangle {
-                        Layout.preferredWidth: 220
-                        Layout.preferredHeight: 124
-                        radius: 8
-                        color: ThemeManager.surface1
-                        clip: true
-
-                        Image {
-                            id: sddmWpPreview
-                            anchors.fill: parent
-                            source: {
-                                const p = root.sddmWallpaperPath()
-                                return p ? `file://${p}` : ""
-                            }
-                            fillMode: Image.PreserveAspectCrop
-                            asynchronous: true
-                            visible: status === Image.Ready
-                            layer.enabled: visible && Settings.sddmBlurEnabled && Settings.sddmBlurAmount > 0
-                            layer.effect: FastBlur {
-                                radius: Settings.sddmBlurAmount
-                            }
-                        }
-                        Text {
-                            anchors.centerIn: parent
-                            visible: !sddmWpPreview.visible
-                            text: "No preview"
+                            text: "Match the desktop wallpaper, or pick a different image. Theme colors update with Settings → Theme. Wallpaper and blur refresh when the desktop wallpaper changes (if Match desktop is on) or when you Apply."
                             color: ThemeManager.fgTertiary
                             font.family: ThemeManager.uiFont
                             font.pixelSize: 12
+                            wrapMode: Text.WordWrap
+                            Layout.fillWidth: true
                         }
-                    }
-                    ToggleRow {
-                        label: "Blur background"
-                        checked: Settings.sddmBlurEnabled
-                        onToggled: {
-                            Settings.sddmBlurEnabled = !checked
-                            Settings.save()
+                        ColumnLayout {
+                            Layout.fillWidth: true
+                            spacing: 8
+                            Text {
+                                text: "Wallpaper source"
+                                color: ThemeManager.fgPrimary
+                                font.family: ThemeManager.uiFont
+                                font.pixelSize: 13
+                            }
+                            ChoiceChipRow {
+                                options: [
+                                { id: "desktop", label: "Match desktop" },
+                                { id: "custom", label: "Custom image" }
+                                ]
+                                current: Settings.sddmFollowDesktop ? "desktop" : "custom"
+                                onPicked: id => {
+                                    Settings.sddmFollowDesktop = id === "desktop"
+                                    Settings.save()
+                                }
+                            }
                         }
-                    }
-                    IntSlider {
-                        visible: Settings.sddmBlurEnabled
-                        label: `Blur amount  ${Settings.sddmBlurAmount}`
-                        value: Settings.sddmBlurAmount
-                        minValue: 1
-                        maxValue: 40
-                        onChanged: value => Settings.sddmBlurAmount = value
-                        onReleased: Settings.save()
+                        Text {
+                            visible: Settings.sddmFollowDesktop
+                            text: {
+                                const p = root.sddmWallpaperPath()
+                                return p ? `Current: ${root.tidyHomePath(p)}` : "No desktop wallpaper set yet"
+                            }
+                            color: ThemeManager.fgTertiary
+                            font.family: ThemeManager.uiFont
+                            font.pixelSize: 12
+                            wrapMode: Text.WordWrap
+                            Layout.fillWidth: true
+                        }
+                        ColumnLayout {
+                            visible: !Settings.sddmFollowDesktop
+                            Layout.fillWidth: true
+                            spacing: 8
+                            InputField {
+                                id: sddmWallpaperPathField
+                                Layout.fillWidth: true
+                                height: 30
+                                placeholderText: "Path to image in your wallpaper folder"
+                                text: Settings.sddmCustomWallpaper
+                                font.pixelSize: 12
+                                background: Rectangle {
+                                    color: ThemeManager.surface1
+                                    radius: 6
+                                }
+                                onTextChanged: Settings.sddmCustomWallpaper = text
+                            }
+                            Rectangle {
+                                width: 88
+                                height: 30
+                                radius: 6
+                                color: ThemeManager.accentBlue
+                                scale: sddmWpBrowseMouse.pressed ? ThemeManager.bouncePressScale : (sddmWpBrowseMouse.containsMouse ? ThemeManager.bounceHoverScale : 1.0)
+                                Behavior on scale {
+                                    SpringAnimation { spring: ThemeManager.bounceSpring; damping: ThemeManager.bounceDamping; mass: ThemeManager.bounceMass }
+                                }
+                                Text {
+                                    anchors.centerIn: parent
+                                    text: "Browse"
+                                    color: ThemeManager.bgBase
+                                    font.family: ThemeManager.uiFont
+                                    font.pixelSize: 12
+                                }
+                                MouseArea {
+                                    id: sddmWpBrowseMouse
+                                    anchors.fill: parent
+                                    hoverEnabled: true
+                                    cursorShape: Qt.PointingHandCursor
+                                    onClicked: {
+                                        const start = root.expandHome(Settings.sddmCustomWallpaper || Settings.wallpaperDir)
+                                        sddmWallpaperPicker.startPath = start || `${Quickshell.env("HOME")}/Pictures/Wallpapers`
+                                        root.startFilePicker(sddmWallpaperPicker)
+                                    }
+                                }
+                            }
+                        }
+                        Rectangle {
+                            Layout.preferredWidth: 220
+                            Layout.preferredHeight: 124
+                            radius: 8
+                            color: ThemeManager.surface1
+                            clip: true
+
+                            Image {
+                                id: sddmWpPreview
+                                anchors.fill: parent
+                                source: {
+                                    const p = root.sddmWallpaperPath()
+                                    return p ? `file://${p}` : ""
+                                }
+                                fillMode: Image.PreserveAspectCrop
+                                asynchronous: true
+                                visible: status === Image.Ready
+                                layer.enabled: visible && Settings.sddmBlurEnabled && Settings.sddmBlurAmount > 0
+                                layer.effect: FastBlur {
+                                    radius: Settings.sddmBlurAmount
+                                }
+                            }
+                            Text {
+                                anchors.centerIn: parent
+                                visible: !sddmWpPreview.visible
+                                text: "No preview"
+                                color: ThemeManager.fgTertiary
+                                font.family: ThemeManager.uiFont
+                                font.pixelSize: 12
+                            }
+                        }
+                        ToggleRow {
+                            label: "Blur background"
+                            checked: Settings.sddmBlurEnabled
+                            onToggled: {
+                                Settings.sddmBlurEnabled = !checked
+                                Settings.save()
+                            }
+                        }
+                        IntSlider {
+                            visible: Settings.sddmBlurEnabled
+                            label: `Blur amount  ${Settings.sddmBlurAmount}`
+                            value: Settings.sddmBlurAmount
+                            minValue: 1
+                            maxValue: 40
+                            onChanged: value => Settings.sddmBlurAmount = value
+                            onReleased: Settings.save()
+                        }
                     }
                 }
 
                 SettingsSection {
                     title: "Login Window Transparency"
-                    Text {
-                        text: "Opacity of the login plate. Apply writes colors, wallpaper, blur, and opacity. Passwordless apply needs the yahr-sddm sudoers rule."
-                        color: ThemeManager.fgTertiary
-                        font.family: ThemeManager.uiFont
-                        font.pixelSize: 12
-                        wrapMode: Text.WordWrap
-                        Layout.fillWidth: true
-                    }
-                    TransparencySlider {
-                        opacityValue: Settings.sddmLoginOpacity
-                        onChanged: value => {
-                            Settings.sddmLoginOpacity = value
-                            Settings.save()
+                    SettingsCard {
+                        Text {
+                            text: "Opacity of the login plate. Apply writes colors, wallpaper, blur, and opacity. Passwordless apply needs the yahr-sddm sudoers rule."
+                            color: ThemeManager.fgTertiary
+                            font.family: ThemeManager.uiFont
+                            font.pixelSize: 12
+                            wrapMode: Text.WordWrap
+                            Layout.fillWidth: true
                         }
-                    }
-                    Row {
-                        spacing: 10
-                        Rectangle {
-                            width: 56
-                            height: 30
-                            radius: 6
-                            color: ThemeManager.surface1
-                            Text {
-                                anchors.centerIn: parent
-                                text: `${Math.round(Settings.sddmLoginOpacity * 100)}%`
-                                color: ThemeManager.fgPrimary
-                                font.family: ThemeManager.uiFont
-                                font.pixelSize: 13
+                        TransparencySlider {
+                            opacityValue: Settings.sddmLoginOpacity
+                            onChanged: value => {
+                                Settings.sddmLoginOpacity = value
+                                Settings.save()
                             }
                         }
-                        Rectangle {
-                            width: 130
-                            height: 30
-                            radius: 6
-                            color: ThemeManager.accentBlue
-                            scale: sddmApplyMouse.pressed ? ThemeManager.bouncePressScale : (sddmApplyMouse.containsMouse ? ThemeManager.bounceHoverScale : 1.0)
-                            Behavior on scale {
-                                SpringAnimation { spring: ThemeManager.bounceSpring; damping: ThemeManager.bounceDamping; mass: ThemeManager.bounceMass }
+                        Row {
+                            spacing: 10
+                            Rectangle {
+                                width: 56
+                                height: 30
+                                radius: 6
+                                color: ThemeManager.surface1
+                                Text {
+                                    anchors.centerIn: parent
+                                    text: `${Math.round(Settings.sddmLoginOpacity * 100)}%`
+                                    color: ThemeManager.fgPrimary
+                                    font.family: ThemeManager.uiFont
+                                    font.pixelSize: 13
+                                }
                             }
-                            Text {
-                                anchors.centerIn: parent
-                                text: root.sddmOpacitySuccess ? "Applied!" : "Apply to SDDM"
-                                color: ThemeManager.bgBase
-                                font.family: ThemeManager.uiFont
-                                font.pixelSize: 12
-                            }
-                            MouseArea {
-                                id: sddmApplyMouse
-                                anchors.fill: parent
-                                hoverEnabled: true
-                                cursorShape: Qt.PointingHandCursor
-                                onClicked: root.applySddm()
+                            Rectangle {
+                                width: 130
+                                height: 30
+                                radius: 6
+                                color: ThemeManager.accentBlue
+                                scale: sddmApplyMouse.pressed ? ThemeManager.bouncePressScale : (sddmApplyMouse.containsMouse ? ThemeManager.bounceHoverScale : 1.0)
+                                Behavior on scale {
+                                    SpringAnimation { spring: ThemeManager.bounceSpring; damping: ThemeManager.bounceDamping; mass: ThemeManager.bounceMass }
+                                }
+                                Text {
+                                    anchors.centerIn: parent
+                                    text: root.sddmOpacitySuccess ? "Applied!" : "Apply to SDDM"
+                                    color: ThemeManager.bgBase
+                                    font.family: ThemeManager.uiFont
+                                    font.pixelSize: 12
+                                }
+                                MouseArea {
+                                    id: sddmApplyMouse
+                                    anchors.fill: parent
+                                    hoverEnabled: true
+                                    cursorShape: Qt.PointingHandCursor
+                                    onClicked: root.applySddm()
+                                }
                             }
                         }
-                    }
-                    Text {
-                        visible: root.sddmOpacityError || root.sddmStatusMessage.length > 0
-                        Layout.fillWidth: true
-                        wrapMode: Text.WordWrap
-                        text: root.sddmOpacityError
+                        Text {
+                            visible: root.sddmOpacityError || root.sddmStatusMessage.length > 0
+                            Layout.fillWidth: true
+                            wrapMode: Text.WordWrap
+                            text: root.sddmOpacityError
                             ? "Could not write theme.conf. Install passwordless sudo with: ~/.local/share/yahr-shell/sddm/setup-sudoers.sh"
                             : root.sddmStatusMessage
-                        color: root.sddmOpacityError ? ThemeManager.accentRed : ThemeManager.fgSecondary
-                        font.family: ThemeManager.uiFont
-                        font.pixelSize: 12
+                            color: root.sddmOpacityError ? ThemeManager.accentRed : ThemeManager.fgSecondary
+                            font.family: ThemeManager.uiFont
+                            font.pixelSize: 12
+                        }
                     }
                 }
             }
@@ -2941,24 +2951,6 @@ Panel {
                     Settings.wallpaperDir = root.tidyHomePath(path)
                     Settings.save()
                     root.refreshWallpapers()
-                }
-            }
-        }
-    }
-
-    Process {
-        id: calFilePicker
-        running: false
-        property string startPath: ""
-        command: ["python3", `${Quickshell.shellDir}/scripts/pick-ics.py`, startPath]
-        onRunningChanged: if (!running) root.endFilePicker()
-        stdout: StdioCollector {
-            onStreamFinished: {
-                const path = text.trim()
-                if (path.length > 0) {
-                    Settings.calendarFilePath = path
-                    Settings.save()
-                    calPathField.text = path
                 }
             }
         }
