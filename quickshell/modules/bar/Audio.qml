@@ -1,19 +1,49 @@
 import QtQuick
 import Quickshell
 import Quickshell.Io
-import "../../components"
 import "../.."
 
-IconButton {
+Item {
     id: audio
-    compact: true
-    glyph: muted ? "󰝟" : (volume >= 66 ? "󰕾" : (volume >= 33 ? "󰖀" : "󰕿"))
-    glyphColor: muted ? ThemeManager.border0 : ThemeManager.accentGreen
+    implicitWidth: row.implicitWidth + 12
+    implicitHeight: 40
     property int volume: 50
     property bool muted: false
     signal togglePanel()
 
-    onClicked: audio.togglePanel()
+    scale: audioMouse.pressed ? ThemeManager.iconPressScale : (audioMouse.containsMouse ? ThemeManager.iconHoverScale : 1.0)
+    Behavior on scale {
+        SpringAnimation { spring: ThemeManager.bounceSpring; damping: ThemeManager.bounceDamping; mass: ThemeManager.bounceMass }
+    }
+
+    Row {
+        id: row
+        anchors.centerIn: parent
+        spacing: 4
+        Text {
+            id: audioGlyph
+            text: audio.muted ? "󰝟" : (audio.volume >= 66 ? "󰕾" : (audio.volume >= 33 ? "󰖀" : "󰕿"))
+            font.family: "Symbols Nerd Font"
+            font.pixelSize: ThemeManager.fontSizeIcon
+            color: audio.muted ? ThemeManager.border0 : ThemeManager.accentGreen
+        }
+        Text {
+            visible: Settings.showVolumePercent
+            text: audio.volume + "%"
+            font.family: ThemeManager.uiFont
+            font.pixelSize: ThemeManager.fontSizeNormal
+            color: audioGlyph.color
+            anchors.verticalCenter: parent.verticalCenter
+        }
+    }
+
+    MouseArea {
+        id: audioMouse
+        anchors.fill: parent
+        hoverEnabled: true
+        cursorShape: Qt.PointingHandCursor
+        onClicked: audio.togglePanel()
+    }
 
     WheelHandler {
         onWheel: event => {

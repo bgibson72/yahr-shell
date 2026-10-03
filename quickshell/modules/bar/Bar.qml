@@ -48,7 +48,7 @@ Item {
         anchors.topMargin: ThemeManager.barPillTopMargin
         height: ThemeManager.barHeight
         color: ThemeManager.useFrameEmerge ? "transparent" : ThemeManager.barFillColor
-        radius: (Settings.barFloating && !ThemeManager.useFrameEmerge) ? height / 2 : 0
+        radius: ThemeManager.barRadius
         border.width: ThemeManager.useFrameEmerge ? 0
             : (ThemeManager.effectiveBarShowBorder ? ThemeManager.effectiveBarBorderWidth : 0)
         border.color: ThemeManager.chromeBorderColor
@@ -57,7 +57,7 @@ Item {
     component IslandPill: Rectangle {
         visible: bar.useIslands
         height: ThemeManager.barHeight
-        radius: height / 2
+        radius: ThemeManager.barRadius
         color: ThemeManager.barFillColor
         border.width: ThemeManager.effectiveBarShowBorder ? ThemeManager.effectiveBarBorderWidth : 0
         border.color: ThemeManager.chromeBorderColor
