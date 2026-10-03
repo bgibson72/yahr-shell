@@ -12,6 +12,7 @@ Item {
     visible: Settings.showQuickLaunch
 
     signal toggleScreenshot()
+    signal toggleWallpaper()
     signal toggleSettings()
 
     property bool expanded: false
@@ -62,6 +63,7 @@ Item {
                         { glyph: "\uf120", action: "terminal" },
                         { glyph: "\uf269", action: "browser" },
                         { glyph: "\uf030", action: "screenshot" },
+                        { glyph: "\uf03e", action: "wallpaper" },
                         { glyph: "󰒓", action: "settings", md: true }
                     ]
 
@@ -93,6 +95,7 @@ Item {
                                 case "terminal": Quickshell.execDetached([ThemeManager.terminal]); break
                                 case "browser": Quickshell.execDetached(["firefox"]); break
                                 case "screenshot": drawer.toggleScreenshot(); break
+                                case "wallpaper": drawer.toggleWallpaper(); break
                                 case "settings": drawer.toggleSettings(); break
                                 }
                             }
