@@ -2,16 +2,18 @@ import QtQuick
 import QtQuick.Layouts
 import "../.."
 
-// Rounded card body for one group of related options inside a SettingsSection.
+// Inset panel for one subsetting group inside a SettingsCard (card-on-card).
 Rectangle {
     id: root
     default property alias content: body.data
 
     Layout.fillWidth: true
-    implicitHeight: body.implicitHeight + 32
+    implicitHeight: body.implicitHeight + 24
     height: implicitHeight
-    color: ThemeManager.cardColor
-    radius: ThemeManager.cardRadius
+    radius: Math.max(6, ThemeManager.cardRadius - 4)
+    color: ThemeManager.isLightTheme
+        ? Qt.rgba(0, 0, 0, 0.06)
+        : Qt.rgba(0, 0, 0, 0.22)
     opacity: enabled ? 1.0 : 0.4
 
     ColumnLayout {
@@ -19,8 +21,7 @@ Rectangle {
         anchors.left: parent.left
         anchors.right: parent.right
         anchors.top: parent.top
-        anchors.margins: 16
-        // Room between nested SettingsSubcards (and flat rows in single-group cards).
-        spacing: 10
+        anchors.margins: 12
+        spacing: 8
     }
 }
