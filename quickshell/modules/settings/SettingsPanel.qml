@@ -604,6 +604,21 @@ Panel {
             SettingsSection {
                 title: "Weather"
                 SettingsCard {
+                    ToggleRow {
+                        label: "Show weather in bar"
+                        checked: Settings.showWeatherInBar
+                        onToggled: { Settings.showWeatherInBar = !checked; Settings.save() }
+                    }
+                    Text {
+                        text: "Condition icon and current temperature sit between the date and time."
+                        color: ThemeManager.fgTertiary
+                        font.family: ThemeManager.uiFont
+                        font.pixelSize: 12
+                        wrapMode: Text.WordWrap
+                        Layout.fillWidth: true
+                    }
+                }
+                SettingsCard {
                     ColumnLayout {
                         Layout.fillWidth: true
                         spacing: 8
@@ -615,8 +630,8 @@ Panel {
                         }
                         ChoiceChipRow {
                             options: [
-                            { id: "fahrenheit", label: "Fahrenheit" },
-                            { id: "celsius", label: "Celsius" }
+                                { id: "fahrenheit", label: "Fahrenheit" },
+                                { id: "celsius", label: "Celsius" }
                             ]
                             current: Settings.weatherUseFahrenheit ? "fahrenheit" : "celsius"
                             onPicked: id => {
@@ -962,6 +977,7 @@ Panel {
                                 text: `Border size: ${Settings.hyprBorderSize}px`
                                 color: ThemeManager.fgPrimary
                                 font.family: ThemeManager.uiFont
+                                font.pixelSize: 13
                             }
                             ValueChipRow {
                                 values: [1, 2, 3, 4, 5]
@@ -973,12 +989,6 @@ Panel {
                     ColumnLayout {
                         Layout.fillWidth: true
                         spacing: 8
-                        Text {
-                            text: "Corner radius"
-                            color: ThemeManager.fgPrimary
-                            font.family: ThemeManager.uiFont
-                            font.pixelSize: 13
-                        }
                         ToggleRow {
                             label: "Follow Hyprland rounding"
                             checked: Settings.barRoundingFollowHyprland
@@ -1002,6 +1012,7 @@ Panel {
                                 text: `Corner radius: ${Settings.barRounding}px`
                                 color: ThemeManager.fgPrimary
                                 font.family: ThemeManager.uiFont
+                                font.pixelSize: 13
                             }
                             ValueChipRow {
                                 values: [0, 4, 8, 12, 16, 20, 24]
@@ -1050,21 +1061,6 @@ Panel {
                     }
                     Text {
                         text: "Icons that apps put in the tray, such as Cursor. Off by default because those pixmaps rarely line up with the bar icons."
-                        color: ThemeManager.fgTertiary
-                        font.family: ThemeManager.uiFont
-                        font.pixelSize: 12
-                        wrapMode: Text.WordWrap
-                        Layout.fillWidth: true
-                    }
-                }
-                SettingsCard {
-                    ToggleRow {
-                        label: "Show weather in bar"
-                        checked: Settings.showWeatherInBar
-                        onToggled: { Settings.showWeatherInBar = !checked; Settings.save() }
-                    }
-                    Text {
-                        text: "Condition icon and current temperature sit between the date and time."
                         color: ThemeManager.fgTertiary
                         font.family: ThemeManager.uiFont
                         font.pixelSize: 12
