@@ -179,10 +179,12 @@ style = "fg:accent bg:base"
 min_time = 2000
 
 [character]
-# Closing  draws the pointed tip out of the status chip; without it the
-# last powerline segment ends in a flat rectangle before the cursor.
-success_symbol = "[ ➜](bold on_os bg:os)[](fg:os) "
-error_symbol = "[ ✗](bold on_alert bg:alert)[](fg:alert) "
+# Closing  draws the pointed tip out of the status chip. It needs an
+# explicit bg:base (terminal background) — fg-only often keeps the previous
+# green/red cell background, so the triangle paints solid and looks cut off.
+format = "$symbol"
+success_symbol = "[ ➜](bold fg:on_os bg:os)[](fg:os bg:base) "
+error_symbol = "[ ✗](bold fg:on_alert bg:alert)[](fg:alert bg:base) "
 
 [time]
 disabled = false
