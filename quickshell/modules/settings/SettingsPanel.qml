@@ -63,6 +63,7 @@ Panel {
     property bool filePickerOpen: false
 
     signal requestClose()
+    signal openWallpaperPicker()
     signal themeApplyStarted(string name)
     signal themeApplyFinished()
     focus: true
@@ -766,6 +767,7 @@ Panel {
                                 text: `Border thickness: ${Settings.hyprBorderSize}px`
                                 color: ThemeManager.fgPrimary
                                 font.family: ThemeManager.uiFont
+                                font.pixelSize: 13
                             }
                             ValueChipRow {
                                 values: [1, 2, 3, 4, 5]
@@ -1695,7 +1697,7 @@ Panel {
                                 font.pixelSize: 13
                             }
                             Text {
-                                text: "Used by theme apply and the upcoming Wallpaper Picker. Applying a theme can still set a wallpaper from that theme’s folder."
+                                text: "Used by theme apply and the Wallpaper Picker. Applying a theme can still set a wallpaper from that theme’s folder."
                                 color: ThemeManager.fgTertiary
                                 font.family: ThemeManager.uiFont
                                 font.pixelSize: 12
@@ -1787,7 +1789,7 @@ Panel {
                                 font.pixelSize: 13
                             }
                             Text {
-                                text: "Browse and set wallpapers in a dedicated picker. The in-settings gallery has been removed."
+                                text: "Browse palettes and set wallpapers in the Morphing Island picker. Theme preview updates as you hover."
                                 color: ThemeManager.fgTertiary
                                 font.family: ThemeManager.uiFont
                                 font.pixelSize: 12
@@ -1818,15 +1820,7 @@ Panel {
                                     anchors.fill: parent
                                     hoverEnabled: true
                                     cursorShape: Qt.PointingHandCursor
-                                    onClicked: {
-                                        // Dedicated picker UI lands in a follow-up.
-                                        Quickshell.execDetached([
-                                            "notify-send",
-                                            "-a", "Yahr Shell",
-                                            "Wallpaper Picker",
-                                            "Coming soon — the dedicated picker is not wired up yet."
-                                        ])
-                                    }
+                                    onClicked: root.openWallpaperPicker()
                                 }
                             }
                         }
