@@ -799,14 +799,14 @@ Panel {
                         }
                         ChoiceChipRow {
                             options: [
-                            { id: "top", label: "Top" },
-                            { id: "bottom", label: "Bottom" }
+                                { id: "top", label: "Top" },
+                                { id: "bottom", label: "Bottom" }
                             ]
                             current: Settings.barPosition
                             onPicked: id => {
                                 Settings.barPosition = id
                                 if (id === "bottom")
-                                Settings.dockEnabled = false
+                                    Settings.dockEnabled = false
                                 Settings.save()
                             }
                         }
@@ -820,26 +820,64 @@ Panel {
                             Layout.fillWidth: true
                         }
                     }
-                    ToggleRow { label: "Large bar"; checked: Settings.barSize === "large"; onToggled: { Settings.barSize = !checked ? "large" : "small"; Settings.save() } }
-                    ToggleRow {
-                        label: "Floating bar"
-                        enabled: Settings.barStyle !== "islands"
-                        checked: Settings.barFloating
-                        onToggled: {
-                            Settings.barFloating = !checked
-                            if (checked)
-                            Settings.barStyle = "single"
-                            Settings.save()
+                }
+                SettingsCard {
+                    ColumnLayout {
+                        Layout.fillWidth: true
+                        spacing: 8
+                        Text {
+                            text: "Bar size"
+                            color: ThemeManager.fgPrimary
+                            font.family: ThemeManager.uiFont
+                            font.pixelSize: 13
+                        }
+                        ChoiceChipRow {
+                            options: [
+                                { id: "small", label: "Normal" },
+                                { id: "large", label: "Large" }
+                            ]
+                            current: Settings.barSize === "large" ? "large" : "small"
+                            onPicked: id => { Settings.barSize = id; Settings.save() }
                         }
                     }
-                    Text {
-                        visible: Settings.barStyle === "islands"
-                        text: "Islands stay floating. Switch to Single to dock the bar."
-                        color: ThemeManager.fgTertiary
-                        font.family: ThemeManager.uiFont
-                        font.pixelSize: 12
-                        wrapMode: Text.WordWrap
+                }
+                SettingsCard {
+                    enabled: Settings.barStyle !== "islands"
+                    ColumnLayout {
                         Layout.fillWidth: true
+                        spacing: 8
+                        Text {
+                            text: "Bar mode"
+                            color: ThemeManager.fgPrimary
+                            font.family: ThemeManager.uiFont
+                            font.pixelSize: 13
+                        }
+                        ChoiceChipRow {
+                            options: [
+                                { id: "floating", label: "Floating" },
+                                { id: "docked", label: "Docked" }
+                            ]
+                            current: Settings.barFloating ? "floating" : "docked"
+                            disabledIds: Settings.barStyle === "islands" ? ["docked"] : []
+                            onPicked: id => {
+                                Settings.barFloating = id === "floating"
+                                if (id === "docked")
+                                    Settings.barStyle = "single"
+                                Settings.save()
+                            }
+                        }
+                        Text {
+                            text: Settings.barStyle === "islands"
+                                ? "Islands stay floating. Switch Appearance → Bar style to Single to dock the bar."
+                                : (Settings.barFloating
+                                    ? "Inset from the screen edge with a small gap. Panels open with an elastic pop."
+                                    : "Flush against the screen edge. Widgets emerge from a screen frame.")
+                            color: ThemeManager.fgTertiary
+                            font.family: ThemeManager.uiFont
+                            font.pixelSize: 12
+                            wrapMode: Text.WordWrap
+                            Layout.fillWidth: true
+                        }
                     }
                 }
             }
@@ -858,24 +896,22 @@ Panel {
                         }
                         ChoiceChipRow {
                             options: [
-                            { id: "single", label: "Single" },
-                            { id: "islands", label: "Islands" }
+                                { id: "single", label: "Single" },
+                                { id: "islands", label: "Islands" }
                             ]
                             current: Settings.barStyle
                             disabledIds: Settings.barFloating ? [] : ["islands"]
                             onPicked: id => {
                                 Settings.barStyle = id
                                 if (id === "islands")
-                                Settings.barFloating = true
+                                    Settings.barFloating = true
                                 Settings.save()
                             }
                         }
                         Text {
                             text: Settings.barStyle === "islands"
-                            ? "Left, center, and right each sit in their own pill. Islands require a floating bar."
-                            : (Settings.barFloating
-                            ? "One continuous bar. Panels open with an elastic pop while the bar is floating."
-                            : "One continuous bar. Widgets emerge from a screen frame. Float the bar to use islands.")
+                                ? "Left, center, and right each sit in their own pill. Islands require a floating bar."
+                                : "One continuous bar across the screen."
                             color: ThemeManager.fgTertiary
                             font.family: ThemeManager.uiFont
                             font.pixelSize: 12
@@ -883,7 +919,15 @@ Panel {
                             Layout.fillWidth: true
                         }
                     }
-                    ToggleRow { label: "Numbered workspaces"; checked: Settings.workspaceStyle === "numbers"; onToggled: { Settings.workspaceStyle = !checked ? "numbers" : "dots"; Settings.save() } }
+                }
+                SettingsCard {
+                    ToggleRow {
+                        label: "Numbered workspaces"
+                        checked: Settings.workspaceStyle === "numbers"
+                        onToggled: { Settings.workspaceStyle = !checked ? "numbers" : "dots"; Settings.save() }
+                    }
+                }
+                SettingsCard {
                     ToggleRow {
                         label: "Follow Hyprland Window Rules"
                         checked: Settings.barFollowHyprland
@@ -891,8 +935,8 @@ Panel {
                     }
                     Text {
                         text: Settings.barFollowHyprland
-                        ? "Fill, borders, and thickness match the Hyprland tab."
-                        : "Bar chrome can be set independently. Turn this on to match Hyprland window rules."
+                            ? "Fill, borders, and thickness match the Hyprland tab."
+                            : "Bar chrome can be set independently. Turn this on to match Hyprland window rules."
                         color: ThemeManager.fgTertiary
                         font.family: ThemeManager.uiFont
                         font.pixelSize: 12
@@ -905,30 +949,6 @@ Panel {
                         enabled: !Settings.barFollowHyprland
                         opacity: Settings.barFollowHyprland ? 0.4 : 1.0
 
-                        ColumnLayout {
-                            Layout.fillWidth: true
-                            spacing: 8
-                            Text {
-                                text: "Background fill"
-                                color: ThemeManager.fgPrimary
-                                font.family: ThemeManager.uiFont
-                                font.pixelSize: 13
-                            }
-                            ChoiceChipRow {
-                                options: [
-                                { id: "opaque", label: "Solid" },
-                                { id: "translucent", label: "Transparent" }
-                                ]
-                                current: Settings.barBackgroundStyle === "opaque" ? "opaque" : "translucent"
-                                onPicked: id => { Settings.barBackgroundStyle = id; Settings.save() }
-                            }
-                        }
-                        TransparencySlider {
-                            visible: Settings.barBackgroundStyle !== "opaque"
-                            opacityValue: Settings.barOpacity
-                            onChanged: value => Settings.barOpacity = value
-                            onReleased: Settings.save()
-                        }
                         ToggleRow {
                             label: "Bar border"
                             checked: Settings.barShowBorder
@@ -966,8 +986,8 @@ Panel {
                         }
                         Text {
                             text: Settings.barRoundingFollowHyprland
-                            ? `Using Hyprland window rounding (${Settings.hyprRounding}px). Docked frame bars stay square against the screen edge.`
-                            : "Set an independent radius for floating single and island bars. Docked frame bars stay square against the screen edge."
+                                ? `Using Hyprland window rounding (${Settings.hyprRounding}px). Docked frame bars stay square against the screen edge.`
+                                : "Set an independent radius for floating single and island bars. Docked frame bars stay square against the screen edge."
                             color: ThemeManager.fgTertiary
                             font.family: ThemeManager.uiFont
                             font.pixelSize: 12
@@ -990,8 +1010,41 @@ Panel {
                             }
                         }
                     }
+                }
+                SettingsCard {
+                    enabled: !Settings.barFollowHyprland
+                    ColumnLayout {
+                        Layout.fillWidth: true
+                        spacing: 8
+                        Text {
+                            text: "Background fill"
+                            color: ThemeManager.fgPrimary
+                            font.family: ThemeManager.uiFont
+                            font.pixelSize: 13
+                        }
+                        ChoiceChipRow {
+                            options: [
+                                { id: "opaque", label: "Solid" },
+                                { id: "translucent", label: "Transparent" }
+                            ]
+                            current: Settings.barBackgroundStyle === "opaque" ? "opaque" : "translucent"
+                            onPicked: id => { Settings.barBackgroundStyle = id; Settings.save() }
+                        }
+                    }
+                    TransparencySlider {
+                        visible: Settings.barBackgroundStyle !== "opaque"
+                        opacityValue: Settings.barOpacity
+                        onChanged: value => Settings.barOpacity = value
+                        onReleased: Settings.save()
+                    }
+                }
+            }
+
+            SettingsSection {
+                title: "System Tray"
+                SettingsCard {
                     ToggleRow {
-                        label: "Application tray icons"
+                        label: "Show application tray icons"
                         checked: Settings.showSystemTray
                         onToggled: { Settings.showSystemTray = !checked; Settings.save() }
                     }
@@ -1003,6 +1056,8 @@ Panel {
                         wrapMode: Text.WordWrap
                         Layout.fillWidth: true
                     }
+                }
+                SettingsCard {
                     ToggleRow {
                         label: "Show weather in bar"
                         checked: Settings.showWeatherInBar
@@ -1016,6 +1071,8 @@ Panel {
                         wrapMode: Text.WordWrap
                         Layout.fillWidth: true
                     }
+                }
+                SettingsCard {
                     ToggleRow {
                         label: "Show battery percentage"
                         checked: Settings.showBatteryPercent
@@ -1029,6 +1086,8 @@ Panel {
                         wrapMode: Text.WordWrap
                         Layout.fillWidth: true
                     }
+                }
+                SettingsCard {
                     ToggleRow {
                         label: "Show volume percentage"
                         checked: Settings.showVolumePercent
@@ -1042,6 +1101,8 @@ Panel {
                         wrapMode: Text.WordWrap
                         Layout.fillWidth: true
                     }
+                }
+                SettingsCard {
                     ToggleRow {
                         label: "Show network up/down speeds"
                         checked: Settings.showNetworkSpeed
