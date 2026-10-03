@@ -524,42 +524,53 @@ toolbar {{
     outline: none !important;
 }}
 
+/* Modern Firefox paints a pill-shaped #urlbar-background. Keep outer
+   chrome transparent and only color that rounded layer so themed fills
+   follow the native capsule ends instead of square corners. */
 #urlbar,
-#urlbar-background,
 #urlbar-input-container,
-#searchbar,
-.searchbar-textbox {{
+#urlbar-container,
+#search-container {{
+    background-color: transparent !important;
+    border: none !important;
+    box-shadow: none !important;
+    outline: none !important;
+}}
+
+#urlbar-background,
+#searchbar {{
     background-color: var(--surface1) !important;
     color: var(--fg-primary) !important;
     border: none !important;
     box-shadow: none !important;
     outline: none !important;
     -moz-appearance: none !important;
+    border-radius: 9999px !important;
 }}
 
 #urlbar-input,
-#urlbar input {{
+#urlbar input,
+.searchbar-textbox {{
     color: var(--fg-primary) !important;
     background-color: transparent !important;
 }}
 
-#urlbar[breakout][breakout-extend],
+/* Expanded / breakout results use a softer rounded rect so the dropdown
+   plate still meets the field cleanly. */
 #urlbar[breakout][breakout-extend] > #urlbar-background,
-#urlbar[focused="true"],
-#urlbar[focused="true"] #urlbar-background,
-#urlbar[open],
-#urlbar[open] #urlbar-background,
-#searchbar:focus-within,
-#urlbar-container,
-#search-container {{
+#urlbar[open] > #urlbar-background {{
+    border-radius: 12px !important;
+    background-color: var(--surface1) !important;
     border: none !important;
     box-shadow: none !important;
     outline: none !important;
 }}
 
-#urlbar-input,
-.searchbar-textbox {{
-    color: var(--fg-primary) !important;
+#urlbar[focused="true"] > #urlbar-background,
+#searchbar:focus-within {{
+    border: none !important;
+    box-shadow: none !important;
+    outline: none !important;
 }}
 
 #urlbar toolbarbutton,
