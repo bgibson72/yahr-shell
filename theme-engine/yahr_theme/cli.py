@@ -39,6 +39,7 @@ def cmd_current(_args: argparse.Namespace) -> int:
 def cmd_apply(args: argparse.Namespace) -> int:
     palette = apply.apply_id(args.theme, reload=not args.no_reload)
     print(f"applied {palette['name']} ({palette['id']})")
+    # Firefox status is printed by apply_palette (path written, or a warning).
     return 0
 
 
