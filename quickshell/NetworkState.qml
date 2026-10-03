@@ -18,17 +18,23 @@ Item {
     property real _prevTx: -1
     property real _prevTs: 0
 
+    // Keep rates short and unit-suffixed so the bar's fixed-width fields
+    // ("999.9M") cover every value we emit without clipping.
     function formatSpeed(bps) {
         if (!(bps > 0))
-            return "0"
+            return "0B"
         if (bps < 1024)
             return `${Math.round(bps)}B`
         if (bps < 1024 * 1024) {
             const kb = bps / 1024
             return `${kb < 10 ? kb.toFixed(1) : Math.round(kb)}K`
         }
-        const mb = bps / (1024 * 1024)
-        return `${mb < 10 ? mb.toFixed(1) : Math.round(mb)}M`
+        if (bps < 1024 * 1024 * 1024) {
+            const mb = bps / (1024 * 1024)
+            return `${mb < 10 ? mb.toFixed(1) : Math.round(mb)}M`
+        }
+        const gb = bps / (1024 * 1024 * 1024)
+        return `${gb < 10 ? gb.toFixed(1) : Math.round(gb)}G`
     }
 
     function refresh() {

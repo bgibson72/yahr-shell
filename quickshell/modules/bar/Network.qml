@@ -8,6 +8,16 @@ Item {
     implicitHeight: 40
     signal togglePanel()
 
+    // Reserve room for the widest rate we format ("999.9M") so the tray
+    // doesn't shift when values jump between 1–3 digit widths.
+    FontMetrics {
+        id: speedMetrics
+        font.family: ThemeManager.uiFont
+        font.pixelSize: ThemeManager.fontSizeNormal
+    }
+    readonly property int speedFieldWidth: Math.ceil(speedMetrics.advanceWidth("999.9M"))
+    readonly property bool showSpeeds: Settings.showNetworkSpeed && NetworkState.connectionType !== "none"
+
     scale: netMouse.pressed ? ThemeManager.iconPressScale : (netMouse.containsMouse ? ThemeManager.iconHoverScale : 1.0)
     Behavior on scale {
         SpringAnimation { spring: ThemeManager.bounceSpring; damping: ThemeManager.bounceDamping; mass: ThemeManager.bounceMass }
@@ -36,13 +46,46 @@ Item {
                 return ThemeManager.accentRed
             }
         }
-        Text {
-            visible: Settings.showNetworkSpeed && NetworkState.connectionType !== "none"
-            text: `↓${NetworkState.downloadSpeedText} ↑${NetworkState.uploadSpeedText}`
-            font.family: ThemeManager.uiFont
-            font.pixelSize: ThemeManager.fontSizeSmall
-            color: ThemeManager.fgSecondary
+        Row {
+            id: speedRow
+            visible: net.showSpeeds
+            spacing: 4
             anchors.verticalCenter: parent.verticalCenter
+
+            Row {
+                spacing: 2
+                Text {
+                    text: "↓"
+                    font.family: ThemeManager.uiFont
+                    font.pixelSize: ThemeManager.fontSizeNormal
+                    color: netGlyph.color
+                }
+                Text {
+                    width: net.speedFieldWidth
+                    text: NetworkState.downloadSpeedText
+                    font.family: ThemeManager.uiFont
+                    font.pixelSize: ThemeManager.fontSizeNormal
+                    color: netGlyph.color
+                    horizontalAlignment: Text.AlignRight
+                }
+            }
+            Row {
+                spacing: 2
+                Text {
+                    text: "↑"
+                    font.family: ThemeManager.uiFont
+                    font.pixelSize: ThemeManager.fontSizeNormal
+                    color: netGlyph.color
+                }
+                Text {
+                    width: net.speedFieldWidth
+                    text: NetworkState.uploadSpeedText
+                    font.family: ThemeManager.uiFont
+                    font.pixelSize: ThemeManager.fontSizeNormal
+                    color: netGlyph.color
+                    horizontalAlignment: Text.AlignRight
+                }
+            }
         }
     }
 
