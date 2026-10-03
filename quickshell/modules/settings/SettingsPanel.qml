@@ -977,6 +977,46 @@ Panel {
                         }
                     }
                 }
+                ColumnLayout {
+                    Layout.fillWidth: true
+                    spacing: 8
+                    Text {
+                        text: "Corner radius"
+                        color: ThemeManager.fgPrimary
+                        font.family: ThemeManager.uiFont
+                        font.pixelSize: 13
+                    }
+                    ToggleRow {
+                        label: "Follow Hyprland rounding"
+                        checked: Settings.barRoundingFollowHyprland
+                        onToggled: { Settings.barRoundingFollowHyprland = !checked; Settings.save() }
+                    }
+                    Text {
+                        text: Settings.barRoundingFollowHyprland
+                            ? `Using Hyprland window rounding (${Settings.hyprRounding}px). Docked frame bars stay square against the screen edge.`
+                            : "Set an independent radius for floating single and island bars. Docked frame bars stay square against the screen edge."
+                        color: ThemeManager.fgTertiary
+                        font.family: ThemeManager.uiFont
+                        font.pixelSize: 12
+                        wrapMode: Text.WordWrap
+                        Layout.fillWidth: true
+                    }
+                    ColumnLayout {
+                        visible: !Settings.barRoundingFollowHyprland
+                        Layout.fillWidth: true
+                        spacing: 8
+                        Text {
+                            text: `Corner radius: ${Settings.barRounding}px`
+                            color: ThemeManager.fgPrimary
+                            font.family: ThemeManager.uiFont
+                        }
+                        ValueChipRow {
+                            values: [0, 4, 8, 12, 16, 20, 24]
+                            current: Settings.barRounding
+                            onPicked: value => { Settings.barRounding = value; Settings.save() }
+                        }
+                    }
+                }
                 ToggleRow {
                     label: "Application tray icons"
                     checked: Settings.showSystemTray
@@ -1009,7 +1049,33 @@ Panel {
                     onToggled: { Settings.showBatteryPercent = !checked; Settings.save() }
                 }
                 Text {
-                    text: "Replaces the battery icon with the charge percentage. Desktops on AC power still show the adapter icon."
+                    text: "Shows the charge percentage to the right of the battery icon. Desktops on AC power still show the adapter icon."
+                    color: ThemeManager.fgTertiary
+                    font.family: ThemeManager.uiFont
+                    font.pixelSize: 12
+                    wrapMode: Text.WordWrap
+                    Layout.fillWidth: true
+                }
+                ToggleRow {
+                    label: "Show volume percentage"
+                    checked: Settings.showVolumePercent
+                    onToggled: { Settings.showVolumePercent = !checked; Settings.save() }
+                }
+                Text {
+                    text: "Shows the current output volume to the right of the speaker icon."
+                    color: ThemeManager.fgTertiary
+                    font.family: ThemeManager.uiFont
+                    font.pixelSize: 12
+                    wrapMode: Text.WordWrap
+                    Layout.fillWidth: true
+                }
+                ToggleRow {
+                    label: "Show network up/down speeds"
+                    checked: Settings.showNetworkSpeed
+                    onToggled: { Settings.showNetworkSpeed = !checked; Settings.save() }
+                }
+                Text {
+                    text: "Shows live download and upload rates next to the network icon while connected."
                     color: ThemeManager.fgTertiary
                     font.family: ThemeManager.uiFont
                     font.pixelSize: 12

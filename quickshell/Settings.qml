@@ -30,8 +30,12 @@ Item {
     property bool barFloating: false
     property bool barShowBorder: false
     property bool barFollowHyprland: false
+    property bool barRoundingFollowHyprland: false
+    property int barRounding: 24
     property bool showWeatherInBar: false
     property bool showBatteryPercent: false
+    property bool showVolumePercent: false
+    property bool showNetworkSpeed: false
     property bool showQuickLaunch: true
     property bool showSystemTray: false
     property bool showMediaPlayer: false
@@ -124,8 +128,12 @@ Item {
                 floating: barFloating,
                 showBorder: barShowBorder,
                 followHyprland: barFollowHyprland,
+                roundingFollowHyprland: barRoundingFollowHyprland,
+                rounding: barRounding,
                 showWeatherInBar: showWeatherInBar,
                 showBatteryPercent: showBatteryPercent,
+                showVolumePercent: showVolumePercent,
+                showNetworkSpeed: showNetworkSpeed,
                 showQuickLaunch: showQuickLaunch,
                 showSystemTray: showSystemTray,
                 showMediaPlayer: showMediaPlayer,
@@ -227,8 +235,12 @@ Item {
         if (b.floating !== undefined) barFloating = b.floating
         if (b.showBorder !== undefined) barShowBorder = b.showBorder
         if (b.followHyprland !== undefined) barFollowHyprland = b.followHyprland
+        if (b.roundingFollowHyprland !== undefined) barRoundingFollowHyprland = b.roundingFollowHyprland
+        if (b.rounding !== undefined) barRounding = b.rounding
         if (b.showWeatherInBar !== undefined) showWeatherInBar = b.showWeatherInBar
         if (b.showBatteryPercent !== undefined) showBatteryPercent = b.showBatteryPercent
+        if (b.showVolumePercent !== undefined) showVolumePercent = b.showVolumePercent
+        if (b.showNetworkSpeed !== undefined) showNetworkSpeed = b.showNetworkSpeed
         if (b.showQuickLaunch !== undefined) showQuickLaunch = b.showQuickLaunch
         if (b.showSystemTray !== undefined) showSystemTray = b.showSystemTray
         if (b.showMediaPlayer !== undefined) showMediaPlayer = b.showMediaPlayer

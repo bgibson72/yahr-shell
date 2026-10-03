@@ -47,7 +47,6 @@ Item {
                 if (bat.percent <= 30) return ThemeManager.accentYellow
                 return ThemeManager.accentGreen
             }
-            visible: !(Settings.showBatteryPercent && bat.hasBattery)
         }
         Text {
             visible: Settings.showBatteryPercent && bat.hasBattery
@@ -55,6 +54,7 @@ Item {
             font.family: ThemeManager.uiFont
             font.pixelSize: ThemeManager.fontSizeNormal
             color: batGlyph.color
+            anchors.verticalCenter: parent.verticalCenter
         }
     }
 
