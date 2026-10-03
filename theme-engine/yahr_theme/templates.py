@@ -179,8 +179,10 @@ style = "fg:accent bg:base"
 min_time = 2000
 
 [character]
-success_symbol = "[ ➜](bold on_os bg:os) "
-error_symbol = "[ ✗](bold on_alert bg:alert) "
+# Closing  draws the pointed tip out of the status chip; without it the
+# last powerline segment ends in a flat rectangle before the cursor.
+success_symbol = "[ ➜](bold on_os bg:os)[](fg:os) "
+error_symbol = "[ ✗](bold on_alert bg:alert)[](fg:alert) "
 
 [time]
 disabled = false
