@@ -259,7 +259,19 @@ Panel {
         sddmThemeWriter.running = true
     }
 
+    function wallpaperScanRoot() {
+        const rootDir = root.expandHome(Settings.wallpaperDir || "~/Pictures/Wallpapers")
+        if (Settings.wallpaperSource === "theme" && ThemeManager.wallpaperDir)
+            return `${rootDir}/${ThemeManager.wallpaperDir}`
+        return rootDir
+    }
+
     function refreshWallpapers() {
+        wallpaperScan.command = [
+            "python3",
+            `${Quickshell.shellDir}/scripts/list-wallpapers.py`,
+            root.wallpaperScanRoot()
+        ]
         wallpaperScan.running = false
         wallpaperScan.running = true
     }
@@ -1697,7 +1709,7 @@ Panel {
                                 font.pixelSize: 13
                             }
                             Text {
-                                text: "Used by theme apply and the Wallpaper Picker. Applying a theme can still set a wallpaper from that theme’s folder."
+                                text: "Root folder for All wallpapers mode, and the parent of theme subfolders used by Theme-based mode."
                                 color: ThemeManager.fgTertiary
                                 font.family: ThemeManager.uiFont
                                 font.pixelSize: 12
@@ -1754,6 +1766,92 @@ Panel {
                         }
                         SettingsSubcard {
                             Text {
+                                text: "Wallpaper source"
+                                color: ThemeManager.fgPrimary
+                                font.family: ThemeManager.uiFont
+                                font.pixelSize: 13
+                            }
+                            Text {
+                                text: Settings.wallpaperSource === "theme"
+                                    ? `Theme-based — only images in ${ThemeManager.wallpaperDir} for the active theme.`
+                                    : "All wallpapers — every image under the wallpaper folder and its subfolders."
+                                color: ThemeManager.fgTertiary
+                                font.family: ThemeManager.uiFont
+                                font.pixelSize: 12
+                                wrapMode: Text.WordWrap
+                                Layout.fillWidth: true
+                            }
+                            ChoiceChipFlow {
+                                Layout.fillWidth: true
+                                options: [
+                                    { id: "theme", label: "Theme-based" },
+                                    { id: "all", label: "All wallpapers" }
+                                ]
+                                current: Settings.wallpaperSource
+                                onPicked: id => {
+                                    Settings.wallpaperSource = id
+                                    Settings.save()
+                                    root.refreshWallpapers()
+                                }
+                            }
+                        }
+                        SettingsSubcard {
+                            Text {
+                                text: "Wallpaper changer"
+                                color: ThemeManager.fgPrimary
+                                font.family: ThemeManager.uiFont
+                                font.pixelSize: 13
+                            }
+                            Text {
+                                text: Settings.wallpaperMode === "slideshow"
+                                    ? "Slideshow cycles through the source set above using the transition below."
+                                    : "Static keeps a single wallpaper until you change it in the picker."
+                                color: ThemeManager.fgTertiary
+                                font.family: ThemeManager.uiFont
+                                font.pixelSize: 12
+                                wrapMode: Text.WordWrap
+                                Layout.fillWidth: true
+                            }
+                            ChoiceChipFlow {
+                                Layout.fillWidth: true
+                                options: [
+                                    { id: "static", label: "Static" },
+                                    { id: "slideshow", label: "Slideshow" }
+                                ]
+                                current: Settings.wallpaperMode
+                                onPicked: id => { Settings.wallpaperMode = id; Settings.save() }
+                            }
+                            Text {
+                                visible: Settings.wallpaperMode === "slideshow"
+                                text: "Duration"
+                                color: ThemeManager.fgPrimary
+                                font.family: ThemeManager.uiFont
+                                font.pixelSize: 13
+                                Layout.topMargin: 4
+                            }
+                            ChoiceChipFlow {
+                                visible: Settings.wallpaperMode === "slideshow"
+                                Layout.fillWidth: true
+                                options: [
+                                    { id: "10", label: "10s" },
+                                    { id: "30", label: "30s" },
+                                    { id: "60", label: "1m" },
+                                    { id: "120", label: "2m" },
+                                    { id: "300", label: "5m" },
+                                    { id: "600", label: "10m" },
+                                    { id: "900", label: "15m" },
+                                    { id: "1800", label: "30m" },
+                                    { id: "3600", label: "60m" }
+                                ]
+                                current: String(Settings.wallpaperSlideshowInterval)
+                                onPicked: id => {
+                                    Settings.wallpaperSlideshowInterval = parseInt(id, 10)
+                                    Settings.save()
+                                }
+                            }
+                        }
+                        SettingsSubcard {
+                            Text {
                                 text: "Transition"
                                 color: ThemeManager.fgPrimary
                                 font.family: ThemeManager.uiFont
@@ -1789,7 +1887,7 @@ Panel {
                                 font.pixelSize: 13
                             }
                             Text {
-                                text: "Browse palettes and set wallpapers in the Morphing Island picker. Theme preview updates as you hover."
+                                text: "Browse wallpapers in a Cover Flow overlay. The list follows the wallpaper source setting above."
                                 color: ThemeManager.fgTertiary
                                 font.family: ThemeManager.uiFont
                                 font.pixelSize: 12
@@ -3060,12 +3158,20 @@ Panel {
     Process {
         id: wallpaperScan
         running: false
-        command: ["python3", `${Quickshell.shellDir}/scripts/list-wallpapers.py`, Settings.wallpaperDir]
+        command: ["python3", `${Quickshell.shellDir}/scripts/list-wallpapers.py`, root.wallpaperScanRoot()]
         stdout: StdioCollector {
             onStreamFinished: {
                 const lines = this.text.trim().split("\n").filter(l => l.length > 0)
                 root.wallpaperImages = lines
             }
+        }
+    }
+
+    Connections {
+        target: ThemeManager
+        function onWallpaperDirChanged() {
+            if (root.tab === "wallpaper" || Settings.wallpaperSource === "theme")
+                root.refreshWallpapers()
         }
     }
 
