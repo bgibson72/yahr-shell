@@ -227,17 +227,43 @@ def _gsettings(schema: str, key: str, value: str) -> None:
     _run(["gsettings", "set", schema, key, value])
 
 
-def _firefox_profile_dirs() -> list[Path]:
+def _firefox_roots() -> list[Path]:
     home = paths.home()
-    roots = [
+    return [
         home / ".mozilla" / "firefox",
+        home / ".mozilla" / "firefox-esr",
+        home / ".mozilla" / "firefox-dev",
         home / ".config" / "mozilla" / "firefox",
         home / ".librewolf",
+        home / ".zen",
+        home / ".floorp",
+        home / ".waterfox",
         home / ".var" / "app" / "org.mozilla.firefox" / ".mozilla" / "firefox",
+        home / ".var" / "app" / "org.mozilla.firefox" / ".mozilla" / "firefox-esr",
+        home / ".var" / "app" / "io.gitlab.librewolf-community" / ".librewolf",
+        home / ".var" / "app" / "app.zen_browser.zen" / ".zen",
+        home / "snap" / "firefox" / "common" / ".mozilla" / "firefox",
     ]
+
+
+def _resolve_ini_profile(root: Path, raw: str) -> Path | None:
+    value = raw.strip().strip('"').strip("'")
+    if not value:
+        return None
+    dest = Path(value).expanduser()
+    if not dest.is_absolute():
+        dest = root / value
+    try:
+        dest = dest.resolve()
+    except OSError:
+        return None
+    return dest if dest.is_dir() else None
+
+
+def _profiles_from_ini(root: Path) -> list[Path]:
     found: list[Path] = []
-    for root in roots:
-        ini = root / "profiles.ini"
+    for name in ("profiles.ini", "installs.ini"):
+        ini = root / name
         if not ini.is_file():
             continue
         try:
@@ -245,14 +271,49 @@ def _firefox_profile_dirs() -> list[Path]:
         except OSError:
             continue
         for line in lines:
-            if not line.startswith("Path="):
+            key, _, value = line.partition("=")
+            key = key.strip().lower()
+            raw = value.strip()
+            if key == "path":
+                dest = _resolve_ini_profile(root, raw)
+            elif key == "default" and name == "installs.ini":
+                # installs.ini Default=<profile path>; profiles.ini Default=1 is a flag.
+                dest = _resolve_ini_profile(root, raw)
+            else:
                 continue
-            rel = line.split("=", 1)[1].strip()
-            if not rel:
-                continue
-            dest = Path(rel) if Path(rel).is_absolute() else root / rel
-            if dest.is_dir():
+            if dest is not None:
                 found.append(dest)
+    return found
+
+
+def _profiles_from_scan(root: Path) -> list[Path]:
+    """Fallback: any child directory that looks like a live Firefox profile."""
+    found: list[Path] = []
+    if not root.is_dir():
+        return found
+    try:
+        children = list(root.iterdir())
+    except OSError:
+        return found
+    for child in children:
+        if not child.is_dir() or child.name.startswith("."):
+            continue
+        if (child / "prefs.js").is_file() or (child / "times.json").is_file():
+            found.append(child.resolve())
+    return found
+
+
+def _firefox_profile_dirs() -> list[Path]:
+    found: list[Path] = []
+    seen: set[Path] = set()
+    for root in _firefox_roots():
+        if not root.is_dir():
+            continue
+        for dest in _profiles_from_ini(root) + _profiles_from_scan(root):
+            if dest in seen:
+                continue
+            seen.add(dest)
+            found.append(dest)
     return found
 
 
@@ -272,14 +333,22 @@ def _upsert_firefox_user_js(path: Path, *, light: bool) -> None:
     path.write_text(text)
 
 
-def _install_firefox_theme(palette: dict) -> None:
+def _install_firefox_theme(palette: dict) -> list[Path]:
+    """Write userChrome.css + user.js into every discovered profile.
+
+    Returns the profile directories that were updated. Empty means Firefox
+    chrome could not be installed (caller should surface that).
+    """
     light = palette_mode(palette) == "light"
     chrome = templates.firefox_user_chrome(palette)
+    updated: list[Path] = []
     for profile in _firefox_profile_dirs():
         chrome_dir = profile / "chrome"
         chrome_dir.mkdir(parents=True, exist_ok=True)
         _write(chrome_dir / "userChrome.css", chrome)
         _upsert_firefox_user_js(profile / "user.js", light=light)
+        updated.append(profile)
+    return updated
 
 
 def _install_cursor_theme(palette: dict) -> None:
@@ -474,8 +543,19 @@ def apply_palette(palette: dict, *, reload: bool = True) -> None:
         if result and result.returncode != 0:
             _run(["sudo", "-n", papirus, "-C", folder_color, "--theme", icon_theme])
 
-    _install_firefox_theme(palette)
+    firefox_profiles = _install_firefox_theme(palette)
     _install_cursor_theme(palette)
+
+    if not firefox_profiles:
+        roots = ", ".join(str(r) for r in _firefox_roots() if r.is_dir()) or "(none present)"
+        print(
+            "firefox: no profiles found — userChrome.css was not written. "
+            f"Checked: {roots}",
+            file=sys.stderr,
+        )
+    else:
+        for profile in firefox_profiles:
+            print(f"firefox: wrote {profile / 'chrome' / 'userChrome.css'}")
 
     if not reload:
         return
