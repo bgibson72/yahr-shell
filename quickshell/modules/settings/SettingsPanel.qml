@@ -556,8 +556,10 @@ Panel {
             SettingsSection {
                 title: "Clock & Date"
                 SettingsCard {
-                    ToggleRow { label: "24-hour clock"; checked: Settings.clockFormat24hr; onToggled: { Settings.clockFormat24hr = !checked; Settings.save() } }
-                    ToggleRow { label: "Show seconds"; checked: Settings.showSeconds; onToggled: { Settings.showSeconds = !checked; Settings.save() } }
+                    SettingsSubcard {
+                        ToggleRow { label: "24-hour clock"; checked: Settings.clockFormat24hr; onToggled: { Settings.clockFormat24hr = !checked; Settings.save() } }
+                        ToggleRow { label: "Show seconds"; checked: Settings.showSeconds; onToggled: { Settings.showSeconds = !checked; Settings.save() } }
+                    }
                 }
                 SettingsCard {
                     SettingsSubcard {
@@ -602,77 +604,83 @@ Panel {
             SettingsSection {
                 title: "Weather"
                 SettingsCard {
-                    ToggleRow {
-                        label: "Show weather in bar"
-                        checked: Settings.showWeatherInBar
-                        onToggled: { Settings.showWeatherInBar = !checked; Settings.save() }
-                    }
-                    Text {
-                        text: "Condition icon and current temperature sit between the date and time."
-                        color: ThemeManager.fgTertiary
-                        font.family: ThemeManager.uiFont
-                        font.pixelSize: 12
-                        wrapMode: Text.WordWrap
-                        Layout.fillWidth: true
-                    }
-                }
-                SettingsCard {
-                    ColumnLayout {
-                        Layout.fillWidth: true
-                        spacing: 8
+                    SettingsSubcard {
+                        ToggleRow {
+                            label: "Show weather in bar"
+                            checked: Settings.showWeatherInBar
+                            onToggled: { Settings.showWeatherInBar = !checked; Settings.save() }
+                        }
                         Text {
-                            text: "Weather units"
-                            color: ThemeManager.fgPrimary
+                            text: "Condition icon and current temperature sit between the date and time."
+                            color: ThemeManager.fgTertiary
                             font.family: ThemeManager.uiFont
-                            font.pixelSize: 13
-                        }
-                        ChoiceChipRow {
-                            options: [
-                                { id: "fahrenheit", label: "Fahrenheit" },
-                                { id: "celsius", label: "Celsius" }
-                            ]
-                            current: Settings.weatherUseFahrenheit ? "fahrenheit" : "celsius"
-                            onPicked: id => {
-                                Settings.weatherUseFahrenheit = id === "fahrenheit"
-                                Settings.save()
-                            }
-                        }
-                    }
-                }
-                SettingsCard {
-                    ColumnLayout {
-                        Layout.fillWidth: true
-                        spacing: 8
-                        Text {
-                            text: "Weather location"
-                            color: ThemeManager.fgPrimary
-                            font.family: ThemeManager.uiFont
-                            font.pixelSize: 13
-                        }
-                        Item {
+                            font.pixelSize: 12
+                            wrapMode: Text.WordWrap
                             Layout.fillWidth: true
-                            Layout.preferredHeight: 30
-                            height: 30
-                            InputField {
-                                id: locField
-                                anchors.fill: parent
-                                text: Settings.weatherLocation
-                                font.pixelSize: 12
-                                background: Rectangle {
-                                    color: ThemeManager.surface1
-                                    radius: 6
-                                }
-                                onEditingFinished: { Settings.weatherLocation = text; Settings.save() }
-                            }
+                        }
+                    }
+                }
+                SettingsCard {
+                    SettingsSubcard {
+                        ColumnLayout {
+                            Layout.fillWidth: true
+                            spacing: 8
                             Text {
-                                visible: locField.text.length === 0
-                                text: "auto (IP-based)"
-                                color: ThemeManager.placeholderColor
+                                text: "Weather units"
+                                color: ThemeManager.fgPrimary
                                 font.family: ThemeManager.uiFont
-                                font.pixelSize: 12
-                                anchors.verticalCenter: parent.verticalCenter
-                                anchors.left: parent.left
-                                anchors.leftMargin: 8
+                                font.pixelSize: 13
+                            }
+                            ChoiceChipRow {
+                                options: [
+                                    { id: "fahrenheit", label: "Fahrenheit" },
+                                    { id: "celsius", label: "Celsius" }
+                                ]
+                                current: Settings.weatherUseFahrenheit ? "fahrenheit" : "celsius"
+                                onPicked: id => {
+                                    Settings.weatherUseFahrenheit = id === "fahrenheit"
+                                    Settings.save()
+                                }
+                            }
+                        }
+                    }
+                }
+                SettingsCard {
+                    SettingsSubcard {
+                        ColumnLayout {
+                            Layout.fillWidth: true
+                            spacing: 8
+                            Text {
+                                text: "Weather location"
+                                color: ThemeManager.fgPrimary
+                                font.family: ThemeManager.uiFont
+                                font.pixelSize: 13
+                            }
+                            Item {
+                                Layout.fillWidth: true
+                                Layout.preferredHeight: 30
+                                height: 30
+                                InputField {
+                                    id: locField
+                                    anchors.fill: parent
+                                    text: Settings.weatherLocation
+                                    font.pixelSize: 12
+                                    background: Rectangle {
+                                        color: ThemeManager.surface1
+                                        radius: 6
+                                    }
+                                    onEditingFinished: { Settings.weatherLocation = text; Settings.save() }
+                                }
+                                Text {
+                                    visible: locField.text.length === 0
+                                    text: "auto (IP-based)"
+                                    color: ThemeManager.placeholderColor
+                                    font.family: ThemeManager.uiFont
+                                    font.pixelSize: 12
+                                    anchors.verticalCenter: parent.verticalCenter
+                                    anchors.left: parent.left
+                                    anchors.leftMargin: 8
+                                }
                             }
                         }
                     }
@@ -682,80 +690,88 @@ Panel {
             SettingsSection {
                 title: "Interface"
                 SettingsCard {
-                    ToggleRow {
-                        label: "Follow Hyprland Window Rules"
-                        checked: Settings.followHyprlandRules
-                        onToggled: { Settings.followHyprlandRules = !checked; Settings.save() }
-                    }
-                    Text {
-                        text: Settings.followHyprlandRules
-                        ? "Rounding, border thickness, and border fill/opacity match the Hyprland tab."
-                        : "Widget chrome can be set independently. Turn this on to match Hyprland window rules."
-                        color: ThemeManager.fgTertiary
-                        font.family: ThemeManager.uiFont
-                        font.pixelSize: 12
-                        wrapMode: Text.WordWrap
-                        Layout.fillWidth: true
-                    }
-                }
-                SettingsCard {
-                    enabled: !Settings.followHyprlandRules
-                    ToggleRow {
-                        label: "Transparent backgrounds"
-                        checked: Settings.widgetTransparent
-                        onToggled: {
-                            Settings.widgetTransparent = !checked
-                            if (!checked && Settings.widgetOpacity >= 0.99)
-                            Settings.widgetOpacity = 0.70
-                            Settings.save()
+                    SettingsSubcard {
+                        ToggleRow {
+                            label: "Follow Hyprland Window Rules"
+                            checked: Settings.followHyprlandRules
+                            onToggled: { Settings.followHyprlandRules = !checked; Settings.save() }
+                        }
+                        Text {
+                            text: Settings.followHyprlandRules
+                            ? "Rounding, border thickness, and border fill/opacity match the Hyprland tab."
+                            : "Widget chrome can be set independently. Turn this on to match Hyprland window rules."
+                            color: ThemeManager.fgTertiary
+                            font.family: ThemeManager.uiFont
+                            font.pixelSize: 12
+                            wrapMode: Text.WordWrap
+                            Layout.fillWidth: true
                         }
                     }
-                    Text {
-                        text: "Glassy content area so the wallpaper shows through. Window chrome (frame, sidebar) stays more solid."
-                        color: ThemeManager.fgTertiary
-                        font.family: ThemeManager.uiFont
-                        font.pixelSize: 12
-                        wrapMode: Text.WordWrap
-                        Layout.fillWidth: true
-                    }
-                    TransparencySlider {
-                        visible: Settings.widgetTransparent
-                        opacityValue: Settings.widgetOpacity
-                        onChanged: value => Settings.widgetOpacity = value
-                        onReleased: Settings.save()
+                }
+                SettingsCard {
+                    enabled: !Settings.followHyprlandRules
+                    SettingsSubcard {
+                        ToggleRow {
+                            label: "Transparent backgrounds"
+                            checked: Settings.widgetTransparent
+                            onToggled: {
+                                Settings.widgetTransparent = !checked
+                                if (!checked && Settings.widgetOpacity >= 0.99)
+                                Settings.widgetOpacity = 0.70
+                                Settings.save()
+                            }
+                        }
+                        Text {
+                            text: "Glassy content area so the wallpaper shows through. Window chrome (frame, sidebar) stays more solid."
+                            color: ThemeManager.fgTertiary
+                            font.family: ThemeManager.uiFont
+                            font.pixelSize: 12
+                            wrapMode: Text.WordWrap
+                            Layout.fillWidth: true
+                        }
+                        TransparencySlider {
+                            visible: Settings.widgetTransparent
+                            opacityValue: Settings.widgetOpacity
+                            onChanged: value => Settings.widgetOpacity = value
+                            onReleased: Settings.save()
+                        }
                     }
                 }
                 SettingsCard {
                     enabled: !Settings.followHyprlandRules
-                    ToggleRow {
-                        label: "Widget borders"
-                        checked: Settings.showWidgetBorders
-                        onToggled: { Settings.showWidgetBorders = !checked; Settings.save() }
-                    }
-                    Text {
-                        text: "Border properties can be configured in the Hyprland tab."
-                        color: ThemeManager.fgTertiary
-                        font.family: ThemeManager.uiFont
-                        font.pixelSize: 12
-                        wrapMode: Text.WordWrap
-                        Layout.fillWidth: true
+                    SettingsSubcard {
+                        ToggleRow {
+                            label: "Widget borders"
+                            checked: Settings.showWidgetBorders
+                            onToggled: { Settings.showWidgetBorders = !checked; Settings.save() }
+                        }
+                        Text {
+                            text: "Border properties can be configured in the Hyprland tab."
+                            color: ThemeManager.fgTertiary
+                            font.family: ThemeManager.uiFont
+                            font.pixelSize: 12
+                            wrapMode: Text.WordWrap
+                            Layout.fillWidth: true
+                        }
                     }
                 }
                 SettingsCard {
                     enabled: !Settings.followHyprlandRules
                     visible: Settings.showWidgetBorders || (Settings.followHyprlandRules && Settings.hyprShowBorder)
-                    ColumnLayout {
-                        Layout.fillWidth: true
-                        spacing: 8
-                        Text {
-                            text: `Border thickness: ${Settings.hyprBorderSize}px`
-                            color: ThemeManager.fgPrimary
-                            font.family: ThemeManager.uiFont
-                        }
-                        ValueChipRow {
-                            values: [1, 2, 3, 4, 5]
-                            current: Settings.hyprBorderSize
-                            onPicked: value => root.applyBorderSize(value)
+                    SettingsSubcard {
+                        ColumnLayout {
+                            Layout.fillWidth: true
+                            spacing: 8
+                            Text {
+                                text: `Border thickness: ${Settings.hyprBorderSize}px`
+                                color: ThemeManager.fgPrimary
+                                font.family: ThemeManager.uiFont
+                            }
+                            ValueChipRow {
+                                values: [1, 2, 3, 4, 5]
+                                current: Settings.hyprBorderSize
+                                onPicked: value => root.applyBorderSize(value)
+                            }
                         }
                     }
                 }
@@ -764,19 +780,21 @@ Panel {
             SettingsSection {
                 title: "UI Font"
                 SettingsCard {
-                    Text {
-                        text: "Fonts used by the shell, independent of other system fonts."
-                        color: ThemeManager.fgTertiary
-                        font.family: ThemeManager.uiFont
-                        font.pixelSize: 12
-                        Layout.fillWidth: true
-                    }
-                    FontChipFlow {
-                        Layout.fillWidth: true
-                        current: Settings.uiFont
-                        onPicked: key => {
-                            Settings.uiFont = key
-                            Settings.save()
+                    SettingsSubcard {
+                        Text {
+                            text: "Fonts used by the shell, independent of other system fonts."
+                            color: ThemeManager.fgTertiary
+                            font.family: ThemeManager.uiFont
+                            font.pixelSize: 12
+                            Layout.fillWidth: true
+                        }
+                        FontChipFlow {
+                            Layout.fillWidth: true
+                            current: Settings.uiFont
+                            onPicked: key => {
+                                Settings.uiFont = key
+                                Settings.save()
+                            }
                         }
                     }
                 }
@@ -801,95 +819,101 @@ Panel {
             SettingsSection {
                 title: "Position & Size"
                 SettingsCard {
-                    ColumnLayout {
-                        Layout.fillWidth: true
-                        spacing: 8
-                        Text {
-                            text: "Bar position"
-                            color: ThemeManager.fgPrimary
-                            font.family: ThemeManager.uiFont
-                            font.pixelSize: 13
-                        }
-                        ChoiceChipRow {
-                            options: [
-                                { id: "top", label: "Top" },
-                                { id: "bottom", label: "Bottom" }
-                            ]
-                            current: Settings.barPosition
-                            onPicked: id => {
-                                Settings.barPosition = id
-                                if (id === "bottom")
-                                    Settings.dockEnabled = false
-                                Settings.save()
-                            }
-                        }
-                        Text {
-                            visible: Settings.barPosition === "bottom"
-                            text: "The dock is turned off while the bar is on the bottom."
-                            color: ThemeManager.fgTertiary
-                            font.family: ThemeManager.uiFont
-                            font.pixelSize: 12
-                            wrapMode: Text.WordWrap
+                    SettingsSubcard {
+                        ColumnLayout {
                             Layout.fillWidth: true
+                            spacing: 8
+                            Text {
+                                text: "Bar position"
+                                color: ThemeManager.fgPrimary
+                                font.family: ThemeManager.uiFont
+                                font.pixelSize: 13
+                            }
+                            ChoiceChipRow {
+                                options: [
+                                    { id: "top", label: "Top" },
+                                    { id: "bottom", label: "Bottom" }
+                                ]
+                                current: Settings.barPosition
+                                onPicked: id => {
+                                    Settings.barPosition = id
+                                    if (id === "bottom")
+                                        Settings.dockEnabled = false
+                                    Settings.save()
+                                }
+                            }
+                            Text {
+                                visible: Settings.barPosition === "bottom"
+                                text: "The dock is turned off while the bar is on the bottom."
+                                color: ThemeManager.fgTertiary
+                                font.family: ThemeManager.uiFont
+                                font.pixelSize: 12
+                                wrapMode: Text.WordWrap
+                                Layout.fillWidth: true
+                            }
                         }
                     }
                 }
                 SettingsCard {
-                    ColumnLayout {
-                        Layout.fillWidth: true
-                        spacing: 8
-                        Text {
-                            text: "Bar size"
-                            color: ThemeManager.fgPrimary
-                            font.family: ThemeManager.uiFont
-                            font.pixelSize: 13
-                        }
-                        ChoiceChipRow {
-                            options: [
-                                { id: "small", label: "Normal" },
-                                { id: "large", label: "Large" }
-                            ]
-                            current: Settings.barSize === "large" ? "large" : "small"
-                            onPicked: id => { Settings.barSize = id; Settings.save() }
+                    SettingsSubcard {
+                        ColumnLayout {
+                            Layout.fillWidth: true
+                            spacing: 8
+                            Text {
+                                text: "Bar size"
+                                color: ThemeManager.fgPrimary
+                                font.family: ThemeManager.uiFont
+                                font.pixelSize: 13
+                            }
+                            ChoiceChipRow {
+                                options: [
+                                    { id: "small", label: "Normal" },
+                                    { id: "large", label: "Large" }
+                                ]
+                                current: Settings.barSize === "large" ? "large" : "small"
+                                onPicked: id => { Settings.barSize = id; Settings.save() }
+                            }
                         }
                     }
                 }
                 SettingsCard {
                     enabled: Settings.barStyle !== "islands"
-                    ColumnLayout {
-                        Layout.fillWidth: true
-                        spacing: 8
-                        Text {
-                            text: "Bar mode"
-                            color: ThemeManager.fgPrimary
-                            font.family: ThemeManager.uiFont
-                            font.pixelSize: 13
-                        }
-                        ChoiceChipRow {
-                            options: [
-                                { id: "floating", label: "Floating" },
-                                { id: "docked", label: "Docked" }
-                            ]
-                            current: Settings.barFloating ? "floating" : "docked"
-                            disabledIds: Settings.barStyle === "islands" ? ["docked"] : []
-                            onPicked: id => {
-                                Settings.barFloating = id === "floating"
-                                if (id === "docked")
-                                    Settings.barStyle = "single"
-                                Settings.save()
-                            }
-                        }
-                        Text {
-                            text: Settings.barStyle === "islands"
-                                ? "Islands stay floating. Switch Appearance → Bar style to Single to dock the bar."
-                                : (Settings.barFloating
-                                    ? "Inset from the screen edge with a small gap. Panels open with an elastic pop."
-                                    : "Flush against the screen edge. Widgets emerge from a screen frame.")
-                            color: ThemeManager.fgTertiary
-                            font.family: ThemeManager.uiFont
-                            font.pixelSize: 12
-                            wrapMode: Text.WordWrap
+                    SettingsSubcard {
+                        ColumnLayout {
                             Layout.fillWidth: true
+                            spacing: 8
+                            Text {
+                                text: "Bar mode"
+                                color: ThemeManager.fgPrimary
+                                font.family: ThemeManager.uiFont
+                                font.pixelSize: 13
+                            }
+                            ChoiceChipRow {
+                                options: [
+                                    { id: "floating", label: "Floating" },
+                                    { id: "docked", label: "Docked" }
+                                ]
+                                current: Settings.barFloating ? "floating" : "docked"
+                                disabledIds: Settings.barStyle === "islands" ? ["docked"] : []
+                                onPicked: id => {
+                                    Settings.barFloating = id === "floating"
+                                    if (id === "docked")
+                                        Settings.barStyle = "single"
+                                    Settings.save()
+                                }
+                            }
+                            Text {
+                                text: Settings.barStyle === "islands"
+                                    ? "Islands stay floating. Switch Appearance → Bar style to Single to dock the bar."
+                                    : (Settings.barFloating
+                                        ? "Inset from the screen edge with a small gap. Panels open with an elastic pop."
+                                        : "Flush against the screen edge. Widgets emerge from a screen frame.")
+                                color: ThemeManager.fgTertiary
+                                font.family: ThemeManager.uiFont
+                                font.pixelSize: 12
+                                wrapMode: Text.WordWrap
+                                Layout.fillWidth: true
+                            }
                         }
                     }
                 }
@@ -898,46 +922,50 @@ Panel {
             SettingsSection {
                 title: "Appearance"
                 SettingsCard {
-                    ColumnLayout {
-                        Layout.fillWidth: true
-                        spacing: 8
-                        Text {
-                            text: "Bar style"
-                            color: ThemeManager.fgPrimary
-                            font.family: ThemeManager.uiFont
-                            font.pixelSize: 13
-                        }
-                        ChoiceChipRow {
-                            options: [
-                                { id: "single", label: "Single" },
-                                { id: "islands", label: "Islands" }
-                            ]
-                            current: Settings.barStyle
-                            disabledIds: Settings.barFloating ? [] : ["islands"]
-                            onPicked: id => {
-                                Settings.barStyle = id
-                                if (id === "islands")
-                                    Settings.barFloating = true
-                                Settings.save()
-                            }
-                        }
-                        Text {
-                            text: Settings.barStyle === "islands"
-                                ? "Left, center, and right each sit in their own pill. Islands require a floating bar."
-                                : "One continuous bar across the screen."
-                            color: ThemeManager.fgTertiary
-                            font.family: ThemeManager.uiFont
-                            font.pixelSize: 12
-                            wrapMode: Text.WordWrap
+                    SettingsSubcard {
+                        ColumnLayout {
                             Layout.fillWidth: true
+                            spacing: 8
+                            Text {
+                                text: "Bar style"
+                                color: ThemeManager.fgPrimary
+                                font.family: ThemeManager.uiFont
+                                font.pixelSize: 13
+                            }
+                            ChoiceChipRow {
+                                options: [
+                                    { id: "single", label: "Single" },
+                                    { id: "islands", label: "Islands" }
+                                ]
+                                current: Settings.barStyle
+                                disabledIds: Settings.barFloating ? [] : ["islands"]
+                                onPicked: id => {
+                                    Settings.barStyle = id
+                                    if (id === "islands")
+                                        Settings.barFloating = true
+                                    Settings.save()
+                                }
+                            }
+                            Text {
+                                text: Settings.barStyle === "islands"
+                                    ? "Left, center, and right each sit in their own pill. Islands require a floating bar."
+                                    : "One continuous bar across the screen."
+                                color: ThemeManager.fgTertiary
+                                font.family: ThemeManager.uiFont
+                                font.pixelSize: 12
+                                wrapMode: Text.WordWrap
+                                Layout.fillWidth: true
+                            }
                         }
                     }
                 }
                 SettingsCard {
-                    ToggleRow {
-                        label: "Numbered workspaces"
-                        checked: Settings.workspaceStyle === "numbers"
-                        onToggled: { Settings.workspaceStyle = !checked ? "numbers" : "dots"; Settings.save() }
+                    SettingsSubcard {
+                        ToggleRow {
+                            label: "Numbered workspaces"
+                            checked: Settings.workspaceStyle === "numbers"
+                            onToggled: { Settings.workspaceStyle = !checked ? "numbers" : "dots"; Settings.save() }
+                        }
                     }
                 }
                 SettingsCard {
@@ -1018,29 +1046,31 @@ Panel {
                 }
                 SettingsCard {
                     enabled: !Settings.barFollowHyprland
-                    ColumnLayout {
-                        Layout.fillWidth: true
-                        spacing: 8
-                        Text {
-                            text: "Background fill"
-                            color: ThemeManager.fgPrimary
-                            font.family: ThemeManager.uiFont
-                            font.pixelSize: 13
+                    SettingsSubcard {
+                        ColumnLayout {
+                            Layout.fillWidth: true
+                            spacing: 8
+                            Text {
+                                text: "Background fill"
+                                color: ThemeManager.fgPrimary
+                                font.family: ThemeManager.uiFont
+                                font.pixelSize: 13
+                            }
+                            ChoiceChipRow {
+                                options: [
+                                    { id: "opaque", label: "Solid" },
+                                    { id: "translucent", label: "Transparent" }
+                                ]
+                                current: Settings.barBackgroundStyle === "opaque" ? "opaque" : "translucent"
+                                onPicked: id => { Settings.barBackgroundStyle = id; Settings.save() }
+                            }
                         }
-                        ChoiceChipRow {
-                            options: [
-                                { id: "opaque", label: "Solid" },
-                                { id: "translucent", label: "Transparent" }
-                            ]
-                            current: Settings.barBackgroundStyle === "opaque" ? "opaque" : "translucent"
-                            onPicked: id => { Settings.barBackgroundStyle = id; Settings.save() }
+                        TransparencySlider {
+                            visible: Settings.barBackgroundStyle !== "opaque"
+                            opacityValue: Settings.barOpacity
+                            onChanged: value => Settings.barOpacity = value
+                            onReleased: Settings.save()
                         }
-                    }
-                    TransparencySlider {
-                        visible: Settings.barBackgroundStyle !== "opaque"
-                        opacityValue: Settings.barOpacity
-                        onChanged: value => Settings.barOpacity = value
-                        onReleased: Settings.save()
                     }
                 }
             }
@@ -1048,63 +1078,71 @@ Panel {
             SettingsSection {
                 title: "System Tray"
                 SettingsCard {
-                    ToggleRow {
-                        label: "Show application tray icons"
-                        checked: Settings.showSystemTray
-                        onToggled: { Settings.showSystemTray = !checked; Settings.save() }
-                    }
-                    Text {
-                        text: "Icons that apps put in the tray, such as Cursor. Off by default because those pixmaps rarely line up with the bar icons."
-                        color: ThemeManager.fgTertiary
-                        font.family: ThemeManager.uiFont
-                        font.pixelSize: 12
-                        wrapMode: Text.WordWrap
-                        Layout.fillWidth: true
-                    }
-                }
-                SettingsCard {
-                    ToggleRow {
-                        label: "Show battery percentage"
-                        checked: Settings.showBatteryPercent
-                        onToggled: { Settings.showBatteryPercent = !checked; Settings.save() }
-                    }
-                    Text {
-                        text: "Shows the charge percentage to the right of the battery icon. Desktops on AC power still show the adapter icon."
-                        color: ThemeManager.fgTertiary
-                        font.family: ThemeManager.uiFont
-                        font.pixelSize: 12
-                        wrapMode: Text.WordWrap
-                        Layout.fillWidth: true
+                    SettingsSubcard {
+                        ToggleRow {
+                            label: "Show application tray icons"
+                            checked: Settings.showSystemTray
+                            onToggled: { Settings.showSystemTray = !checked; Settings.save() }
+                        }
+                        Text {
+                            text: "Icons that apps put in the tray, such as Cursor. Off by default because those pixmaps rarely line up with the bar icons."
+                            color: ThemeManager.fgTertiary
+                            font.family: ThemeManager.uiFont
+                            font.pixelSize: 12
+                            wrapMode: Text.WordWrap
+                            Layout.fillWidth: true
+                        }
                     }
                 }
                 SettingsCard {
-                    ToggleRow {
-                        label: "Show volume percentage"
-                        checked: Settings.showVolumePercent
-                        onToggled: { Settings.showVolumePercent = !checked; Settings.save() }
-                    }
-                    Text {
-                        text: "Shows the current output volume to the right of the speaker icon."
-                        color: ThemeManager.fgTertiary
-                        font.family: ThemeManager.uiFont
-                        font.pixelSize: 12
-                        wrapMode: Text.WordWrap
-                        Layout.fillWidth: true
+                    SettingsSubcard {
+                        ToggleRow {
+                            label: "Show battery percentage"
+                            checked: Settings.showBatteryPercent
+                            onToggled: { Settings.showBatteryPercent = !checked; Settings.save() }
+                        }
+                        Text {
+                            text: "Shows the charge percentage to the right of the battery icon. Desktops on AC power still show the adapter icon."
+                            color: ThemeManager.fgTertiary
+                            font.family: ThemeManager.uiFont
+                            font.pixelSize: 12
+                            wrapMode: Text.WordWrap
+                            Layout.fillWidth: true
+                        }
                     }
                 }
                 SettingsCard {
-                    ToggleRow {
-                        label: "Show network up/down speeds"
-                        checked: Settings.showNetworkSpeed
-                        onToggled: { Settings.showNetworkSpeed = !checked; Settings.save() }
+                    SettingsSubcard {
+                        ToggleRow {
+                            label: "Show volume percentage"
+                            checked: Settings.showVolumePercent
+                            onToggled: { Settings.showVolumePercent = !checked; Settings.save() }
+                        }
+                        Text {
+                            text: "Shows the current output volume to the right of the speaker icon."
+                            color: ThemeManager.fgTertiary
+                            font.family: ThemeManager.uiFont
+                            font.pixelSize: 12
+                            wrapMode: Text.WordWrap
+                            Layout.fillWidth: true
+                        }
                     }
-                    Text {
-                        text: "Shows download and upload rates next to the network icon while connected. Values are a rolling average over the last minute so the tray stays steady."
-                        color: ThemeManager.fgTertiary
-                        font.family: ThemeManager.uiFont
-                        font.pixelSize: 12
-                        wrapMode: Text.WordWrap
-                        Layout.fillWidth: true
+                }
+                SettingsCard {
+                    SettingsSubcard {
+                        ToggleRow {
+                            label: "Show network up/down speeds"
+                            checked: Settings.showNetworkSpeed
+                            onToggled: { Settings.showNetworkSpeed = !checked; Settings.save() }
+                        }
+                        Text {
+                            text: "Shows download and upload rates next to the network icon while connected. Values are a rolling average over the last minute so the tray stays steady."
+                            color: ThemeManager.fgTertiary
+                            font.family: ThemeManager.uiFont
+                            font.pixelSize: 12
+                            wrapMode: Text.WordWrap
+                            Layout.fillWidth: true
+                        }
                     }
                 }
             }
