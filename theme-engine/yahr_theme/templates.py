@@ -524,11 +524,12 @@ toolbar {{
     outline: none !important;
 }}
 
-/* Modern Firefox paints a pill-shaped #urlbar-background. Keep outer
-   chrome transparent and only color that rounded layer so themed fills
-   follow the native capsule ends instead of square corners. */
+/* Firefox 143+ renamed #urlbar-background → .urlbar-background. Target
+   both so older and newer builds keep a pill fill without a square focus
+   outline fighting the capsule ends. */
 #urlbar,
 #urlbar-input-container,
+.urlbar-input-container,
 #urlbar-container,
 #search-container {{
     background-color: transparent !important;
@@ -537,7 +538,7 @@ toolbar {{
     outline: none !important;
 }}
 
-#urlbar-background,
+:is(#urlbar-background, .urlbar-background),
 #searchbar {{
     background-color: var(--surface1) !important;
     color: var(--fg-primary) !important;
@@ -557,8 +558,8 @@ toolbar {{
 
 /* Expanded / breakout results use a softer rounded rect so the dropdown
    plate still meets the field cleanly. */
-#urlbar[breakout][breakout-extend] > #urlbar-background,
-#urlbar[open] > #urlbar-background {{
+#urlbar[breakout][breakout-extend] > :is(#urlbar-background, .urlbar-background),
+#urlbar[open] > :is(#urlbar-background, .urlbar-background) {{
     border-radius: 12px !important;
     background-color: var(--surface1) !important;
     border: none !important;
@@ -566,11 +567,20 @@ toolbar {{
     outline: none !important;
 }}
 
-#urlbar[focused="true"] > #urlbar-background,
+/* Kill the stock rectangular focus outline; use a pill border instead so
+   the accent still reads when the field is focused. */
+#urlbar[focused="true"]:not([suppress-focus-border]) > :is(#urlbar-background, .urlbar-background),
+#urlbar[focused]:not([suppress-focus-border]) > :is(#urlbar-background, .urlbar-background),
 #searchbar:focus-within {{
-    border: none !important;
-    box-shadow: none !important;
     outline: none !important;
+    box-shadow: none !important;
+    border: 2px solid var(--accent-blue) !important;
+    border-radius: 9999px !important;
+}}
+
+#urlbar[breakout][breakout-extend][focused] > :is(#urlbar-background, .urlbar-background),
+#urlbar[open][focused] > :is(#urlbar-background, .urlbar-background) {{
+    border-radius: 12px !important;
 }}
 
 #urlbar toolbarbutton,
