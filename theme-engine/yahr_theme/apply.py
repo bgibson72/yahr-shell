@@ -397,6 +397,14 @@ def _window_opacity() -> float:
         return 0.92
 
 
+def _ghostty_config_block(*, light: bool) -> str:
+    return templates.ghostty_config_block(
+        light=light,
+        background_opacity=_window_opacity(),
+        gtk_css_path=str(paths.ghostty_gtk_css()),
+    )
+
+
 def sync_ghostty_opacity() -> None:
     palette: dict = {}
     try:
@@ -409,20 +417,21 @@ def sync_ghostty_opacity() -> None:
     conf = paths.ghostty_config()
     if not conf.is_file():
         return
-    _upsert_hash_block(conf, templates.ghostty_config_block(
-        light=light, background_opacity=_window_opacity()))
+    # Keep the gtk.css file in sync even on opacity-only refreshes.
+    _write(paths.ghostty_gtk_css(), templates.ghostty_gtk_css())
+    _upsert_hash_block(conf, _ghostty_config_block(light=light))
 
 
 def _install_ghostty_theme(palette: dict) -> None:
     theme_path = paths.ghostty_theme()
     theme_path.parent.mkdir(parents=True, exist_ok=True)
     _write(theme_path, templates.ghostty_theme(palette))
+    _write(paths.ghostty_gtk_css(), templates.ghostty_gtk_css())
     conf = paths.ghostty_config()
     if not conf.is_file() or not conf.read_text().strip():
         _write(conf, templates.ghostty_config_base())
     light = palette_mode(palette) == "light"
-    _upsert_hash_block(conf, templates.ghostty_config_block(
-        light=light, background_opacity=_window_opacity()))
+    _upsert_hash_block(conf, _ghostty_config_block(light=light))
 
 
 def _theme_installed(name: str) -> bool:
