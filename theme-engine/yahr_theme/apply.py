@@ -184,7 +184,6 @@ def _sync_sddm() -> None:
     if not script.is_file():
         return
     sddm = _settings().get("sddm") or {}
-    blur = 0 if not sddm.get("blurEnabled", True) else int(sddm.get("blurAmount", 20) or 0)
     opacity = sddm.get("loginOpacity", 0.75)
     wallpaper = "desktop" if sddm.get("followDesktop", True) else (sddm.get("customWallpaper") or "none")
     _run([
@@ -192,8 +191,6 @@ def _sync_sddm() -> None:
         str(script),
         "--opacity",
         f"{float(opacity):.2f}",
-        "--blur",
-        str(blur),
         "--wallpaper",
         str(wallpaper),
     ])

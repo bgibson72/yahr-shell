@@ -242,7 +242,6 @@ Panel {
 
     function applySddm() {
         Settings.save()
-        const blur = Settings.sddmBlurEnabled ? Settings.sddmBlurAmount : 0
         const wallpaper = Settings.sddmFollowDesktop ? "desktop" : (root.sddmWallpaperPath() || "none")
         root.sddmOpacityError = false
         root.sddmStatusMessage = ""
@@ -251,7 +250,6 @@ Panel {
             root.resolveRepoScript("sddm-apply.py"),
             "_",
             "--opacity", Settings.sddmLoginOpacity.toFixed(2),
-            "--blur", String(blur),
             "--wallpaper", wallpaper
         ]
         sddmThemeWriter.running = true
@@ -286,13 +284,11 @@ exec python3 "$SCRIPT" "$@"`
     function syncSddmWallpaper(path) {
         if (!Settings.sddmFollowDesktop)
             return
-        const blur = Settings.sddmBlurEnabled ? Settings.sddmBlurAmount : 0
         Quickshell.execDetached([
             "bash", "-c",
             root.resolveRepoScript("sddm-apply.py"),
             "_",
             "--opacity", Settings.sddmLoginOpacity.toFixed(2),
-            "--blur", String(blur),
             "--wallpaper", path
         ])
     }
@@ -2443,7 +2439,7 @@ exec python3 "$SCRIPT" "$@"`
                     SettingsCard {
                         SettingsSubcard {
                             Text {
-                                text: "Match the desktop wallpaper, or pick a different image. Theme colors update with Settings → Theme. Wallpaper and blur refresh when the desktop wallpaper changes (if Match desktop is on) or when you Apply."
+                                text: "Match the desktop wallpaper, or pick a different image. Theme colors update with Settings → Theme. Wallpaper refreshes when the desktop wallpaper changes (if Match desktop is on) or when you Apply."
                                 color: ThemeManager.fgTertiary
                                 font.family: ThemeManager.uiFont
                                 font.pixelSize: 12
@@ -2550,9 +2546,9 @@ exec python3 "$SCRIPT" "$@"`
                                     fillMode: Image.PreserveAspectCrop
                                     asynchronous: true
                                     visible: status === Image.Ready
-                                    layer.enabled: visible && Settings.sddmBlurEnabled && Settings.sddmBlurAmount > 0
+                                    layer.enabled: visible
                                     layer.effect: FastBlur {
-                                        radius: Settings.sddmBlurAmount
+                                        radius: 32
                                     }
                                 }
                                 Text {
@@ -2565,25 +2561,6 @@ exec python3 "$SCRIPT" "$@"`
                                 }
                             }
                         }
-                        SettingsSubcard {
-                            ToggleRow {
-                                label: "Blur background"
-                                checked: Settings.sddmBlurEnabled
-                                onToggled: {
-                                    Settings.sddmBlurEnabled = !checked
-                                    Settings.save()
-                                }
-                            }
-                            IntSlider {
-                                visible: Settings.sddmBlurEnabled
-                                label: `Blur amount  ${Settings.sddmBlurAmount}`
-                                value: Settings.sddmBlurAmount
-                                minValue: 1
-                                maxValue: 40
-                                onChanged: value => Settings.sddmBlurAmount = value
-                                onReleased: Settings.save()
-                            }
-                        }
                     }
                 }
 
@@ -2592,7 +2569,7 @@ exec python3 "$SCRIPT" "$@"`
                     SettingsCard {
                         SettingsSubcard {
                             Text {
-                                text: "Opacity of the login plate. Apply writes colors, wallpaper, blur, and opacity. Passwordless apply needs the yahr-sddm sudoers rule."
+                                text: "Opacity of the login plate. Apply writes colors, wallpaper, and opacity. Passwordless apply needs the yahr-sddm sudoers rule."
                                 color: ThemeManager.fgTertiary
                                 font.family: ThemeManager.uiFont
                                 font.pixelSize: 12

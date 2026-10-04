@@ -60,8 +60,6 @@
   "sddm": {
     "followDesktop": true,
     "customWallpaper": "",
-    "blurEnabled": true,
-    "blurAmount": 20,
     "loginOpacity": 0.75
   }
 }

@@ -25,6 +25,8 @@ CONF = THEME_DIR / "theme.conf"
 IMAGE_EXTS = {".png", ".jpg", ".jpeg", ".webp", ".gif", ".bmp"}
 PNG_MAGIC = b"\x89PNG\r\n\x1a\n"
 JPEG_MAGIC = b"\xff\xd8\xff"
+# 80% of the former Settings slider (1–40). Full-screen FastBlur radius.
+GREETER_BACKGROUND_BLUR = 32
 # Default name; may become .jpg if PNG conversion is unavailable.
 BACKGROUND_STEM = "login-background"
 HOME = Path(os.environ.get("HOME", str(Path.home())))
@@ -284,14 +286,12 @@ def apply_palette(text: str, settings: dict) -> str:
 def main() -> int:
     parser = argparse.ArgumentParser(description="Apply YAHR SDDM wallpaper, blur, and palette")
     parser.add_argument("--opacity", required=True)
-    parser.add_argument("--blur", required=True, type=int)
+    parser.add_argument("--blur", type=int, default=GREETER_BACKGROUND_BLUR,
+                        help="Ignored; greeter blur is fixed at 80% (radius 32).")
     parser.add_argument("--wallpaper", default="desktop")
     args = parser.parse_args()
 
     if not re.fullmatch(r"[0-9]+(\.[0-9]+)?", args.opacity):
-        print("BAD_VALUE")
-        return 1
-    if args.blur < 0 or args.blur > 64:
         print("BAD_VALUE")
         return 1
     if not CONF.is_file():
@@ -302,8 +302,7 @@ def main() -> int:
     settings = load_json(HOME / ".config/yahr/settings.json")
     wallpaper = resolve_wallpaper(args.wallpaper)
     dest_name = None
-    # Blur is applied at runtime on the full-screen layer only; assets stay sharp.
-    runtime_blur = args.blur
+    runtime_blur = GREETER_BACKGROUND_BLUR
     if wallpaper is not None:
         dest = write_theme_wallpaper(wallpaper)
         if dest is None:
