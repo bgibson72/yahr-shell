@@ -2566,6 +2566,14 @@ exec python3 "$SCRIPT" "$@"`
                                 wrapMode: Text.WordWrap
                                 Layout.fillWidth: true
                             }
+                            Text {
+                                text: `UI source: ${root.tidyHomePath(Quickshell.shellDir)}`
+                                color: ThemeManager.fgTertiary
+                                font.family: ThemeManager.uiFont
+                                font.pixelSize: 11
+                                wrapMode: Text.WordWrap
+                                Layout.fillWidth: true
+                            }
                             Row {
                                 spacing: 10
                                 Rectangle {
