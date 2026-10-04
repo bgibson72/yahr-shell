@@ -287,7 +287,7 @@ def main() -> int:
     parser = argparse.ArgumentParser(description="Apply YAHR SDDM wallpaper, blur, and palette")
     parser.add_argument("--opacity", required=True)
     parser.add_argument("--blur", type=int, default=GREETER_BACKGROUND_BLUR,
-                        help="Ignored; greeter blur is fixed at 80% (radius 32).")
+                        help="Ignored; greeter blur is fixed at 80%% (radius 32).")
     parser.add_argument("--wallpaper", default="desktop")
     args = parser.parse_args()
 
