@@ -1,0 +1,30 @@
+#!/usr/bin/env bash
+# Resolve and run the best set-wallpaper.py (git clone via repo-root, else local).
+set -euo pipefail
+
+SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+CANDIDATES=()
+
+if [[ -f "${HOME}/.config/yahr/repo-root" ]]; then
+  ROOT="$(tr -d '[:space:]' < "${HOME}/.config/yahr/repo-root")"
+  if [[ -n "$ROOT" && -f "${ROOT}/quickshell/scripts/set-wallpaper.py" ]]; then
+    CANDIDATES+=("${ROOT}/quickshell/scripts/set-wallpaper.py")
+  fi
+fi
+CANDIDATES+=("${SCRIPT_DIR}/set-wallpaper.py")
+CANDIDATES+=("${HOME}/.local/share/yahr-shell/quickshell/scripts/set-wallpaper.py")
+
+SETTER=""
+for candidate in "${CANDIDATES[@]}"; do
+  if [[ -f "$candidate" ]]; then
+    SETTER="$candidate"
+    break
+  fi
+done
+
+if [[ -z "$SETTER" ]]; then
+  echo "MISSING_SET_WALLPAPER_SCRIPT" >&2
+  exit 1
+fi
+
+exec python3 "$SETTER" "$@"
