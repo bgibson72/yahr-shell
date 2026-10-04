@@ -2,8 +2,13 @@
 """Sync the YAHR SDDM greeter with the current palette, clock, and wallpaper.
 
 Writes colors from ~/.config/yahr/current.json, clock/date formats from
-settings.json, then copies a (optionally pre-blurred) wallpaper into
-/usr/share/sddm/themes/yahr-theme. Needs the yahr-sddm sudoers rule.
+settings.json, then copies sharp wallpaper assets into
+/usr/share/sddm/themes/yahr-theme. Full-screen blur is applied at runtime by
+the greeter (FastBlur); the left-panel hero always uses the sharp image.
+
+Assets are always written as login-background.png and login-hero.png so every
+wallpaper change overwrites the same paths the greeter loads.
+Needs the yahr-sddm sudoers rule.
 """
 
 from __future__ import annotations
@@ -14,13 +19,15 @@ import os
 import re
 import shutil
 import subprocess
-import sys
 import tempfile
 from pathlib import Path
 
 THEME_DIR = Path("/usr/share/sddm/themes/yahr-theme")
 CONF = THEME_DIR / "theme.conf"
 IMAGE_EXTS = {".png", ".jpg", ".jpeg", ".webp", ".gif", ".bmp"}
+# Stable names — avoid leftover login-hero.jpg while conf points at .png, etc.
+BACKGROUND_NAME = "login-background.png"
+HERO_NAME = "login-hero.png"
 HOME = Path(os.environ.get("HOME", str(Path.home())))
 
 
@@ -77,49 +84,100 @@ def set_key(text: str, key: str, value: str, quoted: bool = False) -> str:
 
 
 def sudo_cp(src: Path, dest: Path) -> bool:
+    # Tempfiles are often mode 600; force world-readable so the sddm greeter
+    # (and greeter --test-mode) can open theme assets under /usr/share.
+    try:
+        os.chmod(src, 0o644)
+    except OSError:
+        pass
     result = subprocess.run(
-        ["sudo", "-n", "cp", str(src), str(dest)],
+        ["sudo", "-n", "cp", "--no-preserve=mode", str(src), str(dest)],
         capture_output=True,
         text=True,
     )
-    return result.returncode == 0
-
-
-def sudo_write(dest: Path, text: str) -> bool:
-    result = subprocess.run(
-        ["sudo", "-n", "tee", str(dest)],
-        input=text,
+    if result.returncode != 0:
+        # Older cp without --no-preserve=mode
+        result = subprocess.run(
+            ["sudo", "-n", "cp", str(src), str(dest)],
+            capture_output=True,
+            text=True,
+        )
+    if result.returncode != 0:
+        return False
+    # Ensure destination is readable even if cp preserved a restrictive mode.
+    subprocess.run(
+        ["sudo", "-n", "chmod", "644", str(dest)],
         capture_output=True,
         text=True,
     )
-    return result.returncode == 0
+    return True
 
 
-def preblur(src: Path, dest: Path, radius: int) -> bool:
-    """Write a resized, blurred copy of src to dest via sudo cp."""
+def sudo_rm(path: Path) -> None:
+    if not path.exists():
+        return
+    subprocess.run(
+        ["sudo", "-n", "rm", "-f", str(path)],
+        capture_output=True,
+        text=True,
+    )
+
+
+def resize_wallpaper(src: Path, dest: Path) -> bool:
+    """Write a resized, sharp PNG copy of src to dest via sudo cp."""
     magick = shutil.which("magick") or shutil.which("convert")
-    suffix = dest.suffix if dest.suffix.lower() in IMAGE_EXTS else ".png"
-    with tempfile.NamedTemporaryFile(suffix=suffix, delete=False) as tmp:
+    with tempfile.NamedTemporaryFile(suffix=".png", delete=False) as tmp:
         tmp_path = Path(tmp.name)
     try:
-        if magick and radius > 0:
-            sigma = max(1, min(64, radius))
+        if magick:
             cmd = [
                 magick, str(src),
                 "-resize", "2560x1440^",
                 "-gravity", "center",
                 "-extent", "2560x1440",
-                "-blur", f"0x{sigma}",
-                str(tmp_path),
+                "png:" + str(tmp_path),
             ]
             result = subprocess.run(cmd, capture_output=True, text=True)
             if result.returncode != 0:
+                # Fall back to a direct copy when magick cannot convert.
                 shutil.copy2(src, tmp_path)
-            return sudo_cp(tmp_path, dest)
-        shutil.copy2(src, tmp_path)
+        else:
+            shutil.copy2(src, tmp_path)
+        os.chmod(tmp_path, 0o644)
         return sudo_cp(tmp_path, dest)
     finally:
         tmp_path.unlink(missing_ok=True)
+
+
+def clear_stale_wallpaper_assets(keep: set[str]) -> None:
+    """Remove older login-background.*/login-hero.* with other extensions."""
+    for path in THEME_DIR.glob("login-background.*"):
+        if path.name not in keep:
+            sudo_rm(path)
+    for path in THEME_DIR.glob("login-hero.*"):
+        if path.name not in keep:
+            sudo_rm(path)
+
+
+def find_theme_main() -> Path | None:
+    """Locate Main.qml from the git clone or installed share tree."""
+    candidates: list[Path] = []
+    repo_root_file = HOME / ".config/yahr/repo-root"
+    if repo_root_file.is_file():
+        try:
+            root = Path(repo_root_file.read_text().strip()).expanduser()
+            if root.is_dir():
+                candidates.append(root / "sddm" / "yahr-theme" / "Main.qml")
+        except OSError:
+            pass
+    here = Path(__file__).resolve()
+    # repo/quickshell/scripts → repo/sddm/...
+    candidates.append(here.parents[2] / "sddm" / "yahr-theme" / "Main.qml")
+    candidates.append(HOME / ".local/share/yahr-shell/sddm/yahr-theme/Main.qml")
+    for path in candidates:
+        if path.is_file():
+            return path
+    return None
 
 
 def apply_palette(text: str, settings: dict) -> str:
@@ -164,40 +222,63 @@ def main() -> int:
     settings = load_json(HOME / ".config/yahr/settings.json")
     wallpaper = resolve_wallpaper(args.wallpaper)
     dest_name = None
+    hero_name = None
+    # Blur is applied at runtime on the full-screen layer only; assets stay sharp.
     runtime_blur = args.blur
     if wallpaper is not None:
-        ext = wallpaper.suffix.lower()
-        if ext not in IMAGE_EXTS:
-            ext = ".png"
-        dest_name = f"login-background{ext}"
+        dest_name = BACKGROUND_NAME
+        hero_name = HERO_NAME
         dest = THEME_DIR / dest_name
-        if not preblur(wallpaper, dest, args.blur):
+        hero_dest = THEME_DIR / hero_name
+        if not resize_wallpaper(wallpaper, dest):
             print("FAIL")
             return 1
-        # Image is already blurred on disk; skip FastBlur in the greeter.
-        if args.blur > 0 and (shutil.which("magick") or shutil.which("convert")):
-            runtime_blur = 0
+        if not resize_wallpaper(wallpaper, hero_dest):
+            print("FAIL")
+            return 1
+        clear_stale_wallpaper_assets({dest_name, hero_name})
 
     face = HOME / ".face.icon"
     if face.is_file():
         sudo_cp(face, Path("/usr/share/sddm/faces") / f"{HOME.name}.face.icon")
 
-    repo_main = Path(__file__).resolve().parents[2] / "sddm" / "yahr-theme" / "Main.qml"
-    if repo_main.is_file():
-        sudo_cp(repo_main, THEME_DIR / "Main.qml")
+    theme_main = find_theme_main()
+    main_copied = False
+    if theme_main is not None:
+        main_copied = sudo_cp(theme_main, THEME_DIR / "Main.qml")
 
     text = CONF.read_text()
     text = set_key(text, "WidgetOpacity", args.opacity)
     text = set_key(text, "BackgroundBlur", str(runtime_blur))
+    text = set_key(text, "ShowHostname", "false")
     if dest_name:
         text = set_key(text, "Background", dest_name, quoted=True)
+    if hero_name:
+        text = set_key(text, "HeroBackground", hero_name, quoted=True)
     text = apply_palette(text, settings)
 
     if not sudo_write(CONF, text):
         print("FAIL")
         return 1
 
-    print("OK" if dest_name else "OK_NO_WALLPAPER")
+    # Verbose status so a stale/copied script is obvious in the terminal.
+    def _mode(path: Path) -> str:
+        try:
+            return oct(path.stat().st_mode & 0o777)
+        except OSError:
+            return "missing"
+
+    if dest_name:
+        print("OK")
+        print(f"wallpaper={wallpaper}")
+        print(f"background={THEME_DIR / dest_name} mode={_mode(THEME_DIR / dest_name)}")
+        print(f"hero={THEME_DIR / hero_name} mode={_mode(THEME_DIR / hero_name)}")
+        print(f"runtime_blur={runtime_blur}")
+        print(f"main_qml={'copied ' + str(theme_main) if main_copied else 'unchanged'}")
+    else:
+        print("OK_NO_WALLPAPER")
+        print(f"runtime_blur={runtime_blur}")
+        print(f"main_qml={'copied ' + str(theme_main) if main_copied else 'unchanged'}")
     return 0
 
 

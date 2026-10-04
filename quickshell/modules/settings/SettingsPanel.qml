@@ -246,15 +246,18 @@ Panel {
         const wallpaper = Settings.sddmFollowDesktop ? "desktop" : (root.sddmWallpaperPath() || "none")
         root.sddmOpacityError = false
         root.sddmStatusMessage = ""
+        // Prefer git-checkout scripts via repo-root; ~/.config/quickshell is an install copy.
         sddmThemeWriter.command = [
-            "python3",
-            `${Quickshell.shellDir}/scripts/sddm-apply.py`,
-            "--opacity",
-            Settings.sddmLoginOpacity.toFixed(2),
-            "--blur",
-            String(blur),
-            "--wallpaper",
-            wallpaper
+            "bash", "-c",
+            `ROOT=$(tr -d '[:space:]' < "$HOME/.config/yahr/repo-root" 2>/dev/null || true)
+             SCRIPT=""
+             [ -n "$ROOT" ] && [ -f "$ROOT/quickshell/scripts/sddm-apply.py" ] && SCRIPT="$ROOT/quickshell/scripts/sddm-apply.py"
+             [ -z "$SCRIPT" ] && SCRIPT="${Quickshell.shellDir}/scripts/sddm-apply.py"
+             exec python3 "$SCRIPT" "$@"`,
+            "_",
+            "--opacity", Settings.sddmLoginOpacity.toFixed(2),
+            "--blur", String(blur),
+            "--wallpaper", wallpaper
         ]
         sddmThemeWriter.running = true
     }
@@ -279,9 +282,15 @@ Panel {
     function applyWallpaper(path) {
         Settings.currentWallpaper = path
         Settings.save()
+        // Prefer git-checkout set-wallpaper.py so SDDM hero/background sync stays current.
         Quickshell.execDetached([
-            "python3",
-            `${Quickshell.shellDir}/scripts/set-wallpaper.py`,
+            "bash", "-c",
+            `ROOT=$(tr -d '[:space:]' < "$HOME/.config/yahr/repo-root" 2>/dev/null || true)
+             SCRIPT=""
+             [ -n "$ROOT" ] && [ -f "$ROOT/quickshell/scripts/set-wallpaper.py" ] && SCRIPT="$ROOT/quickshell/scripts/set-wallpaper.py"
+             [ -z "$SCRIPT" ] && SCRIPT="${Quickshell.shellDir}/scripts/set-wallpaper.py"
+             exec python3 "$SCRIPT" "$@"`,
+            "_",
             path,
             Settings.wallpaperTransition
         ])

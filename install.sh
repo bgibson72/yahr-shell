@@ -332,8 +332,12 @@ install_sudoers() {
     cat > "$tmp" <<EOF
 # Yahr Shell: greeter theme sync and Papirus folder colors.
 $user ALL=(ALL) NOPASSWD: /usr/bin/cp * /usr/share/sddm/themes/yahr-theme/*
+$user ALL=(ALL) NOPASSWD: /usr/bin/chmod 644 /usr/share/sddm/themes/yahr-theme/*
+$user ALL=(ALL) NOPASSWD: /usr/bin/rm -f /usr/share/sddm/themes/yahr-theme/login-background.*
+$user ALL=(ALL) NOPASSWD: /usr/bin/rm -f /usr/share/sddm/themes/yahr-theme/login-hero.*
 $user ALL=(ALL) NOPASSWD: /usr/bin/tee /usr/share/sddm/themes/yahr-theme/theme.conf
 $user ALL=(ALL) NOPASSWD: /usr/bin/cp * /usr/share/sddm/faces/*
+$user ALL=(ALL) NOPASSWD: /usr/bin/chmod 644 /usr/share/sddm/faces/*
 $user ALL=(ALL) NOPASSWD: /usr/bin/papirus-folders
 EOF
     sudo cp "$tmp" "$dest"
@@ -354,6 +358,19 @@ link_or_copy() {
     cp -a "$src" "$dest"
 }
 
+# Symlink live config at dest to the git checkout so pulls stay in sync
+# (wallpaper → SDDM apply, Settings QML, scripts). Falls back to copy if
+# ln -s fails.
+symlink_or_copy() {
+    local src="$1" dest="$2"
+    mkdir -p "$(dirname "$dest")"
+    rm -rf "$dest"
+    if ln -s "$src" "$dest" 2>/dev/null; then
+        return 0
+    fi
+    cp -a "$src" "$dest"
+}
+
 install_configs() {
     info "Installing configs, themes, and wallpapers into \$HOME…"
     mkdir -p "$HOME/.config" "$HOME/.local/bin" "$HOME/.local/share/yahr-shell" \
@@ -361,7 +378,7 @@ install_configs() {
         "$HOME/.local/share/fonts"
 
     link_or_copy "$REPO_ROOT/hypr" "$HOME/.config/hypr"
-    link_or_copy "$REPO_ROOT/quickshell" "$HOME/.config/quickshell"
+    symlink_or_copy "$REPO_ROOT/quickshell" "$HOME/.config/quickshell"
     link_or_copy "$REPO_ROOT/ghostty" "$HOME/.config/ghostty"
     link_or_copy "$REPO_ROOT/mako" "$HOME/.config/mako"
     mkdir -p "$HOME/.config/Thunar"
