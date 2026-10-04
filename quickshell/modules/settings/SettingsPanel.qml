@@ -55,8 +55,8 @@ Panel {
     property string lastWallpaperPath: ""
     property bool sddmAvatarExists: false
     property bool sddmAvatarSuccess: false
-    property bool sddmOpacitySuccess: false
-    property bool sddmOpacityError: false
+    property bool sddmApplySuccess: false
+    property bool sddmApplyError: false
     property string sddmAvatarPath: ""
     property string sddmAvatarPreview: ""
     property string sddmStatusMessage: ""
@@ -86,8 +86,6 @@ Panel {
     }
 
     function refreshSddm() {
-        sddmThemeReader.running = false
-        sddmThemeReader.running = true
         sddmAvatarChecker.running = false
         sddmAvatarChecker.running = true
     }
@@ -243,13 +241,12 @@ Panel {
     function applySddm() {
         Settings.save()
         const wallpaper = Settings.sddmFollowDesktop ? "desktop" : (root.sddmWallpaperPath() || "none")
-        root.sddmOpacityError = false
+        root.sddmApplyError = false
         root.sddmStatusMessage = ""
         sddmThemeWriter.command = [
             "bash", "-c",
             root.resolveRepoScript("sddm-apply.py"),
             "_",
-            "--opacity", Settings.sddmLoginOpacity.toFixed(2),
             "--wallpaper", wallpaper
         ]
         sddmThemeWriter.running = true
@@ -288,7 +285,6 @@ exec python3 "$SCRIPT" "$@"`
             "bash", "-c",
             root.resolveRepoScript("sddm-apply.py"),
             "_",
-            "--opacity", Settings.sddmLoginOpacity.toFixed(2),
             "--wallpaper", path
         ])
     }
@@ -2439,7 +2435,7 @@ exec python3 "$SCRIPT" "$@"`
                     SettingsCard {
                         SettingsSubcard {
                             Text {
-                                text: "Match the desktop wallpaper, or pick a different image. Theme colors update with Settings → Theme. Wallpaper refreshes when the desktop wallpaper changes (if Match desktop is on) or when you Apply."
+                                text: "Match the desktop wallpaper, or pick a different image. Theme colors update with Settings → Theme. Background blur is fixed at radius 40. Wallpaper refreshes when the desktop wallpaper changes (if Match desktop is on) or when you Apply."
                                 color: ThemeManager.fgTertiary
                                 font.family: ThemeManager.uiFont
                                 font.pixelSize: 12
@@ -2524,7 +2520,7 @@ exec python3 "$SCRIPT" "$@"`
                         }
                         SettingsSubcard {
                             Text {
-                                text: "Preview"
+                                text: "Preview (background blur is fixed at radius 40)"
                                 color: ThemeManager.fgPrimary
                                 font.family: ThemeManager.uiFont
                                 font.pixelSize: 13
@@ -2548,7 +2544,7 @@ exec python3 "$SCRIPT" "$@"`
                                     visible: status === Image.Ready
                                     layer.enabled: visible
                                     layer.effect: FastBlur {
-                                        radius: 32
+                                        radius: 40
                                     }
                                 }
                                 Text {
@@ -2561,45 +2557,17 @@ exec python3 "$SCRIPT" "$@"`
                                 }
                             }
                         }
-                    }
-                }
-
-                SettingsSection {
-                    title: "Login Window Transparency"
-                    SettingsCard {
                         SettingsSubcard {
                             Text {
-                                text: "Opacity of the login plate. Apply writes colors, wallpaper, and opacity. Passwordless apply needs the yahr-sddm sudoers rule."
+                                text: "Apply writes theme colors and wallpaper into the greeter. Passwordless apply needs the yahr-sddm sudoers rule."
                                 color: ThemeManager.fgTertiary
                                 font.family: ThemeManager.uiFont
                                 font.pixelSize: 12
                                 wrapMode: Text.WordWrap
                                 Layout.fillWidth: true
                             }
-                            TransparencySlider {
-                                opacityValue: Settings.sddmLoginOpacity
-                                onChanged: value => {
-                                    Settings.sddmLoginOpacity = value
-                                    Settings.save()
-                                }
-                            }
-                        }
-                        SettingsSubcard {
                             Row {
                                 spacing: 10
-                                Rectangle {
-                                    width: 56
-                                    height: 30
-                                    radius: 6
-                                    color: ThemeManager.surface1
-                                    Text {
-                                        anchors.centerIn: parent
-                                        text: `${Math.round(Settings.sddmLoginOpacity * 100)}%`
-                                        color: ThemeManager.fgPrimary
-                                        font.family: ThemeManager.uiFont
-                                        font.pixelSize: 13
-                                    }
-                                }
                                 Rectangle {
                                     width: 130
                                     height: 30
@@ -2611,7 +2579,7 @@ exec python3 "$SCRIPT" "$@"`
                                     }
                                     Text {
                                         anchors.centerIn: parent
-                                        text: root.sddmOpacitySuccess ? "Applied!" : "Apply to SDDM"
+                                        text: root.sddmApplySuccess ? "Applied!" : "Apply to SDDM"
                                         color: ThemeManager.bgBase
                                         font.family: ThemeManager.uiFont
                                         font.pixelSize: 12
@@ -2626,13 +2594,13 @@ exec python3 "$SCRIPT" "$@"`
                                 }
                             }
                             Text {
-                                visible: root.sddmOpacityError || root.sddmStatusMessage.length > 0
+                                visible: root.sddmApplyError || root.sddmStatusMessage.length > 0
                                 Layout.fillWidth: true
                                 wrapMode: Text.WordWrap
-                                text: root.sddmOpacityError
+                                text: root.sddmApplyError
                                     ? "Could not write theme.conf. Install passwordless sudo with: ~/.local/share/yahr-shell/sddm/setup-sudoers.sh"
                                     : root.sddmStatusMessage
-                                color: root.sddmOpacityError ? ThemeManager.accentRed : ThemeManager.fgSecondary
+                                color: root.sddmApplyError ? ThemeManager.accentRed : ThemeManager.fgSecondary
                                 font.family: ThemeManager.uiFont
                                 font.pixelSize: 12
                             }
@@ -3196,33 +3164,20 @@ exec python3 "$SCRIPT" "$@"`
     }
 
     Process {
-        id: sddmThemeReader
-        running: false
-        command: ["sh", "-c", "grep '^WidgetOpacity=' /usr/share/sddm/themes/yahr-theme/theme.conf 2>/dev/null | grep -oE '[0-9]+\\.?[0-9]*'"]
-        stdout: StdioCollector {
-            onStreamFinished: {
-                const v = parseFloat(this.text.trim())
-                if (!isNaN(v))
-                    Settings.sddmLoginOpacity = v
-            }
-        }
-    }
-
-    Process {
         id: sddmThemeWriter
         running: false
         command: ["true"]
         stdout: StdioCollector {
             onStreamFinished: {
-                const result = this.text.trim()
+                const result = this.text.trim().split("\n")[0]
                 if (result === "OK" || result === "OK_NO_WALLPAPER") {
-                    root.sddmOpacityError = false
-                    root.sddmOpacitySuccess = true
-                    sddmOpacitySuccessTimer.restart()
+                    root.sddmApplyError = false
+                    root.sddmApplySuccess = true
+                    sddmApplySuccessTimer.restart()
                     if (result === "OK_NO_WALLPAPER")
                         root.sddmStatusMessage = "Applied colors. No wallpaper file was found to copy."
                 } else {
-                    root.sddmOpacityError = true
+                    root.sddmApplyError = true
                 }
             }
         }
@@ -3314,10 +3269,10 @@ exec python3 "$SCRIPT" "$@"`
     }
 
     Timer {
-        id: sddmOpacitySuccessTimer
+        id: sddmApplySuccessTimer
         interval: 1600
         repeat: false
-        onTriggered: root.sddmOpacitySuccess = false
+        onTriggered: root.sddmApplySuccess = false
     }
 
     Timer {

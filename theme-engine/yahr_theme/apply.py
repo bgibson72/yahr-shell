@@ -184,13 +184,10 @@ def _sync_sddm() -> None:
     if not script.is_file():
         return
     sddm = _settings().get("sddm") or {}
-    opacity = sddm.get("loginOpacity", 0.75)
     wallpaper = "desktop" if sddm.get("followDesktop", True) else (sddm.get("customWallpaper") or "none")
     _run([
         sys.executable,
         str(script),
-        "--opacity",
-        f"{float(opacity):.2f}",
         "--wallpaper",
         str(wallpaper),
     ])

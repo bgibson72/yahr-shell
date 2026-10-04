@@ -12,7 +12,11 @@ Rectangle {
     TextConstants { id: textConstants }
 
     property string background: config.stringValue("Background") || ""
-    property int backgroundBlur: 32
+    // Fixed greeter blur (old Settings slider max). theme.conf is kept in sync by sddm-apply.
+    property int backgroundBlur: {
+        const v = config.intValue("BackgroundBlur")
+        return v > 0 ? v : 40
+    }
     property color themeColor: config.stringValue("ThemeColor") || "#6db3ce"
     property color accentColor: config.stringValue("AccentColor") || "#a78cfa"
     property color bgBase: config.stringValue("BgBase") || "#181625"

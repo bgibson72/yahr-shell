@@ -122,13 +122,10 @@ def maybe_sync_sddm(image: str) -> None:
     if script is None:
         log_sync(f"skip=missing_sddm_apply\nwallpaper={image}\n")
         return
-    opacity = sddm.get("loginOpacity", 0.75)
     result = subprocess.run(
         [
             sys.executable,
             str(script),
-            "--opacity",
-            f"{float(opacity):.2f}",
             "--wallpaper",
             image,
         ],

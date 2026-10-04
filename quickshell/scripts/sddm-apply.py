@@ -3,8 +3,9 @@
 
 Writes colors from ~/.config/yahr/current.json, clock/date formats from
 settings.json, then copies a sharp login-background.png into
-/usr/share/sddm/themes/yahr-theme. Full-screen blur is applied at runtime by
-the greeter (FastBlur); the login-window crop uses the same sharp file.
+/usr/share/sddm/themes/yahr-theme. Full-screen blur is fixed at FastBlur
+radius 40; field opacity is fixed. The login-window crop uses the same sharp
+file.
 
 Needs the yahr-sddm sudoers rule.
 """
@@ -25,8 +26,10 @@ CONF = THEME_DIR / "theme.conf"
 IMAGE_EXTS = {".png", ".jpg", ".jpeg", ".webp", ".gif", ".bmp"}
 PNG_MAGIC = b"\x89PNG\r\n\x1a\n"
 JPEG_MAGIC = b"\xff\xd8\xff"
-# 80% of the former Settings slider (1–40). Full-screen FastBlur radius.
-GREETER_BACKGROUND_BLUR = 32
+# Fixed full-screen FastBlur radius (old Settings slider max was 40).
+GREETER_BACKGROUND_BLUR = 40
+# Fixed login-plate field opacity; no longer exposed in Settings.
+GREETER_WIDGET_OPACITY = "0.75"
 # Default name; may become .jpg if PNG conversion is unavailable.
 BACKGROUND_STEM = "login-background"
 HOME = Path(os.environ.get("HOME", str(Path.home())))
@@ -284,14 +287,22 @@ def apply_palette(text: str, settings: dict) -> str:
 
 
 def main() -> int:
-    parser = argparse.ArgumentParser(description="Apply YAHR SDDM wallpaper, blur, and palette")
-    parser.add_argument("--opacity", required=True)
-    parser.add_argument("--blur", type=int, default=GREETER_BACKGROUND_BLUR,
-                        help="Ignored; greeter blur is fixed at 80%% (radius 32).")
+    parser = argparse.ArgumentParser(description="Apply YAHR SDDM wallpaper and palette")
+    parser.add_argument(
+        "--opacity",
+        default=GREETER_WIDGET_OPACITY,
+        help="Ignored; greeter field opacity is fixed at %(default)s.",
+    )
+    parser.add_argument(
+        "--blur",
+        type=int,
+        default=GREETER_BACKGROUND_BLUR,
+        help="Ignored; greeter blur is fixed at radius %(default)s.",
+    )
     parser.add_argument("--wallpaper", default="desktop")
     args = parser.parse_args()
 
-    if not re.fullmatch(r"[0-9]+(\.[0-9]+)?", args.opacity):
+    if args.opacity is not None and not re.fullmatch(r"[0-9]+(\.[0-9]+)?", str(args.opacity)):
         print("BAD_VALUE")
         return 1
     if not CONF.is_file():
@@ -303,6 +314,7 @@ def main() -> int:
     wallpaper = resolve_wallpaper(args.wallpaper)
     dest_name = None
     runtime_blur = GREETER_BACKGROUND_BLUR
+    runtime_opacity = GREETER_WIDGET_OPACITY
     if wallpaper is not None:
         dest = write_theme_wallpaper(wallpaper)
         if dest is None:
@@ -322,7 +334,7 @@ def main() -> int:
         main_copied = sudo_cp(theme_main, THEME_DIR / "Main.qml")
 
     text = CONF.read_text()
-    text = set_key(text, "WidgetOpacity", args.opacity)
+    text = set_key(text, "WidgetOpacity", runtime_opacity)
     text = set_key(text, "BackgroundBlur", str(runtime_blur))
     text = set_key(text, "ShowHostname", "false")
     if dest_name:
@@ -354,10 +366,12 @@ def main() -> int:
         print(f"bytes={size} magic={magic}")
         print("hero=shared-with-background")
         print(f"runtime_blur={runtime_blur}")
+        print(f"widget_opacity={runtime_opacity}")
         print(f"main_qml={'copied ' + str(theme_main) if main_copied else 'unchanged'}")
     else:
         print("OK_NO_WALLPAPER")
         print(f"runtime_blur={runtime_blur}")
+        print(f"widget_opacity={runtime_opacity}")
         print(f"main_qml={'copied ' + str(theme_main) if main_copied else 'unchanged'}")
     return 0
 
