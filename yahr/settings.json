@@ -51,7 +51,11 @@
   },
   "wallpaper": {
     "directory": "~/Pictures/Wallpapers",
-    "current": ""
+    "current": "",
+    "transition": "fade",
+    "source": "theme",
+    "mode": "static",
+    "slideshowInterval": 300
   },
   "sddm": {
     "followDesktop": true,
@@ -59,10 +63,5 @@
     "blurEnabled": true,
     "blurAmount": 20,
     "loginOpacity": 0.75
-    "current": "",
-    "transition": "fade",
-    "source": "theme",
-    "mode": "static",
-    "slideshowInterval": 300
   }
 }
