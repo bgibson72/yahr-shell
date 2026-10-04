@@ -12,6 +12,7 @@ Item {
     visible: Settings.showQuickLaunch
 
     signal toggleScreenshot()
+    signal toggleWallpaper()
     signal toggleSettings()
 
     property bool expanded: false
@@ -59,9 +60,11 @@ Item {
                 Repeater {
                     model: [
                         { glyph: "\uf07c", action: "files" },
-                        { glyph: "\uf120", action: "terminal" },
+                        { glyph: "󰊠", action: "terminal", md: true },
                         { glyph: "\uf269", action: "browser" },
                         { glyph: "\uf030", action: "screenshot" },
+                        { glyph: "󰈊", action: "picker", md: true },
+                        { glyph: "\uf03e", action: "wallpaper" },
                         { glyph: "󰒓", action: "settings", md: true }
                     ]
 
@@ -93,6 +96,8 @@ Item {
                                 case "terminal": Quickshell.execDetached([ThemeManager.terminal]); break
                                 case "browser": Quickshell.execDetached(["firefox"]); break
                                 case "screenshot": drawer.toggleScreenshot(); break
+                                case "picker": Quickshell.execDetached(["hyprpicker", "-a"]); break
+                                case "wallpaper": drawer.toggleWallpaper(); break
                                 case "settings": drawer.toggleSettings(); break
                                 }
                             }

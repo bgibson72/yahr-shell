@@ -227,6 +227,16 @@ Item {
         ? Settings.hyprShowBorder
         : Settings.barShowBorder
     readonly property int effectiveBarBorderWidth: Settings.hyprBorderSize
+    // Docked frame-emerge bars stay square against the screen edge. Floating
+    // single/island bars use an independent radius, or Hyprland's rounding.
+    readonly property int barRadius: {
+        if (useFrameEmerge)
+            return 0
+        const requested = Settings.barRoundingFollowHyprland
+            ? Settings.hyprRounding
+            : Settings.barRounding
+        return Math.max(0, Math.min(requested, Math.floor(barHeight / 2)))
+    }
     readonly property color barFillColor: {
         if (barFollowHyprland || Settings.barBackgroundStyle === "opaque")
             return bgBase

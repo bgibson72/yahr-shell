@@ -118,6 +118,11 @@ def ghostty_theme() -> Path:
     return ghostty_dir() / "themes" / "yahr"
 
 
+def ghostty_gtk_css() -> Path:
+    """Ghostty-only GTK stylesheet loaded via gtk-custom-css."""
+    return ghostty_dir() / "gtk.css"
+
+
 def mako_config() -> Path:
     return home() / ".config/mako/config"
 
