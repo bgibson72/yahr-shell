@@ -62,12 +62,6 @@ Rectangle {
         add("login-background.webp")
         return names
     }
-    readonly property string welcomeName: {
-        const name = (usernameField.text || root.lastUser || "").trim()
-        if (name === "")
-            return "!"
-        return name.charAt(0).toUpperCase() + name.slice(1) + "!"
-    }
 
     Image {
         id: backgroundImage
@@ -101,129 +95,83 @@ Rectangle {
         visible: !backgroundImage.visible
     }
 
-    Rectangle {
-        id: plate
+    Item {
+        id: plateHost
         anchors.centerIn: parent
         width: Math.min(920, parent.width * 0.78)
         height: 480
-        radius: 28
-        color: plateColor
 
-        // clip:true does not honor radius — mask the whole plate so the hero
-        // wallpaper gets the same rounded corners as the solid right side.
-        layer.enabled: true
-        layer.smooth: true
-        layer.effect: OpacityMask {
-            maskSource: Item {
-                width: plate.width
-                height: plate.height
-                Rectangle {
-                    anchors.fill: parent
-                    radius: plate.radius
-                    color: "#ffffff"
-                }
-            }
+        DropShadow {
+            anchors.fill: plate
+            source: plate
+            horizontalOffset: 0
+            verticalOffset: 18
+            radius: 32
+            samples: 48
+            color: Qt.rgba(0, 0, 0, 0.55)
+            cached: true
         }
 
-        Row {
+        Rectangle {
+            id: plate
             anchors.fill: parent
+            radius: 28
+            color: plateColor
 
-            // ── Left: wallpaper crop + stacked welcome ──────────────────────
-            Item {
-                id: hero
-                width: plate.width / 2
-                height: plate.height
-
-                Image {
-                    id: heroImage
-                    anchors.fill: parent
-                    // Same source as the full-screen Image (including fallbacks).
-                    source: backgroundImage.source
-                    fillMode: Image.PreserveAspectCrop
-                    visible: status === Image.Ready
-                    cache: false
-                    asynchronous: true
-                }
-
-                Rectangle {
-                    anchors.fill: parent
-                    color: root.bgSurface
-                    visible: !heroImage.visible
-                }
-
-                // Light scrim only — keep the hero wallpaper looking sharp.
-                Rectangle {
-                    anchors.fill: parent
-                    gradient: Gradient {
-                        orientation: Gradient.Horizontal
-                        GradientStop { position: 0.0; color: Qt.rgba(root.bgBase.r, root.bgBase.g, root.bgBase.b, 0.28) }
-                        GradientStop { position: 0.50; color: Qt.rgba(root.bgBase.r, root.bgBase.g, root.bgBase.b, 0.08) }
-                        GradientStop { position: 1.0; color: Qt.rgba(root.bgBase.r, root.bgBase.g, root.bgBase.b, 0.32) }
-                    }
-                }
-
-                Rectangle {
-                    anchors.fill: parent
-                    gradient: Gradient {
-                        GradientStop { position: 0.0; color: "transparent" }
-                        GradientStop { position: 0.60; color: "transparent" }
-                        GradientStop { position: 1.0; color: Qt.rgba(root.bgBase.r, root.bgBase.g, root.bgBase.b, 0.35) }
-                    }
-                }
-
-                Column {
-                    anchors.left: parent.left
-                    anchors.right: parent.right
-                    anchors.bottom: parent.bottom
-                    anchors.leftMargin: 36
-                    anchors.rightMargin: 28
-                    anchors.bottomMargin: 40
-                    spacing: 0
-
-                    Text {
-                        width: parent.width
-                        text: "Welcome"
-                        font.family: root.titleFontFamily
-                        font.pixelSize: Math.max(40, Math.min(root.titleFontSize, hero.width * 0.14))
-                        font.weight: Font.Bold
-                        color: root.fgPrimary
-                        wrapMode: Text.NoWrap
-                    }
-
-                    Text {
-                        width: parent.width
-                        text: "Back,"
-                        font.family: root.titleFontFamily
-                        font.pixelSize: Math.max(40, Math.min(root.titleFontSize, hero.width * 0.14))
-                        font.weight: Font.Bold
-                        color: root.fgPrimary
-                        wrapMode: Text.NoWrap
-                    }
-
-                    Text {
-                        width: parent.width
-                        text: root.welcomeName
-                        font.family: root.titleFontFamily
-                        font.pixelSize: Math.max(40, Math.min(root.titleFontSize, hero.width * 0.14))
-                        font.weight: Font.Bold
-                        color: root.themeColor
-                        elide: Text.ElideRight
-                        wrapMode: Text.NoWrap
+            // clip:true does not honor radius — mask the whole plate so the hero
+            // wallpaper gets the same rounded corners as the solid right side.
+            layer.enabled: true
+            layer.smooth: true
+            layer.effect: OpacityMask {
+                maskSource: Item {
+                    width: plate.width
+                    height: plate.height
+                    Rectangle {
+                        anchors.fill: parent
+                        radius: plate.radius
+                        color: "#ffffff"
                     }
                 }
             }
 
-            // ── Right: avatar, fields, session, power ───────────────────────
-            Item {
-                id: formPanel
-                width: plate.width / 2
-                height: plate.height
+            Row {
+                anchors.fill: parent
 
-                Column {
-                    id: formColumn
-                    anchors.centerIn: parent
-                    width: parent.width - 88
-                    spacing: 14
+                // ── Left: wallpaper crop only ───────────────────────────────
+                Item {
+                    id: hero
+                    width: plate.width / 2
+                    height: plate.height
+
+                    Image {
+                        id: heroImage
+                        anchors.fill: parent
+                        // Same source as the full-screen Image (including fallbacks).
+                        source: backgroundImage.source
+                        fillMode: Image.PreserveAspectCrop
+                        visible: status === Image.Ready
+                        cache: false
+                        asynchronous: true
+                    }
+
+                    Rectangle {
+                        anchors.fill: parent
+                        color: root.bgSurface
+                        visible: !heroImage.visible
+                    }
+                }
+
+                // ── Right: avatar, fields, session, power ───────────────────
+                Item {
+                    id: formPanel
+                    width: plate.width / 2
+                    height: plate.height
+
+                    Column {
+                        id: formColumn
+                        anchors.centerIn: parent
+                        width: parent.width - 88
+                        spacing: 14
 
                     Rectangle {
                         id: avatarFrame
@@ -476,6 +424,7 @@ Rectangle {
                         }
                     }
                 }
+            }
             }
         }
     }
