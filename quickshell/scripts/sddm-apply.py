@@ -156,7 +156,6 @@ def publish_live_scripts() -> None:
         )
 
     live_root = HOME / ".config/quickshell"
-    live_scripts = live_root / "scripts"
     if not live_root.is_dir():
         return
     try:
