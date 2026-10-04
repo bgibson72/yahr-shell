@@ -59,7 +59,6 @@
   },
   "sddm": {
     "followDesktop": true,
-    "customWallpaper": "",
-    "loginOpacity": 0.75
+    "customWallpaper": ""
   }
 }

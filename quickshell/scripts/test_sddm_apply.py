@@ -25,6 +25,12 @@ class WallpaperMagicTests(unittest.TestCase):
         cls.png = ROOT / "wallpapers" / "Catppuccin" / "abstract.png"
         cls.jpg = ROOT / "wallpapers" / "Catppuccin" / "pxfuel.jpg"
 
+    def test_fixed_greeter_blur_radius(self):
+        self.assertEqual(self.mod.GREETER_BACKGROUND_BLUR, 40)
+
+    def test_fixed_widget_opacity(self):
+        self.assertEqual(self.mod.GREETER_WIDGET_OPACITY, "0.75")
+
     def test_png_magic(self):
         self.assertTrue(self.png.is_file())
         self.assertTrue(self.mod.is_png(self.png))

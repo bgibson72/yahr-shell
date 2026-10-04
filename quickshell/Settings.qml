@@ -97,7 +97,6 @@ Item {
     property bool launcherGridView: false
     property bool sddmFollowDesktop: true
     property string sddmCustomWallpaper: ""
-    property real sddmLoginOpacity: 0.75
 
     readonly property string settingsPath: `${Quickshell.env("HOME")}/.config/yahr/settings.json`
     property bool ready: false
@@ -204,8 +203,7 @@ Item {
             },
             sddm: {
                 followDesktop: sddmFollowDesktop,
-                customWallpaper: sddmCustomWallpaper,
-                loginOpacity: sddmLoginOpacity
+                customWallpaper: sddmCustomWallpaper
             }
         }
     }
@@ -315,7 +313,6 @@ Item {
         const sm = data.sddm || {}
         if (sm.followDesktop !== undefined) sddmFollowDesktop = sm.followDesktop
         if (sm.customWallpaper !== undefined) sddmCustomWallpaper = sm.customWallpaper
-        if (sm.loginOpacity !== undefined) sddmLoginOpacity = sm.loginOpacity
     }
 
     function normalizeBarLayout() {
