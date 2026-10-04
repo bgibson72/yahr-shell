@@ -25,9 +25,8 @@ from pathlib import Path
 THEME_DIR = Path("/usr/share/sddm/themes/yahr-theme")
 CONF = THEME_DIR / "theme.conf"
 IMAGE_EXTS = {".png", ".jpg", ".jpeg", ".webp", ".gif", ".bmp"}
-# Stable names — avoid leftover login-hero.jpg while conf points at .png, etc.
+# Stable name shared by the full-screen layer and the login-window hero crop.
 BACKGROUND_NAME = "login-background.png"
-HERO_NAME = "login-hero.png"
 HOME = Path(os.environ.get("HOME", str(Path.home())))
 
 
@@ -150,13 +149,13 @@ def resize_wallpaper(src: Path, dest: Path) -> bool:
 
 
 def clear_stale_wallpaper_assets(keep: set[str]) -> None:
-    """Remove older login-background.*/login-hero.* with other extensions."""
+    """Remove older login-background.* variants and obsolete login-hero.* files."""
     for path in THEME_DIR.glob("login-background.*"):
         if path.name not in keep:
             sudo_rm(path)
+    # Hero now reads Background directly; drop leftover hero assets.
     for path in THEME_DIR.glob("login-hero.*"):
-        if path.name not in keep:
-            sudo_rm(path)
+        sudo_rm(path)
 
 
 def find_theme_main() -> Path | None:
@@ -222,21 +221,15 @@ def main() -> int:
     settings = load_json(HOME / ".config/yahr/settings.json")
     wallpaper = resolve_wallpaper(args.wallpaper)
     dest_name = None
-    hero_name = None
     # Blur is applied at runtime on the full-screen layer only; assets stay sharp.
     runtime_blur = args.blur
     if wallpaper is not None:
         dest_name = BACKGROUND_NAME
-        hero_name = HERO_NAME
         dest = THEME_DIR / dest_name
-        hero_dest = THEME_DIR / hero_name
         if not resize_wallpaper(wallpaper, dest):
             print("FAIL")
             return 1
-        if not resize_wallpaper(wallpaper, hero_dest):
-            print("FAIL")
-            return 1
-        clear_stale_wallpaper_assets({dest_name, hero_name})
+        clear_stale_wallpaper_assets({dest_name})
 
     face = HOME / ".face.icon"
     if face.is_file():
@@ -253,8 +246,8 @@ def main() -> int:
     text = set_key(text, "ShowHostname", "false")
     if dest_name:
         text = set_key(text, "Background", dest_name, quoted=True)
-    if hero_name:
-        text = set_key(text, "HeroBackground", hero_name, quoted=True)
+        # Keep key for older greeter builds; both sides use Background in Main.qml.
+        text = set_key(text, "HeroBackground", dest_name, quoted=True)
     text = apply_palette(text, settings)
 
     if not sudo_write(CONF, text):
@@ -272,7 +265,7 @@ def main() -> int:
         print("OK")
         print(f"wallpaper={wallpaper}")
         print(f"background={THEME_DIR / dest_name} mode={_mode(THEME_DIR / dest_name)}")
-        print(f"hero={THEME_DIR / hero_name} mode={_mode(THEME_DIR / hero_name)}")
+        print(f"hero=shared-with-background")
         print(f"runtime_blur={runtime_blur}")
         print(f"main_qml={'copied ' + str(theme_main) if main_copied else 'unchanged'}")
     else:

@@ -53,15 +53,6 @@ Rectangle {
             return background
         return Qt.resolvedUrl(background)
     }
-    readonly property url heroBackgroundSource: {
-        const hero = config.stringValue("HeroBackground") || ""
-        if (hero !== "") {
-            if (hero.indexOf("/") === 0 || hero.indexOf("file:") === 0)
-                return hero
-            return Qt.resolvedUrl(hero)
-        }
-        return root.backgroundSource
-    }
     readonly property string welcomeName: {
         const name = (usernameField.text || root.lastUser || "").trim()
         if (name === "")
@@ -125,9 +116,10 @@ Rectangle {
                 Image {
                     id: heroImage
                     anchors.fill: parent
-                    // Sharp crop of the wallpaper (never blurred), separate from the
-                    // full-screen Background which may be pre-blurred on disk.
-                    source: root.heroBackgroundSource
+                    // Same asset as the full-screen Background. Blur is applied only
+                    // on the desktop Image via FastBlur, so this crop stays sharp and
+                    // cannot drift to a stale login-hero.* file.
+                    source: root.backgroundSource
                     fillMode: Image.PreserveAspectCrop
                     visible: status === Image.Ready
                     cache: false
