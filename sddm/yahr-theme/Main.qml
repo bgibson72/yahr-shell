@@ -12,7 +12,7 @@ Rectangle {
     TextConstants { id: textConstants }
 
     property string background: config.stringValue("Background") || ""
-    property int backgroundBlur: parseInt(config.stringValue("BackgroundBlur") || "0")
+    property int backgroundBlur: 32
     property color themeColor: config.stringValue("ThemeColor") || "#6db3ce"
     property color accentColor: config.stringValue("AccentColor") || "#a78cfa"
     property color bgBase: config.stringValue("BgBase") || "#181625"

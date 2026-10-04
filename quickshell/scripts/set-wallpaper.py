@@ -122,7 +122,6 @@ def maybe_sync_sddm(image: str) -> None:
     if script is None:
         log_sync(f"skip=missing_sddm_apply\nwallpaper={image}\n")
         return
-    blur = 0 if not sddm.get("blurEnabled", True) else int(sddm.get("blurAmount", 20) or 0)
     opacity = sddm.get("loginOpacity", 0.75)
     result = subprocess.run(
         [
@@ -130,8 +129,6 @@ def maybe_sync_sddm(image: str) -> None:
             str(script),
             "--opacity",
             f"{float(opacity):.2f}",
-            "--blur",
-            str(blur),
             "--wallpaper",
             image,
         ],

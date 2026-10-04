@@ -97,8 +97,6 @@ Item {
     property bool launcherGridView: false
     property bool sddmFollowDesktop: true
     property string sddmCustomWallpaper: ""
-    property bool sddmBlurEnabled: true
-    property int sddmBlurAmount: 20
     property real sddmLoginOpacity: 0.75
 
     readonly property string settingsPath: `${Quickshell.env("HOME")}/.config/yahr/settings.json`
@@ -207,8 +205,6 @@ Item {
             sddm: {
                 followDesktop: sddmFollowDesktop,
                 customWallpaper: sddmCustomWallpaper,
-                blurEnabled: sddmBlurEnabled,
-                blurAmount: sddmBlurAmount,
                 loginOpacity: sddmLoginOpacity
             }
         }
@@ -319,8 +315,6 @@ Item {
         const sm = data.sddm || {}
         if (sm.followDesktop !== undefined) sddmFollowDesktop = sm.followDesktop
         if (sm.customWallpaper !== undefined) sddmCustomWallpaper = sm.customWallpaper
-        if (sm.blurEnabled !== undefined) sddmBlurEnabled = sm.blurEnabled
-        if (sm.blurAmount !== undefined) sddmBlurAmount = sm.blurAmount
         if (sm.loginOpacity !== undefined) sddmLoginOpacity = sm.loginOpacity
     }
 
