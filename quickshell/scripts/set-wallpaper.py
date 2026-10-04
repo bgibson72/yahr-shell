@@ -100,6 +100,29 @@ def main() -> int:
     return 0
 
 
+def find_sddm_apply() -> Path | None:
+    """Prefer the git-clone apply script when ~/.config/yahr/repo-root is set.
+
+    install.sh copies Quickshell into ~/.config/quickshell, so the in-tree
+    script next to this file can lag behind the checkout the user pulls.
+    """
+    candidates: list[Path] = []
+    repo_root_file = Path.home() / ".config/yahr/repo-root"
+    if repo_root_file.is_file():
+        try:
+            root = Path(repo_root_file.read_text().strip()).expanduser()
+            candidates.append(root / "quickshell" / "scripts" / "sddm-apply.py")
+        except OSError:
+            pass
+    candidates.append(Path(__file__).resolve().with_name("sddm-apply.py"))
+    share = Path.home() / ".local/share/yahr-shell/quickshell/scripts/sddm-apply.py"
+    candidates.append(share)
+    for path in candidates:
+        if path.is_file():
+            return path
+    return None
+
+
 def maybe_sync_sddm(image: str) -> None:
     settings_path = Path.home() / ".config/yahr/settings.json"
     try:
@@ -109,12 +132,14 @@ def maybe_sync_sddm(image: str) -> None:
     sddm = data.get("sddm") or {}
     if not sddm.get("followDesktop", True):
         return
-    script = Path(__file__).resolve().with_name("sddm-apply.py")
-    if not script.is_file():
+    script = find_sddm_apply()
+    if script is None:
         return
     blur = 0 if not sddm.get("blurEnabled", True) else int(sddm.get("blurAmount", 20) or 0)
     opacity = sddm.get("loginOpacity", 0.75)
-    subprocess.run(
+    log_path = Path.home() / ".cache/yahr/sddm-sync.log"
+    log_path.parent.mkdir(parents=True, exist_ok=True)
+    result = subprocess.run(
         [
             sys.executable,
             str(script),
@@ -126,9 +151,19 @@ def maybe_sync_sddm(image: str) -> None:
             image,
         ],
         check=False,
-        stdout=subprocess.DEVNULL,
-        stderr=subprocess.DEVNULL,
+        capture_output=True,
+        text=True,
     )
+    try:
+        log_path.write_text(
+            f"script={script}\n"
+            f"wallpaper={image}\n"
+            f"exit={result.returncode}\n"
+            f"{result.stdout}"
+            f"{result.stderr}"
+        )
+    except OSError:
+        pass
 
 
 if __name__ == "__main__":

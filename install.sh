@@ -333,6 +333,8 @@ install_sudoers() {
 # Yahr Shell: greeter theme sync and Papirus folder colors.
 $user ALL=(ALL) NOPASSWD: /usr/bin/cp * /usr/share/sddm/themes/yahr-theme/*
 $user ALL=(ALL) NOPASSWD: /usr/bin/chmod 644 /usr/share/sddm/themes/yahr-theme/*
+$user ALL=(ALL) NOPASSWD: /usr/bin/rm -f /usr/share/sddm/themes/yahr-theme/login-background.*
+$user ALL=(ALL) NOPASSWD: /usr/bin/rm -f /usr/share/sddm/themes/yahr-theme/login-hero.*
 $user ALL=(ALL) NOPASSWD: /usr/bin/tee /usr/share/sddm/themes/yahr-theme/theme.conf
 $user ALL=(ALL) NOPASSWD: /usr/bin/cp * /usr/share/sddm/faces/*
 $user ALL=(ALL) NOPASSWD: /usr/bin/chmod 644 /usr/share/sddm/faces/*

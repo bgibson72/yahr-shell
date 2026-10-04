@@ -245,8 +245,8 @@ Panel {
         root.sddmOpacityError = false
         root.sddmStatusMessage = ""
         sddmThemeWriter.command = [
-            "python3",
-            `${Quickshell.shellDir}/scripts/sddm-apply.py`,
+            "bash",
+            `${Quickshell.shellDir}/scripts/sddm-apply-cli`,
             "--opacity",
             Settings.sddmLoginOpacity.toFixed(2),
             "--blur",

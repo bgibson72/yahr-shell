@@ -1,0 +1,30 @@
+#!/usr/bin/env bash
+# Resolve and run the best sddm-apply.py (git clone via repo-root, else local).
+set -euo pipefail
+
+SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+CANDIDATES=()
+
+if [[ -f "${HOME}/.config/yahr/repo-root" ]]; then
+  ROOT="$(tr -d '[:space:]' < "${HOME}/.config/yahr/repo-root")"
+  if [[ -n "$ROOT" && -f "${ROOT}/quickshell/scripts/sddm-apply.py" ]]; then
+    CANDIDATES+=("${ROOT}/quickshell/scripts/sddm-apply.py")
+  fi
+fi
+CANDIDATES+=("${SCRIPT_DIR}/sddm-apply.py")
+CANDIDATES+=("${HOME}/.local/share/yahr-shell/quickshell/scripts/sddm-apply.py")
+
+APPLY=""
+for candidate in "${CANDIDATES[@]}"; do
+  if [[ -f "$candidate" ]]; then
+    APPLY="$candidate"
+    break
+  fi
+done
+
+if [[ -z "$APPLY" ]]; then
+  echo "MISSING_APPLY_SCRIPT" >&2
+  exit 1
+fi
+
+exec python3 "$APPLY" "$@"

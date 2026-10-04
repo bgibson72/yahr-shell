@@ -8,6 +8,8 @@
 
 %wheel ALL=(ALL) NOPASSWD: /usr/bin/cp * /usr/share/sddm/themes/yahr-theme/*
 %wheel ALL=(ALL) NOPASSWD: /usr/bin/chmod 644 /usr/share/sddm/themes/yahr-theme/*
+%wheel ALL=(ALL) NOPASSWD: /usr/bin/rm -f /usr/share/sddm/themes/yahr-theme/login-background.*
+%wheel ALL=(ALL) NOPASSWD: /usr/bin/rm -f /usr/share/sddm/themes/yahr-theme/login-hero.*
 %wheel ALL=(ALL) NOPASSWD: /usr/bin/tee /usr/share/sddm/themes/yahr-theme/theme.conf
 %wheel ALL=(ALL) NOPASSWD: /usr/bin/cp * /usr/share/sddm/faces/*
 %wheel ALL=(ALL) NOPASSWD: /usr/bin/chmod 644 /usr/share/sddm/faces/*

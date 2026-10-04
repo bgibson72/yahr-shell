@@ -2,9 +2,12 @@
 """Sync the YAHR SDDM greeter with the current palette, clock, and wallpaper.
 
 Writes colors from ~/.config/yahr/current.json, clock/date formats from
-settings.json, then copies a sharp wallpaper into
+settings.json, then copies sharp wallpaper assets into
 /usr/share/sddm/themes/yahr-theme. Full-screen blur is applied at runtime by
 the greeter (FastBlur); the left-panel hero always uses the sharp image.
+
+Assets are always written as login-background.png and login-hero.png so every
+wallpaper change overwrites the same paths the greeter loads.
 Needs the yahr-sddm sudoers rule.
 """
 
@@ -22,6 +25,9 @@ from pathlib import Path
 THEME_DIR = Path("/usr/share/sddm/themes/yahr-theme")
 CONF = THEME_DIR / "theme.conf"
 IMAGE_EXTS = {".png", ".jpg", ".jpeg", ".webp", ".gif", ".bmp"}
+# Stable names — avoid leftover login-hero.jpg while conf points at .png, etc.
+BACKGROUND_NAME = "login-background.png"
+HERO_NAME = "login-hero.png"
 HOME = Path(os.environ.get("HOME", str(Path.home())))
 
 
@@ -107,21 +113,20 @@ def sudo_cp(src: Path, dest: Path) -> bool:
     return True
 
 
-def sudo_write(dest: Path, text: str) -> bool:
-    result = subprocess.run(
-        ["sudo", "-n", "tee", str(dest)],
-        input=text,
+def sudo_rm(path: Path) -> None:
+    if not path.exists():
+        return
+    subprocess.run(
+        ["sudo", "-n", "rm", "-f", str(path)],
         capture_output=True,
         text=True,
     )
-    return result.returncode == 0
 
 
 def resize_wallpaper(src: Path, dest: Path) -> bool:
-    """Write a resized, sharp, world-readable copy of src to dest via sudo cp."""
+    """Write a resized, sharp PNG copy of src to dest via sudo cp."""
     magick = shutil.which("magick") or shutil.which("convert")
-    suffix = dest.suffix if dest.suffix.lower() in IMAGE_EXTS else ".png"
-    with tempfile.NamedTemporaryFile(suffix=suffix, delete=False) as tmp:
+    with tempfile.NamedTemporaryFile(suffix=".png", delete=False) as tmp:
         tmp_path = Path(tmp.name)
     try:
         if magick:
@@ -130,10 +135,11 @@ def resize_wallpaper(src: Path, dest: Path) -> bool:
                 "-resize", "2560x1440^",
                 "-gravity", "center",
                 "-extent", "2560x1440",
-                str(tmp_path),
+                "png:" + str(tmp_path),
             ]
             result = subprocess.run(cmd, capture_output=True, text=True)
             if result.returncode != 0:
+                # Fall back to a direct copy when magick cannot convert.
                 shutil.copy2(src, tmp_path)
         else:
             shutil.copy2(src, tmp_path)
@@ -141,6 +147,16 @@ def resize_wallpaper(src: Path, dest: Path) -> bool:
         return sudo_cp(tmp_path, dest)
     finally:
         tmp_path.unlink(missing_ok=True)
+
+
+def clear_stale_wallpaper_assets(keep: set[str]) -> None:
+    """Remove older login-background.*/login-hero.* with other extensions."""
+    for path in THEME_DIR.glob("login-background.*"):
+        if path.name not in keep:
+            sudo_rm(path)
+    for path in THEME_DIR.glob("login-hero.*"):
+        if path.name not in keep:
+            sudo_rm(path)
 
 
 def find_theme_main() -> Path | None:
@@ -210,11 +226,8 @@ def main() -> int:
     # Blur is applied at runtime on the full-screen layer only; assets stay sharp.
     runtime_blur = args.blur
     if wallpaper is not None:
-        ext = wallpaper.suffix.lower()
-        if ext not in IMAGE_EXTS:
-            ext = ".png"
-        dest_name = f"login-background{ext}"
-        hero_name = f"login-hero{ext}"
+        dest_name = BACKGROUND_NAME
+        hero_name = HERO_NAME
         dest = THEME_DIR / dest_name
         hero_dest = THEME_DIR / hero_name
         if not resize_wallpaper(wallpaper, dest):
@@ -223,6 +236,7 @@ def main() -> int:
         if not resize_wallpaper(wallpaper, hero_dest):
             print("FAIL")
             return 1
+        clear_stale_wallpaper_assets({dest_name, hero_name})
 
     face = HOME / ".face.icon"
     if face.is_file():
@@ -256,6 +270,7 @@ def main() -> int:
 
     if dest_name:
         print("OK")
+        print(f"wallpaper={wallpaper}")
         print(f"background={THEME_DIR / dest_name} mode={_mode(THEME_DIR / dest_name)}")
         print(f"hero={THEME_DIR / hero_name} mode={_mode(THEME_DIR / hero_name)}")
         print(f"runtime_blur={runtime_blur}")

@@ -4,13 +4,14 @@ Login screen that follows the YAHR shell: wide split plate (wallpaper welcome pa
 
 ## Sync
 
-Theme apply (`yahr-theme apply` or Settings → SDDM → Apply) writes palette colors into `theme.conf` and copies a sharp wallpaper (`login-background` + `login-hero`) into `/usr/share/sddm/themes/yahr-theme`. Full-screen blur is applied at runtime by the greeter; the left hero panel always stays sharp.
+Theme apply (`yahr-theme apply` or Settings → SDDM → Apply) writes palette colors into `theme.conf` and copies sharp PNG wallpapers (`login-background.png` + `login-hero.png`) into `/usr/share/sddm/themes/yahr-theme`. Full-screen blur is applied at runtime by the greeter; the left hero panel always stays sharp.
 
-Because `install.sh` copies Quickshell into `~/.config/quickshell`, pull the branch then either re-install configs or run apply from the clone:
+Desktop wallpaper changes (with **Match desktop** on) call `set-wallpaper.py` → `sddm-apply.py`, which overwrites both PNGs every time. Sync prefers the git checkout in `~/.config/yahr/repo-root` when present so pulled fixes apply without reinstalling Quickshell.
 
 ```bash
-python3 /path/to/yahr-shell/quickshell/scripts/sddm-apply.py \
-  --opacity 0.75 --blur 20 --wallpaper desktop
+# Manual sync / debug
+bash quickshell/scripts/sddm-apply-cli --opacity 0.75 --blur 20 --wallpaper desktop
+cat ~/.cache/yahr/sddm-sync.log   # written after each desktop wallpaper change
 ```
 
 `./install.sh` writes this sudoers rule. To install it on its own:

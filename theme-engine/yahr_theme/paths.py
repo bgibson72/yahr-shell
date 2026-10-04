@@ -71,6 +71,21 @@ def quickshell_dir() -> Path:
 
 
 def quickshell_script(name: str) -> Path:
+    """Resolve a Quickshell helper script.
+
+    Prefer the git checkout recorded in ~/.config/yahr/repo-root so wallpaper
+    / SDDM sync picks up pulled fixes even when ~/.config/quickshell is an
+    install.sh copy that has not been reinstalled.
+    """
+    repo_root_file = yahr_config() / "repo-root"
+    if repo_root_file.is_file():
+        try:
+            root = Path(repo_root_file.read_text().strip()).expanduser()
+            candidate = root / "quickshell" / "scripts" / name
+            if candidate.is_file():
+                return candidate
+        except OSError:
+            pass
     return quickshell_dir() / "scripts" / name
 
 
