@@ -2,12 +2,10 @@
 """Sync the YAHR SDDM greeter with the current palette, clock, and wallpaper.
 
 Writes colors from ~/.config/yahr/current.json, clock/date formats from
-settings.json, then copies sharp wallpaper assets into
+settings.json, then copies a sharp login-background.png into
 /usr/share/sddm/themes/yahr-theme. Full-screen blur is applied at runtime by
-the greeter (FastBlur); the left-panel hero always uses the sharp image.
+the greeter (FastBlur); the login-window crop uses the same sharp file.
 
-Assets are always written as login-background.png and login-hero.png so every
-wallpaper change overwrites the same paths the greeter loads.
 Needs the yahr-sddm sudoers rule.
 """
 
@@ -120,6 +118,16 @@ def sudo_rm(path: Path) -> None:
         capture_output=True,
         text=True,
     )
+
+
+def sudo_write(dest: Path, text: str) -> bool:
+    result = subprocess.run(
+        ["sudo", "-n", "tee", str(dest)],
+        input=text,
+        capture_output=True,
+        text=True,
+    )
+    return result.returncode == 0
 
 
 def resize_wallpaper(src: Path, dest: Path) -> bool:
