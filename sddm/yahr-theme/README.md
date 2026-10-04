@@ -32,12 +32,13 @@ follow `git pull`). Repair with:
 ```bash
 # From your yahr-shell clone on latest main:
 pwd > ~/.config/yahr/repo-root
-bash quickshell/scripts/sync-quickshell-cli
-# or: yahr-sync-quickshell
-pkill -x qs; pkill -x quickshell; qs -p "$(readlink -f ~/.config/quickshell || echo ~/.config/quickshell)" &
+bash quickshell/scripts/sync-quickshell-cli --restart
+# or: yahr-sync-quickshell --restart
 ```
 
-Then confirm Settings → SDDM has no blur/transparency controls. Sync log: `/tmp/yahr-quickshell-sync.log`.
+The sync stops Quickshell before replacing `~/.config/quickshell` (relinking while
+it is running can hot-reload mid-swap and error with `WallpaperSlideshow is not a type`).
+Then confirm Settings → SDDM has no blur/transparency controls. Autostart sync log: `/tmp/yahr-quickshell-sync.log`.
 
 ## Preview
 

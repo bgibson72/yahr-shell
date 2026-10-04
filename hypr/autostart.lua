@@ -5,7 +5,8 @@ hl.on("hyprland.start", function()
 
     -- Keep ~/.config/quickshell pointed at the git checkout when repo-root is set.
     -- A stale copied SettingsPanel.qml is why removed SDDM controls can still appear.
-    hl.exec_cmd("bash -c 'ROOT=$(tr -d \"[:space:]\" < \"$HOME/.config/yahr/repo-root\" 2>/dev/null || true); SYNC=\"\"; [ -n \"$ROOT\" ] && [ -f \"$ROOT/quickshell/scripts/sync-quickshell-from-repo.py\" ] && SYNC=\"$ROOT/quickshell/scripts/sync-quickshell-from-repo.py\"; [ -z \"$SYNC\" ] && [ -f \"$HOME/.config/quickshell/scripts/sync-quickshell-from-repo.py\" ] && SYNC=\"$HOME/.config/quickshell/scripts/sync-quickshell-from-repo.py\"; [ -n \"$SYNC\" ] && python3 \"$SYNC\" >/tmp/yahr-quickshell-sync.log 2>&1 || true'")
+    -- Sync with --keep-running here: Hypr has not started qs yet on this event.
+    hl.exec_cmd("bash -c 'ROOT=$(tr -d \"[:space:]\" < \"$HOME/.config/yahr/repo-root\" 2>/dev/null || true); SYNC=\"\"; [ -n \"$ROOT\" ] && [ -f \"$ROOT/quickshell/scripts/sync-quickshell-from-repo.py\" ] && SYNC=\"$ROOT/quickshell/scripts/sync-quickshell-from-repo.py\"; [ -z \"$SYNC\" ] && [ -f \"$HOME/.config/quickshell/scripts/sync-quickshell-from-repo.py\" ] && SYNC=\"$HOME/.config/quickshell/scripts/sync-quickshell-from-repo.py\"; [ -n \"$SYNC\" ] && python3 \"$SYNC\" --keep-running >/tmp/yahr-quickshell-sync.log 2>&1 || true'")
 
     -- Prefer the clone from repo-root, then the live config tree, then a common path.
     local candidates = {}
