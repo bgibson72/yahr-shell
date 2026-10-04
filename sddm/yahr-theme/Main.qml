@@ -46,12 +46,21 @@ Rectangle {
     readonly property string lastUser: userModel.lastUser || ""
     readonly property string homeFace: lastUser !== "" ? "file:///home/" + lastUser + "/.face.icon" : ""
     readonly property string systemFace: lastUser !== "" ? "file:///usr/share/sddm/faces/" + lastUser + ".face.icon" : ""
-    readonly property url backgroundSource: {
-        if (background === "")
-            return ""
-        if (background.indexOf("/") === 0 || background.indexOf("file:") === 0)
-            return background
-        return Qt.resolvedUrl(background)
+    readonly property var backgroundFallbacks: {
+        const names = []
+        const seen = {}
+        const add = name => {
+            if (!name || seen[name])
+                return
+            seen[name] = true
+            names.push(name)
+        }
+        add(background)
+        add("login-background.png")
+        add("login-background.jpg")
+        add("login-background.jpeg")
+        add("login-background.webp")
+        return names
     }
     readonly property string welcomeName: {
         const name = (usernameField.text || root.lastUser || "").trim()
@@ -62,13 +71,25 @@ Rectangle {
 
     Image {
         id: backgroundImage
+        property int sourceTry: 0
         anchors.fill: parent
-        source: root.backgroundSource
+        source: {
+            const name = root.backgroundFallbacks[sourceTry] || ""
+            if (name === "")
+                return ""
+            if (name.indexOf("/") === 0 || name.indexOf("file:") === 0)
+                return name
+            return Qt.resolvedUrl(name)
+        }
         fillMode: Image.PreserveAspectCrop
         visible: status === Image.Ready
         cache: false
+        onStatusChanged: {
+            if (status === Image.Error && sourceTry < root.backgroundFallbacks.length - 1)
+                sourceTry++
+        }
 
-        layer.enabled: root.backgroundBlur > 0
+        layer.enabled: root.backgroundBlur > 0 && status === Image.Ready
         layer.effect: FastBlur {
             radius: root.backgroundBlur
         }
@@ -116,10 +137,8 @@ Rectangle {
                 Image {
                     id: heroImage
                     anchors.fill: parent
-                    // Same asset as the full-screen Background. Blur is applied only
-                    // on the desktop Image via FastBlur, so this crop stays sharp and
-                    // cannot drift to a stale login-hero.* file.
-                    source: root.backgroundSource
+                    // Same source as the full-screen Image (including fallbacks).
+                    source: backgroundImage.source
                     fillMode: Image.PreserveAspectCrop
                     visible: status === Image.Ready
                     cache: false

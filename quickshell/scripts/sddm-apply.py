@@ -23,8 +23,10 @@ from pathlib import Path
 THEME_DIR = Path("/usr/share/sddm/themes/yahr-theme")
 CONF = THEME_DIR / "theme.conf"
 IMAGE_EXTS = {".png", ".jpg", ".jpeg", ".webp", ".gif", ".bmp"}
-# Stable name shared by the full-screen layer and the login-window hero crop.
-BACKGROUND_NAME = "login-background.png"
+PNG_MAGIC = b"\x89PNG\r\n\x1a\n"
+JPEG_MAGIC = b"\xff\xd8\xff"
+# Default name; may become .jpg if PNG conversion is unavailable.
+BACKGROUND_STEM = "login-background"
 HOME = Path(os.environ.get("HOME", str(Path.home())))
 
 
@@ -130,28 +132,76 @@ def sudo_write(dest: Path, text: str) -> bool:
     return result.returncode == 0
 
 
-def resize_wallpaper(src: Path, dest: Path) -> bool:
-    """Write a resized, sharp PNG copy of src to dest via sudo cp."""
-    magick = shutil.which("magick") or shutil.which("convert")
-    with tempfile.NamedTemporaryFile(suffix=".png", delete=False) as tmp:
-        tmp_path = Path(tmp.name)
+def _file_magic(path: Path, n: int = 8) -> bytes:
     try:
-        if magick:
-            cmd = [
-                magick, str(src),
-                "-resize", "2560x1440^",
-                "-gravity", "center",
-                "-extent", "2560x1440",
-                "png:" + str(tmp_path),
-            ]
-            result = subprocess.run(cmd, capture_output=True, text=True)
-            if result.returncode != 0:
-                # Fall back to a direct copy when magick cannot convert.
-                shutil.copy2(src, tmp_path)
-        else:
-            shutil.copy2(src, tmp_path)
-        os.chmod(tmp_path, 0o644)
-        return sudo_cp(tmp_path, dest)
+        with path.open("rb") as fh:
+            return fh.read(n)
+    except OSError:
+        return b""
+
+
+def is_png(path: Path) -> bool:
+    return _file_magic(path).startswith(PNG_MAGIC)
+
+
+def is_jpeg(path: Path) -> bool:
+    return _file_magic(path).startswith(JPEG_MAGIC)
+
+
+def encode_resized_png(src: Path, dest: Path) -> bool:
+    """Resize src to 2560x1440 and write a real PNG to dest. dest must not exist."""
+    magick = shutil.which("magick") or shutil.which("convert")
+    if not magick:
+        return False
+    cmd = [
+        magick, str(src),
+        "-resize", "2560x1440^",
+        "-gravity", "center",
+        "-extent", "2560x1440",
+        str(dest),
+    ]
+    result = subprocess.run(cmd, capture_output=True, text=True)
+    return result.returncode == 0 and dest.is_file() and dest.stat().st_size > 32 and is_png(dest)
+
+
+def write_theme_wallpaper(src: Path) -> Path | None:
+    """Install a greeter-readable wallpaper and return the destination path.
+
+    Prefer a real PNG named login-background.png. If conversion fails, copy the
+    original bytes with a matching extension so Qt can decode the file.
+    Never write JPEG/WebP bytes to a .png path — Qt keys the decoder off the
+    suffix and the greeter then shows a blank plate and desktop.
+    """
+    png_dest = THEME_DIR / f"{BACKGROUND_STEM}.png"
+    fd, tmp_name = tempfile.mkstemp(suffix=".png")
+    os.close(fd)
+    tmp_path = Path(tmp_name)
+    tmp_path.unlink(missing_ok=True)
+    try:
+        if encode_resized_png(src, tmp_path):
+            os.chmod(tmp_path, 0o644)
+            if sudo_cp(tmp_path, png_dest):
+                return png_dest
+
+        ext = src.suffix.lower()
+        if ext not in IMAGE_EXTS:
+            ext = ".png" if is_png(src) else ".jpg" if is_jpeg(src) else ".png"
+        if ext == ".jpeg":
+            ext = ".jpg"
+        dest = THEME_DIR / f"{BACKGROUND_STEM}{ext}"
+        if dest.suffix.lower() == ".png" and not is_png(src):
+            return None
+        fd, raw_name = tempfile.mkstemp(suffix=ext)
+        os.close(fd)
+        raw = Path(raw_name)
+        try:
+            shutil.copy2(src, raw)
+            os.chmod(raw, 0o644)
+            if sudo_cp(raw, dest):
+                return dest
+            return None
+        finally:
+            raw.unlink(missing_ok=True)
     finally:
         tmp_path.unlink(missing_ok=True)
 
@@ -232,11 +282,12 @@ def main() -> int:
     # Blur is applied at runtime on the full-screen layer only; assets stay sharp.
     runtime_blur = args.blur
     if wallpaper is not None:
-        dest_name = BACKGROUND_NAME
-        dest = THEME_DIR / dest_name
-        if not resize_wallpaper(wallpaper, dest):
+        dest = write_theme_wallpaper(wallpaper)
+        if dest is None:
             print("FAIL")
+            print(f"wallpaper={wallpaper}")
             return 1
+        dest_name = dest.name
         clear_stale_wallpaper_assets({dest_name})
 
     face = HOME / ".face.icon"
@@ -273,7 +324,13 @@ def main() -> int:
         print("OK")
         print(f"wallpaper={wallpaper}")
         print(f"background={THEME_DIR / dest_name} mode={_mode(THEME_DIR / dest_name)}")
-        print(f"hero=shared-with-background")
+        try:
+            size = (THEME_DIR / dest_name).stat().st_size
+        except OSError:
+            size = 0
+        magic = _file_magic(THEME_DIR / dest_name).hex()
+        print(f"bytes={size} magic={magic}")
+        print("hero=shared-with-background")
         print(f"runtime_blur={runtime_blur}")
         print(f"main_qml={'copied ' + str(theme_main) if main_copied else 'unchanged'}")
     else:
