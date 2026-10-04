@@ -3,7 +3,8 @@
 
 Starts the matching daemon if it isn't running, then sets IMAGE using
 TRANSITION (awww/swww --transition-type values). Also writes
-~/.config/yahr/last-wallpaper so the image is restored on login.
+~/.config/yahr/last-wallpaper so the image is restored on login, and syncs
+the SDDM greeter wallpaper when Settings → SDDM → Match desktop is on.
 """
 
 from __future__ import annotations
@@ -58,6 +59,95 @@ def remember(image: str) -> None:
     last.write_text(image + "\n")
 
 
+def publish_live_scripts() -> None:
+    """Refresh ~/.config/quickshell/scripts when it is a separate install copy."""
+    live = Path.home() / ".config/quickshell/scripts"
+    if not live.is_dir():
+        return
+    here = Path(__file__).resolve().parent
+    try:
+        if live.resolve() == here.resolve():
+            return
+    except OSError:
+        return
+    for name in ("sddm-apply.py", "set-wallpaper.py", "sddm-apply-cli", "set-wallpaper-cli"):
+        src = here / name
+        if not src.is_file():
+            continue
+        try:
+            shutil.copy2(src, live / name)
+            os.chmod(live / name, 0o755)
+        except OSError:
+            pass
+
+
+def find_sddm_apply() -> Path | None:
+    """Prefer the git-clone apply script when ~/.config/yahr/repo-root is set."""
+    candidates: list[Path] = []
+    repo_root_file = Path.home() / ".config/yahr/repo-root"
+    if repo_root_file.is_file():
+        try:
+            root = Path(repo_root_file.read_text().strip()).expanduser()
+            candidates.append(root / "quickshell" / "scripts" / "sddm-apply.py")
+        except OSError:
+            pass
+    candidates.append(Path(__file__).resolve().with_name("sddm-apply.py"))
+    candidates.append(Path.home() / ".local/share/yahr-shell/quickshell/scripts/sddm-apply.py")
+    for path in candidates:
+        if path.is_file():
+            return path
+    return None
+
+
+def log_sync(message: str) -> None:
+    log_path = Path.home() / ".cache/yahr/sddm-sync.log"
+    try:
+        log_path.parent.mkdir(parents=True, exist_ok=True)
+        log_path.write_text(message if message.endswith("\n") else message + "\n")
+    except OSError:
+        pass
+
+
+def maybe_sync_sddm(image: str) -> None:
+    settings_path = Path.home() / ".config/yahr/settings.json"
+    try:
+        data = json.loads(settings_path.read_text())
+    except (OSError, json.JSONDecodeError):
+        data = {}
+    sddm = data.get("sddm") or {}
+    if not sddm.get("followDesktop", True):
+        log_sync(f"skip=followDesktop_false\nwallpaper={image}\n")
+        return
+    script = find_sddm_apply()
+    if script is None:
+        log_sync(f"skip=missing_sddm_apply\nwallpaper={image}\n")
+        return
+    blur = 0 if not sddm.get("blurEnabled", True) else int(sddm.get("blurAmount", 20) or 0)
+    opacity = sddm.get("loginOpacity", 0.75)
+    result = subprocess.run(
+        [
+            sys.executable,
+            str(script),
+            "--opacity",
+            f"{float(opacity):.2f}",
+            "--blur",
+            str(blur),
+            "--wallpaper",
+            image,
+        ],
+        check=False,
+        capture_output=True,
+        text=True,
+    )
+    log_sync(
+        f"script={script}\n"
+        f"wallpaper={image}\n"
+        f"exit={result.returncode}\n"
+        f"{result.stdout}"
+        f"{result.stderr}"
+    )
+
+
 def main() -> int:
     if len(sys.argv) < 2:
         print("usage: set-wallpaper.py <image> [transition]", file=sys.stderr)
@@ -70,6 +160,10 @@ def main() -> int:
 
     transition = sys.argv[2] if len(sys.argv) > 2 else "fade"
     remember(image)
+    publish_live_scripts()
+    # Sync greeter as soon as the path is known — do not wait on awww/swww.
+    maybe_sync_sddm(image)
+
     # The installer applies a theme before the first login. Keep the path
     # so Hyprland can restore it, and skip the daemon until a session exists.
     if not os.environ.get("WAYLAND_DISPLAY"):
@@ -93,77 +187,7 @@ def main() -> int:
         argv += ["--transition-pos", "center"]
 
     result = subprocess.run(argv, check=False)
-    if result.returncode != 0:
-        return result.returncode
-
-    maybe_sync_sddm(image)
-    return 0
-
-
-def find_sddm_apply() -> Path | None:
-    """Prefer the git-clone apply script when ~/.config/yahr/repo-root is set.
-
-    install.sh copies Quickshell into ~/.config/quickshell, so the in-tree
-    script next to this file can lag behind the checkout the user pulls.
-    """
-    candidates: list[Path] = []
-    repo_root_file = Path.home() / ".config/yahr/repo-root"
-    if repo_root_file.is_file():
-        try:
-            root = Path(repo_root_file.read_text().strip()).expanduser()
-            candidates.append(root / "quickshell" / "scripts" / "sddm-apply.py")
-        except OSError:
-            pass
-    candidates.append(Path(__file__).resolve().with_name("sddm-apply.py"))
-    share = Path.home() / ".local/share/yahr-shell/quickshell/scripts/sddm-apply.py"
-    candidates.append(share)
-    for path in candidates:
-        if path.is_file():
-            return path
-    return None
-
-
-def maybe_sync_sddm(image: str) -> None:
-    settings_path = Path.home() / ".config/yahr/settings.json"
-    try:
-        data = json.loads(settings_path.read_text())
-    except (OSError, json.JSONDecodeError):
-        return
-    sddm = data.get("sddm") or {}
-    if not sddm.get("followDesktop", True):
-        return
-    script = find_sddm_apply()
-    if script is None:
-        return
-    blur = 0 if not sddm.get("blurEnabled", True) else int(sddm.get("blurAmount", 20) or 0)
-    opacity = sddm.get("loginOpacity", 0.75)
-    log_path = Path.home() / ".cache/yahr/sddm-sync.log"
-    log_path.parent.mkdir(parents=True, exist_ok=True)
-    result = subprocess.run(
-        [
-            sys.executable,
-            str(script),
-            "--opacity",
-            f"{float(opacity):.2f}",
-            "--blur",
-            str(blur),
-            "--wallpaper",
-            image,
-        ],
-        check=False,
-        capture_output=True,
-        text=True,
-    )
-    try:
-        log_path.write_text(
-            f"script={script}\n"
-            f"wallpaper={image}\n"
-            f"exit={result.returncode}\n"
-            f"{result.stdout}"
-            f"{result.stderr}"
-        )
-    except OSError:
-        pass
+    return result.returncode
 
 
 if __name__ == "__main__":

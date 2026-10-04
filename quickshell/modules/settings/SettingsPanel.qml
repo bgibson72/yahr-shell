@@ -246,14 +246,9 @@ Panel {
         const wallpaper = Settings.sddmFollowDesktop ? "desktop" : (root.sddmWallpaperPath() || "none")
         root.sddmOpacityError = false
         root.sddmStatusMessage = ""
-        // Prefer git-checkout scripts via repo-root; ~/.config/quickshell is an install copy.
         sddmThemeWriter.command = [
             "bash", "-c",
-            `ROOT=$(tr -d '[:space:]' < "$HOME/.config/yahr/repo-root" 2>/dev/null || true)
-             SCRIPT=""
-             [ -n "$ROOT" ] && [ -f "$ROOT/quickshell/scripts/sddm-apply.py" ] && SCRIPT="$ROOT/quickshell/scripts/sddm-apply.py"
-             [ -z "$SCRIPT" ] && SCRIPT="${Quickshell.shellDir}/scripts/sddm-apply.py"
-             exec python3 "$SCRIPT" "$@"`,
+            root.resolveRepoScript("sddm-apply.py"),
             "_",
             "--opacity", Settings.sddmLoginOpacity.toFixed(2),
             "--blur", String(blur),
@@ -279,21 +274,42 @@ Panel {
         wallpaperScan.running = true
     }
 
+    function resolveRepoScript(name) {
+        // Prefer git checkout via repo-root; fall back to the live Quickshell tree.
+        return `ROOT=$(tr -d '[:space:]' < "$HOME/.config/yahr/repo-root" 2>/dev/null || true)
+SCRIPT=""
+[ -n "$ROOT" ] && [ -f "$ROOT/quickshell/scripts/${name}" ] && SCRIPT="$ROOT/quickshell/scripts/${name}"
+[ -z "$SCRIPT" ] && SCRIPT="${Quickshell.shellDir}/scripts/${name}"
+exec python3 "$SCRIPT" "$@"`
+    }
+
+    function syncSddmWallpaper(path) {
+        if (!Settings.sddmFollowDesktop)
+            return
+        const blur = Settings.sddmBlurEnabled ? Settings.sddmBlurAmount : 0
+        Quickshell.execDetached([
+            "bash", "-c",
+            root.resolveRepoScript("sddm-apply.py"),
+            "_",
+            "--opacity", Settings.sddmLoginOpacity.toFixed(2),
+            "--blur", String(blur),
+            "--wallpaper", path
+        ])
+    }
+
     function applyWallpaper(path) {
         Settings.currentWallpaper = path
         Settings.save()
-        // Prefer git-checkout set-wallpaper.py so SDDM hero/background sync stays current.
+        // Prefer git-checkout set-wallpaper.py so SDDM sync stays current.
         Quickshell.execDetached([
             "bash", "-c",
-            `ROOT=$(tr -d '[:space:]' < "$HOME/.config/yahr/repo-root" 2>/dev/null || true)
-             SCRIPT=""
-             [ -n "$ROOT" ] && [ -f "$ROOT/quickshell/scripts/set-wallpaper.py" ] && SCRIPT="$ROOT/quickshell/scripts/set-wallpaper.py"
-             [ -z "$SCRIPT" ] && SCRIPT="${Quickshell.shellDir}/scripts/set-wallpaper.py"
-             exec python3 "$SCRIPT" "$@"`,
+            root.resolveRepoScript("set-wallpaper.py"),
             "_",
             path,
             Settings.wallpaperTransition
         ])
+        // Belt-and-suspenders: sync greeter directly with the chosen path.
+        root.syncSddmWallpaper(path)
     }
 
     function startFilePicker(proc) {

@@ -132,6 +132,28 @@ def sudo_write(dest: Path, text: str) -> bool:
     return result.returncode == 0
 
 
+def publish_live_scripts() -> None:
+    """Refresh ~/.config/quickshell/scripts when it is a separate install copy."""
+    live = HOME / ".config/quickshell/scripts"
+    if not live.is_dir():
+        return
+    here = Path(__file__).resolve().parent
+    try:
+        if live.resolve() == here.resolve():
+            return
+    except OSError:
+        return
+    for name in ("sddm-apply.py", "set-wallpaper.py", "sddm-apply-cli", "set-wallpaper-cli"):
+        src = here / name
+        if not src.is_file():
+            continue
+        try:
+            shutil.copy2(src, live / name)
+            os.chmod(live / name, 0o755)
+        except OSError:
+            pass
+
+
 def _file_magic(path: Path, n: int = 8) -> bytes:
     try:
         with path.open("rb") as fh:
@@ -276,6 +298,7 @@ def main() -> int:
         print("MISSING_THEME")
         return 1
 
+    publish_live_scripts()
     settings = load_json(HOME / ".config/yahr/settings.json")
     wallpaper = resolve_wallpaper(args.wallpaper)
     dest_name = None
