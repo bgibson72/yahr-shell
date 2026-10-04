@@ -25,6 +25,20 @@ cat ~/.cache/yahr/sddm-sync.log   # written after each desktop wallpaper change
 
 Manual apply from Settings → SDDM → **Apply to SDDM**.
 
+If Settings → SDDM still shows **Blur background** or **Login Window Transparency**,
+the live Quickshell tree is stale (a copied `~/.config/quickshell` that did not
+follow `git pull`). Repair with:
+
+```bash
+# From your yahr-shell clone on latest main:
+pwd > ~/.config/yahr/repo-root
+bash quickshell/scripts/sync-quickshell-cli
+# or: yahr-sync-quickshell
+pkill -x qs; pkill -x quickshell; qs -p "$(readlink -f ~/.config/quickshell || echo ~/.config/quickshell)" &
+```
+
+Then confirm Settings → SDDM has no blur/transparency controls. Sync log: `/tmp/yahr-quickshell-sync.log`.
+
 ## Preview
 
 ```bash

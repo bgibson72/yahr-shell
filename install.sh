@@ -365,9 +365,11 @@ symlink_or_copy() {
     local src="$1" dest="$2"
     mkdir -p "$(dirname "$dest")"
     rm -rf "$dest"
-    if ln -s "$src" "$dest" 2>/dev/null; then
+    if ln -sfn "$src" "$dest" 2>/dev/null && [ -L "$dest" ]; then
         return 0
     fi
+    warn "Could not symlink $dest → $src; copying instead (git pulls will not update this tree)."
+    rm -rf "$dest"
     cp -a "$src" "$dest"
 }
 
@@ -377,7 +379,8 @@ install_configs() {
         "$HOME/Pictures/Screenshots" "$HOME/Pictures/Wallpapers" "$HOME/.cache/yahr" \
         "$HOME/.local/share/fonts"
 
-    link_or_copy "$REPO_ROOT/hypr" "$HOME/.config/hypr"
+    # Symlink hypr + quickshell so autostart and Settings QML track the clone.
+    symlink_or_copy "$REPO_ROOT/hypr" "$HOME/.config/hypr"
     symlink_or_copy "$REPO_ROOT/quickshell" "$HOME/.config/quickshell"
     link_or_copy "$REPO_ROOT/ghostty" "$HOME/.config/ghostty"
     link_or_copy "$REPO_ROOT/mako" "$HOME/.config/mako"
@@ -422,6 +425,12 @@ WRAP
     install -m 0755 "$REPO_ROOT/quickshell/scripts/yahr-calendar" "$HOME/.local/bin/yahr-calendar"
     install -m 0755 "$REPO_ROOT/quickshell/scripts/yahr-calculator" "$HOME/.local/bin/yahr-calculator"
     install -m 0755 "$REPO_ROOT/quickshell/scripts/yahr-keybinds" "$HOME/.local/bin/yahr-keybinds"
+    install -m 0755 "$REPO_ROOT/quickshell/scripts/sync-quickshell-cli" "$HOME/.local/bin/yahr-sync-quickshell"
+    # Ensure the live Quickshell tree tracks this clone (repairs stale copies).
+    if [ -f "$REPO_ROOT/quickshell/scripts/sync-quickshell-from-repo.py" ]; then
+        python3 "$REPO_ROOT/quickshell/scripts/sync-quickshell-from-repo.py" --repo "$REPO_ROOT" \
+            || warn "Quickshell live sync reported an issue; check ~/.config/quickshell"
+    fi
 
     mkdir -p "$HOME/.local/share/applications"
     cat > "$HOME/.local/share/applications/yahr-calendar.desktop" <<EOF

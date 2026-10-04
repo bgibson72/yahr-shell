@@ -1,0 +1,29 @@
+#!/usr/bin/env bash
+# Resolve and run sync-quickshell-from-repo.py from the git checkout when possible.
+set -euo pipefail
+
+SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+CANDIDATES=()
+
+if [[ -f "${HOME}/.config/yahr/repo-root" ]]; then
+  ROOT="$(tr -d '[:space:]' < "${HOME}/.config/yahr/repo-root")"
+  if [[ -n "$ROOT" && -f "${ROOT}/quickshell/scripts/sync-quickshell-from-repo.py" ]]; then
+    CANDIDATES+=("${ROOT}/quickshell/scripts/sync-quickshell-from-repo.py")
+  fi
+fi
+CANDIDATES+=("${SCRIPT_DIR}/sync-quickshell-from-repo.py")
+
+SYNC=""
+for candidate in "${CANDIDATES[@]}"; do
+  if [[ -f "$candidate" ]]; then
+    SYNC="$candidate"
+    break
+  fi
+done
+
+if [[ -z "$SYNC" ]]; then
+  echo "MISSING_SYNC_SCRIPT" >&2
+  exit 1
+fi
+
+exec python3 "$SYNC" "$@"

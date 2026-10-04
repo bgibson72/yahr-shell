@@ -2,11 +2,25 @@
 
 hl.on("hyprland.start", function()
     local home = os.getenv("HOME")
-    -- Prefer the installed config tree; fall back to a local clone for development.
-    local candidates = {
-        home .. "/.config/quickshell",
-        home .. "/Projects/yahr-shell/quickshell",
-    }
+
+    -- Keep ~/.config/quickshell pointed at the git checkout when repo-root is set.
+    -- A stale copied SettingsPanel.qml is why removed SDDM controls can still appear.
+    hl.exec_cmd("bash -c 'ROOT=$(tr -d \"[:space:]\" < \"$HOME/.config/yahr/repo-root\" 2>/dev/null || true); SYNC=\"\"; [ -n \"$ROOT\" ] && [ -f \"$ROOT/quickshell/scripts/sync-quickshell-from-repo.py\" ] && SYNC=\"$ROOT/quickshell/scripts/sync-quickshell-from-repo.py\"; [ -z \"$SYNC\" ] && [ -f \"$HOME/.config/quickshell/scripts/sync-quickshell-from-repo.py\" ] && SYNC=\"$HOME/.config/quickshell/scripts/sync-quickshell-from-repo.py\"; [ -n \"$SYNC\" ] && python3 \"$SYNC\" >/tmp/yahr-quickshell-sync.log 2>&1 || true'")
+
+    -- Prefer the clone from repo-root, then the live config tree, then a common path.
+    local candidates = {}
+    local repo_root_file = io.open(home .. "/.config/yahr/repo-root", "r")
+    if repo_root_file then
+        local root = repo_root_file:read("*l")
+        repo_root_file:close()
+        if root and #root > 0 then
+            candidates[#candidates + 1] = root .. "/quickshell"
+        end
+    end
+    candidates[#candidates + 1] = home .. "/.config/quickshell"
+    candidates[#candidates + 1] = home .. "/Projects/yahr-shell/quickshell"
+    candidates[#candidates + 1] = home .. "/yahr-shell/quickshell"
+
     local started = false
     for _, yahr_qs in ipairs(candidates) do
         local qs_probe = io.open(yahr_qs .. "/shell.qml", "r")

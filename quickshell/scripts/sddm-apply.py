@@ -18,6 +18,7 @@ import os
 import re
 import shutil
 import subprocess
+import sys
 import tempfile
 from pathlib import Path
 
@@ -138,23 +139,51 @@ def sudo_write(dest: Path, text: str) -> bool:
 
 
 def publish_live_scripts() -> None:
-    """Refresh ~/.config/quickshell/scripts when it is a separate install copy."""
-    live = HOME / ".config/quickshell/scripts"
-    if not live.is_dir():
-        return
+    """Refresh live Quickshell files when ~/.config/quickshell is a separate copy.
+
+    Scripts alone are not enough: SettingsPanel.qml is what draws the SDDM tab.
+    Prefer the dedicated sync helper (symlink to the git checkout) when available.
+    """
     here = Path(__file__).resolve().parent
+    repo_qs = here.parent
+    sync_helper = here / "sync-quickshell-from-repo.py"
+    if sync_helper.is_file():
+        subprocess.run(
+            [sys.executable, str(sync_helper)],
+            capture_output=True,
+            text=True,
+            check=False,
+        )
+
+    live_root = HOME / ".config/quickshell"
+    live_scripts = live_root / "scripts"
+    if not live_root.is_dir():
+        return
     try:
-        if live.resolve() == here.resolve():
+        if live_root.resolve() == repo_qs.resolve():
             return
     except OSError:
         return
-    for name in ("sddm-apply.py", "set-wallpaper.py", "sddm-apply-cli", "set-wallpaper-cli"):
-        src = here / name
+
+    for rel in (
+        "scripts/sddm-apply.py",
+        "scripts/set-wallpaper.py",
+        "scripts/sddm-apply-cli",
+        "scripts/set-wallpaper-cli",
+        "scripts/sync-quickshell-from-repo.py",
+        "scripts/sync-quickshell-cli",
+        "modules/settings/SettingsPanel.qml",
+        "Settings.qml",
+    ):
+        src = repo_qs / rel
+        dest = live_root / rel
         if not src.is_file():
             continue
         try:
-            shutil.copy2(src, live / name)
-            os.chmod(live / name, 0o755)
+            dest.parent.mkdir(parents=True, exist_ok=True)
+            shutil.copy2(src, dest)
+            if rel.startswith("scripts/"):
+                os.chmod(dest, 0o755)
         except OSError:
             pass
 
