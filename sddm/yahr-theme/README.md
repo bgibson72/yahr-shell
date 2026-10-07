@@ -1,12 +1,17 @@
 # YAHR SDDM theme
 
-Login screen that follows the YAHR shell: wide split plate (wallpaper crop + form), Inter type, card-colored fields, and a runtime-blurred desktop wallpaper (fixed FastBlur radius 40).
+Login screen that follows the YAHR shell: full-bleed wallpaper, large clock, and a
+floating bottom **dock strip** (avatar, username/password, session, power) tinted
+from the active palette. Background blur is fixed at FastBlur radius 40.
 
 ## Sync
 
-Theme apply (`yahr-theme apply` or Settings → SDDM → Apply) writes palette colors into `theme.conf` and copies a sharp `login-background.png` into `/usr/share/sddm/themes/yahr-theme`. The login-window crop uses that same file; full-screen blur is always applied at runtime (FastBlur radius 40). Login-plate opacity is fixed (not exposed in Settings).
-
-Desktop wallpaper changes (with **Match desktop** on) call `set-wallpaper.py` → `sddm-apply.py`, which overwrites `login-background.png` every time. Sync prefers the git checkout in `~/.config/yahr/repo-root` when present.
+Theme apply (`yahr-theme apply` or Settings → SDDM → Apply) writes the current
+palette from `~/.config/yahr/current.json` into `theme.conf` and copies the
+desktop wallpaper into `/usr/share/sddm/themes/yahr-theme` as
+`login-background.png` (or `.jpg`). Colors and wallpaper are never hard-coded to
+a specific theme — every `yahr-theme apply` and every desktop wallpaper change
+(with **Match desktop** on) refreshes the greeter.
 
 ```bash
 # Manual sync / debug
