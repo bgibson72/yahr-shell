@@ -212,7 +212,9 @@ Item {
             return overlayAttachedY(hostHeight, panelHeight)
         return (hostHeight - panelHeight) / 2
     }
-    readonly property real archIconHoverScale: 1.1
+    // Arch mark sits flush in the bar corner, so its hover pop stays milder
+    // than tray/power glyphs — just enough to read as interactive.
+    readonly property real archIconHoverScale: 1.22
     readonly property real archIconPressScale: 0.94
     readonly property bool showWidgetBorders: Settings.followHyprlandRules
         ? Settings.hyprShowBorder
@@ -260,10 +262,13 @@ Item {
 
     // Shared "plop" bounce feel used by every clickable icon/button in the shell.
     // Hover/press feedback is a spring-driven scale rather than a background rect.
-    // Bare glyph icons (bar/dock/tray/powermenu) get a big, dramatic pop...
+    // Bare glyph icons (bar/dock/tray/powermenu/clock text) get a big, dramatic pop...
     readonly property real iconHoverScale: 1.45
     readonly property real iconPressScale: 0.62
-    // ...while labeled buttons/rows with their own background get a more
+    // ...labeled bar controls (e.g. TOOLS) sit between the Arch mark and glyph pop...
+    readonly property real barLabelHoverScale: 1.32
+    readonly property real barLabelPressScale: 0.78
+    // ...while panel buttons/rows with their own background get a more
     // restrained bounce so they don't overlap neighbors in tight layouts.
     readonly property real bounceHoverScale: 1.08
     readonly property real bouncePressScale: 0.9

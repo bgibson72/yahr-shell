@@ -40,16 +40,18 @@ Item {
         radius: height / 2
         implicitWidth: clockRow.implicitWidth + 28
         implicitHeight: clockRow.implicitHeight + 12
-        scale: clockMouse.pressed ? ThemeManager.bouncePressScale : (clockMouse.containsMouse ? ThemeManager.bounceHoverScale : 1.0)
-        Behavior on scale {
-            SpringAnimation { spring: ThemeManager.bounceSpring; damping: ThemeManager.bounceDamping; mass: ThemeManager.bounceMass }
-        }
     }
 
     Row {
         id: clockRow
         anchors.centerIn: parent
         spacing: 8
+        // Scale the text/glyphs, not the background pill, so hover matches
+        // tray/power icon pop elsewhere on the bar.
+        scale: clockMouse.pressed ? ThemeManager.iconPressScale : (clockMouse.containsMouse ? ThemeManager.iconHoverScale : 1.0)
+        Behavior on scale {
+            SpringAnimation { spring: ThemeManager.bounceSpring; damping: ThemeManager.bounceDamping; mass: ThemeManager.bounceMass }
+        }
 
         Text {
             id: dateText
