@@ -12,6 +12,12 @@ Item {
 
     signal clicked()
 
+    // Grow the pill chrome and the date/time text together on hover.
+    scale: clockMouse.pressed ? ThemeManager.barLabelPressScale : (clockMouse.containsMouse ? ThemeManager.barLabelHoverScale : 1.0)
+    Behavior on scale {
+        SpringAnimation { spring: ThemeManager.bounceSpring; damping: ThemeManager.bounceDamping; mass: ThemeManager.bounceMass }
+    }
+
     property string weatherIcon: "\ue302"
     property string weatherTemp: "--"
 
@@ -46,12 +52,6 @@ Item {
         id: clockRow
         anchors.centerIn: parent
         spacing: 8
-        // Scale the text/glyphs, not the background pill. Use the labeled-bar
-        // pop so a wide date/time row doesn't dwarf TOOLS / Arch on hover.
-        scale: clockMouse.pressed ? ThemeManager.barLabelPressScale : (clockMouse.containsMouse ? ThemeManager.barLabelHoverScale : 1.0)
-        Behavior on scale {
-            SpringAnimation { spring: ThemeManager.bounceSpring; damping: ThemeManager.bounceDamping; mass: ThemeManager.bounceMass }
-        }
 
         Text {
             id: dateText
