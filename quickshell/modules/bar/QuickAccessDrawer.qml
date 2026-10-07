@@ -34,7 +34,7 @@ Item {
                 implicitWidth: labelRow.implicitWidth + 4
                 implicitHeight: 40
 
-                scale: toggleMouse.pressed ? ThemeManager.iconPressScale : (toggleMouse.containsMouse ? ThemeManager.iconHoverScale : 1.0)
+                scale: toggleMouse.pressed ? ThemeManager.barLabelPressScale : (toggleMouse.containsMouse ? ThemeManager.barLabelHoverScale : 1.0)
                 Behavior on scale {
                     SpringAnimation { spring: ThemeManager.bounceSpring; damping: ThemeManager.bounceDamping; mass: ThemeManager.bounceMass }
                 }

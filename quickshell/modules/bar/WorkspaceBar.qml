@@ -87,7 +87,7 @@ Item {
             hoverEnabled: true
             cursorShape: Qt.PointingHandCursor
 
-            scale: btn.pressed ? ThemeManager.iconPressScale : 1.0
+            scale: btn.pressed ? ThemeManager.iconPressScale : (btn.containsMouse ? ThemeManager.iconHoverScale : 1.0)
             Behavior on scale {
                 SpringAnimation { spring: ThemeManager.bounceSpring; damping: ThemeManager.bounceDamping; mass: ThemeManager.bounceMass }
             }
