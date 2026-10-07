@@ -5,7 +5,7 @@ import "../../components"
 import "../.."
 
 // Collapsible strip of app launchers that live in the bar without permanently
-// eating space. Chevron toggles a reveal of a couple of quick-launch icons
+// eating space. A "TOOLS ^" label toggles a reveal of quick-launch icons
 // for apps that don't already have a dedicated bar icon elsewhere.
 Item {
     id: drawer
@@ -27,14 +27,48 @@ Item {
         spacing: 2
 
         PillGroup {
-            circular: true
+            horizontalPadding: 10
 
-            IconButton {
-                compact: true
-                glyph: drawer.expanded ? "\uf054" : "\uf077"
-                glyphColor: ThemeManager.accentBlue
-                pixelSize: ThemeManager.fontSizeSmall
-                onClicked: drawer.expanded = !drawer.expanded
+            Item {
+                id: toggleBtn
+                implicitWidth: labelRow.implicitWidth + 4
+                implicitHeight: 40
+
+                scale: toggleMouse.pressed ? ThemeManager.iconPressScale : (toggleMouse.containsMouse ? ThemeManager.iconHoverScale : 1.0)
+                Behavior on scale {
+                    SpringAnimation { spring: ThemeManager.bounceSpring; damping: ThemeManager.bounceDamping; mass: ThemeManager.bounceMass }
+                }
+
+                Row {
+                    id: labelRow
+                    anchors.centerIn: parent
+                    spacing: 5
+
+                    Text {
+                        anchors.verticalCenter: parent.verticalCenter
+                        text: "TOOLS"
+                        font.family: ThemeManager.uiFont
+                        font.pixelSize: ThemeManager.fontSizeSmall
+                        font.weight: Font.DemiBold
+                        color: ThemeManager.accentBlue
+                    }
+
+                    Text {
+                        anchors.verticalCenter: parent.verticalCenter
+                        text: drawer.expanded ? "\uf054" : "\uf077"
+                        font.family: "Symbols Nerd Font"
+                        font.pixelSize: ThemeManager.fontSizeSmall
+                        color: ThemeManager.accentBlue
+                    }
+                }
+
+                MouseArea {
+                    id: toggleMouse
+                    anchors.fill: parent
+                    hoverEnabled: true
+                    cursorShape: Qt.PointingHandCursor
+                    onClicked: drawer.expanded = !drawer.expanded
+                }
             }
         }
 
@@ -61,7 +95,6 @@ Item {
                     model: [
                         { glyph: "\uf07c", action: "files" },
                         { glyph: "󰊠", action: "terminal", md: true },
-                        { glyph: "\uf269", action: "browser" },
                         { glyph: "\uf030", action: "screenshot" },
                         { glyph: "󰈊", action: "picker", md: true },
                         { glyph: "\uf03e", action: "wallpaper" },
@@ -94,7 +127,6 @@ Item {
                                 switch (wrap.modelData.action) {
                                 case "files": Quickshell.execDetached([`${Quickshell.shellDir}/scripts/launch-thunar.sh`]); break
                                 case "terminal": Quickshell.execDetached([ThemeManager.terminal]); break
-                                case "browser": Quickshell.execDetached(["firefox"]); break
                                 case "screenshot": drawer.toggleScreenshot(); break
                                 case "picker": Quickshell.execDetached(["hyprpicker", "-a"]); break
                                 case "wallpaper": drawer.toggleWallpaper(); break
