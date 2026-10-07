@@ -2435,7 +2435,7 @@ exec python3 "$SCRIPT" "$@"`
                     SettingsCard {
                         SettingsSubcard {
                             Text {
-                                text: "Match the desktop wallpaper, or pick a different image. Theme colors update with Settings → Theme. Background blur is fixed at radius 40. Wallpaper refreshes when the desktop wallpaper changes (if Match desktop is on) or when you Apply."
+                                text: "Match the desktop wallpaper, or pick a different image. Theme colors follow Settings → Theme (any palette). Background blur is fixed at radius 40. Wallpaper and colors refresh when either changes (if Match desktop is on) or when you Apply."
                                 color: ThemeManager.fgTertiary
                                 font.family: ThemeManager.uiFont
                                 font.pixelSize: 12
