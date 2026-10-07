@@ -265,10 +265,10 @@ Item {
     // Bare glyph icons (bar/dock/tray/powermenu) get a big, dramatic pop...
     readonly property real iconHoverScale: 1.45
     readonly property real iconPressScale: 0.62
-    // ...labeled bar text (TOOLS, clock) stays near the Arch mark — wide labels
-    // read as exaggerated if they use the glyph-sized pop.
-    readonly property real barLabelHoverScale: 1.24
-    readonly property real barLabelPressScale: 0.88
+    // ...labeled bar pills (TOOLS, clock) grow as one unit with a soft pop —
+    // wide chrome reads exaggerated if it uses the glyph-sized scale.
+    readonly property real barLabelHoverScale: 1.12
+    readonly property real barLabelPressScale: 0.94
     // ...while panel buttons/rows with their own background get a more
     // restrained bounce so they don't overlap neighbors in tight layouts.
     readonly property real bounceHoverScale: 1.08

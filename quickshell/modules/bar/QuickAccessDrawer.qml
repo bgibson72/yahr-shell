@@ -28,16 +28,17 @@ Item {
 
         PillGroup {
             horizontalPadding: 10
+            // Scale pill chrome + TOOLS label together so the background
+            // tracks the text instead of leaving a static capsule behind.
+            scale: toggleMouse.pressed ? ThemeManager.barLabelPressScale : (toggleMouse.containsMouse ? ThemeManager.barLabelHoverScale : 1.0)
+            Behavior on scale {
+                SpringAnimation { spring: ThemeManager.bounceSpring; damping: ThemeManager.bounceDamping; mass: ThemeManager.bounceMass }
+            }
 
             Item {
                 id: toggleBtn
                 implicitWidth: labelRow.implicitWidth + 4
                 implicitHeight: 40
-
-                scale: toggleMouse.pressed ? ThemeManager.barLabelPressScale : (toggleMouse.containsMouse ? ThemeManager.barLabelHoverScale : 1.0)
-                Behavior on scale {
-                    SpringAnimation { spring: ThemeManager.bounceSpring; damping: ThemeManager.bounceDamping; mass: ThemeManager.bounceMass }
-                }
 
                 Row {
                     id: labelRow
