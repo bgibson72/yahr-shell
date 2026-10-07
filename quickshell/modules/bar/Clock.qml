@@ -46,9 +46,9 @@ Item {
         id: clockRow
         anchors.centerIn: parent
         spacing: 8
-        // Scale the text/glyphs, not the background pill, so hover matches
-        // tray/power icon pop elsewhere on the bar.
-        scale: clockMouse.pressed ? ThemeManager.iconPressScale : (clockMouse.containsMouse ? ThemeManager.iconHoverScale : 1.0)
+        // Scale the text/glyphs, not the background pill. Use the labeled-bar
+        // pop so a wide date/time row doesn't dwarf TOOLS / Arch on hover.
+        scale: clockMouse.pressed ? ThemeManager.barLabelPressScale : (clockMouse.containsMouse ? ThemeManager.barLabelHoverScale : 1.0)
         Behavior on scale {
             SpringAnimation { spring: ThemeManager.bounceSpring; damping: ThemeManager.bounceDamping; mass: ThemeManager.bounceMass }
         }
