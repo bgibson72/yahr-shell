@@ -52,7 +52,6 @@ Item {
     property real dockOpacity: 0.70
     property bool dockShowBorder: false
     property bool dockFollowHyprland: false
-    property string dockShape: "rounded"
     property int dockRounding: 12
     property int dockIconSize: 58
     property bool dockSpanFullWidth: false
@@ -154,7 +153,6 @@ Item {
                 opacity: dockOpacity,
                 showBorder: dockShowBorder,
                 followHyprland: dockFollowHyprland,
-                shape: dockShape,
                 rounding: dockRounding,
                 iconSize: dockIconSize,
                 spanFullWidth: dockSpanFullWidth,
@@ -263,8 +261,9 @@ Item {
         if (d.opacity !== undefined) dockOpacity = d.opacity
         if (d.showBorder !== undefined) dockShowBorder = d.showBorder
         if (d.followHyprland !== undefined) dockFollowHyprland = d.followHyprland
-        if (d.shape !== undefined) dockShape = d.shape
         if (d.rounding !== undefined) dockRounding = d.rounding
+        // Legacy dockShape: square corners are now corner radius 0.
+        if (d.shape === "square") dockRounding = 0
         if (d.iconSize !== undefined) dockIconSize = d.iconSize
         if (d.spanFullWidth !== undefined) dockSpanFullWidth = d.spanFullWidth
         if (d.showSettingsIcon !== undefined) dockShowSettingsIcon = d.showSettingsIcon
