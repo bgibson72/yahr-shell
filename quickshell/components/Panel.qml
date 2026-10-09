@@ -106,34 +106,15 @@ Item {
             return panel.paddedH
         }
 
-        Rectangle {
-            id: chrome
+        // Host carries entrance motion so the SDF glow stays locked to the
+        // chrome. RectangularShadow sits behind the panel rather than as a
+        // layered MultiEffect, which padded a hard blocky halo.
+        Item {
+            id: chromeHost
             width: panel.width
             height: panel.height
             x: panel.emerge ? -reveal.x : 0
             y: panel.emerge ? -reveal.y : 0
-
-            color: panel.emerge ? ThemeManager.frameFillColor : ThemeManager.panelColor
-            radius: panel.freeR
-            // Center tabs square both top corners into the bar. Side drawers
-            // keep the frame-adjacent top corner convex so it nests in the
-            // screen's inner curve; only the inner top is squared for a bar ear.
-            // Right/left center drawers square both corners on the bezel edge.
-            topLeftRadius: (panel.joinTop && !panel.joinLeft)
-                || panel.joinLeftEdge
-                || (panel.joinBottom && panel.joinLeft) ? 0 : panel.freeR
-            topRightRadius: (panel.joinTop && !panel.joinRight)
-                || panel.joinRightEdge
-                || (panel.joinBottom && panel.joinRight) ? 0 : panel.freeR
-            bottomLeftRadius: (panel.joinBottom && !panel.joinLeft)
-                || (panel.joinTop && panel.joinLeft)
-                || panel.joinLeftEdge ? 0 : panel.freeR
-            bottomRightRadius: (panel.joinBottom && !panel.joinRight)
-                || (panel.joinTop && panel.joinRight)
-                || panel.joinRightEdge ? 0 : panel.freeR
-            border.width: ThemeManager.showWidgetBorders ? ThemeManager.widgetBorderWidth : 0
-            border.color: ThemeManager.chromeBorderColor
-            antialiasing: true
 
             scale: panel.emerge ? 1 : (panel.entranceScale + (1 - panel.entranceScale) * Math.max(0, panel.entrance))
             opacity: panel.emerge ? 1 : Math.max(0, Math.min(1, panel.entrance))
@@ -142,13 +123,44 @@ Item {
                 y: panel.emerge ? 0 : (1 - panel.entrance) * panel.slideOffsetY
             }
 
-            layer.enabled: !panel.emerge && ThemeManager.hyprShadowEnabled
-            layer.effect: WidgetShadowEffect {}
-
-            MouseArea {
+            WidgetShadowEffect {
+                anchors.fill: chrome
                 z: -1
+                visible: !panel.emerge && ThemeManager.hyprShadowEnabled
+                cornerRadius: panel.freeR
+            }
+
+            Rectangle {
+                id: chrome
                 anchors.fill: parent
-                onClicked: {}
+
+                color: panel.emerge ? ThemeManager.frameFillColor : ThemeManager.panelColor
+                radius: panel.freeR
+                // Center tabs square both top corners into the bar. Side drawers
+                // keep the frame-adjacent top corner convex so it nests in the
+                // screen's inner curve; only the inner top is squared for a bar ear.
+                // Right/left center drawers square both corners on the bezel edge.
+                topLeftRadius: (panel.joinTop && !panel.joinLeft)
+                    || panel.joinLeftEdge
+                    || (panel.joinBottom && panel.joinLeft) ? 0 : panel.freeR
+                topRightRadius: (panel.joinTop && !panel.joinRight)
+                    || panel.joinRightEdge
+                    || (panel.joinBottom && panel.joinRight) ? 0 : panel.freeR
+                bottomLeftRadius: (panel.joinBottom && !panel.joinLeft)
+                    || (panel.joinTop && panel.joinLeft)
+                    || panel.joinLeftEdge ? 0 : panel.freeR
+                bottomRightRadius: (panel.joinBottom && !panel.joinRight)
+                    || (panel.joinTop && panel.joinRight)
+                    || panel.joinRightEdge ? 0 : panel.freeR
+                border.width: ThemeManager.showWidgetBorders ? ThemeManager.widgetBorderWidth : 0
+                border.color: ThemeManager.chromeBorderColor
+                antialiasing: true
+
+                MouseArea {
+                    z: -1
+                    anchors.fill: parent
+                    onClicked: {}
+                }
             }
         }
 
