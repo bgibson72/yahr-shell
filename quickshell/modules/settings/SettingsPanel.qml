@@ -1344,38 +1344,6 @@ exec python3 "$SCRIPT" "$@"`
                 title: "Appearance"
                 SettingsCard {
                     SettingsSubcard {
-                        Text {
-                            text: "Dock shape"
-                            color: ThemeManager.fgPrimary
-                            font.family: ThemeManager.uiFont
-                            font.pixelSize: 13
-                        }
-                        ChoiceChipRow {
-                            options: [
-                                { id: "square", label: "Square corners" },
-                                { id: "rounded", label: "Rounded corners" }
-                            ]
-                            current: Settings.dockShape
-                            onPicked: id => { Settings.dockShape = id; Settings.save() }
-                        }
-                        ColumnLayout {
-                            visible: Settings.dockShape === "rounded"
-                            Layout.fillWidth: true
-                            spacing: 8
-                            Text {
-                                text: `Corner radius: ${Settings.dockRounding}px`
-                                color: ThemeManager.fgPrimary
-                                font.family: ThemeManager.uiFont
-                                font.pixelSize: 13
-                            }
-                            ValueChipRow {
-                                values: [0, 4, 8, 12, 16, 20]
-                                current: Settings.dockRounding
-                                onPicked: value => { Settings.dockRounding = value; Settings.save() }
-                            }
-                        }
-                    }
-                    SettingsSubcard {
                         ToggleRow {
                             label: "Follow Hyprland Window Rules"
                             checked: Settings.dockFollowHyprland
@@ -1383,7 +1351,7 @@ exec python3 "$SCRIPT" "$@"`
                         }
                         Text {
                             text: Settings.dockFollowHyprland
-                                ? "Fill, borders, and thickness match the Hyprland tab."
+                                ? "Fill, borders, thickness, and rounding match the Hyprland tab."
                                 : "Dock chrome can be set independently. Turn this on to match Hyprland window rules."
                             color: ThemeManager.fgTertiary
                             font.family: ThemeManager.uiFont
@@ -1394,26 +1362,6 @@ exec python3 "$SCRIPT" "$@"`
                     }
                     SettingsSubcard {
                         enabled: !Settings.dockFollowHyprland
-                        Text {
-                            text: "Background fill"
-                            color: ThemeManager.fgPrimary
-                            font.family: ThemeManager.uiFont
-                            font.pixelSize: 13
-                        }
-                        ChoiceChipRow {
-                            options: [
-                                { id: "opaque", label: "Solid" },
-                                { id: "translucent", label: "Transparent" }
-                            ]
-                            current: Settings.dockBackgroundStyle === "opaque" ? "opaque" : "translucent"
-                            onPicked: id => { Settings.dockBackgroundStyle = id; Settings.save() }
-                        }
-                        TransparencySlider {
-                            visible: Settings.dockBackgroundStyle !== "opaque"
-                            opacityValue: Settings.dockOpacity
-                            onChanged: value => Settings.dockOpacity = value
-                            onReleased: Settings.save()
-                        }
                         ToggleRow {
                             label: "Dock border"
                             checked: Settings.dockShowBorder
@@ -1433,6 +1381,47 @@ exec python3 "$SCRIPT" "$@"`
                                 values: [1, 2, 3, 4, 5]
                                 current: Settings.hyprBorderSize
                                 onPicked: value => root.applyBorderSize(value)
+                            }
+                        }
+                    }
+                    SettingsSubcard {
+                        enabled: !Settings.dockFollowHyprland
+                        Text {
+                            text: "Dock background"
+                            color: ThemeManager.fgPrimary
+                            font.family: ThemeManager.uiFont
+                            font.pixelSize: 13
+                        }
+                        ChoiceChipRow {
+                            options: [
+                                { id: "opaque", label: "Solid" },
+                                { id: "translucent", label: "Transparent" }
+                            ]
+                            current: Settings.dockBackgroundStyle === "opaque" ? "opaque" : "translucent"
+                            onPicked: id => { Settings.dockBackgroundStyle = id; Settings.save() }
+                        }
+                        TransparencySlider {
+                            visible: Settings.dockBackgroundStyle !== "opaque"
+                            opacityValue: Settings.dockOpacity
+                            onChanged: value => Settings.dockOpacity = value
+                            onReleased: Settings.save()
+                        }
+                    }
+                    SettingsSubcard {
+                        enabled: !Settings.dockFollowHyprland
+                        ColumnLayout {
+                            Layout.fillWidth: true
+                            spacing: 8
+                            Text {
+                                text: `Corner radius: ${Settings.dockRounding}px`
+                                color: ThemeManager.fgPrimary
+                                font.family: ThemeManager.uiFont
+                                font.pixelSize: 13
+                            }
+                            ValueChipRow {
+                                values: [0, 4, 8, 12, 16, 20]
+                                current: Settings.dockRounding
+                                onPicked: value => { Settings.dockRounding = value; Settings.save() }
                             }
                         }
                     }

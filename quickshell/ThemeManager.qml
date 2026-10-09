@@ -258,7 +258,7 @@ Item {
             return Qt.rgba(bgBase.r, bgBase.g, bgBase.b, 0)
         return Qt.rgba(bgBase.r, bgBase.g, bgBase.b, Settings.dockOpacity)
     }
-    readonly property int dockRadius: Settings.dockShape === "rounded" ? Settings.dockRounding : 0
+    readonly property int dockRadius: dockFollowHyprland ? Settings.hyprRounding : Settings.dockRounding
 
     // Shared "plop" bounce feel used by every clickable icon/button in the shell.
     // Hover/press feedback is a spring-driven scale rather than a background rect.

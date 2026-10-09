@@ -30,6 +30,7 @@ STALE_MARKERS = (
     "Blur background",
     "Login Window Transparency",
     "Apply writes colors, wallpaper, blur, and opacity",
+    "Dock shape",
 )
 CRITICAL_REL_PATHS = (
     "modules/settings/SettingsPanel.qml",
