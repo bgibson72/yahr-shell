@@ -41,6 +41,14 @@ class SyncQuickshellTests(unittest.TestCase):
             panel.write_text('title: "Login Window Transparency"\n', encoding="utf-8")
             self.assertTrue(self.mod.is_stale(root))
 
+    def test_detects_legacy_dock_shape_marker(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            root = Path(tmp)
+            panel = root / "modules" / "settings" / "SettingsPanel.qml"
+            panel.parent.mkdir(parents=True)
+            panel.write_text('text: "Dock shape"\n', encoding="utf-8")
+            self.assertTrue(self.mod.is_stale(root))
+
     def test_wallpaper_types_present_in_repo(self):
         self.assertTrue(self.mod.verify_wallpaper_types(ROOT / "quickshell"))
 

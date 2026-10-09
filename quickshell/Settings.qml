@@ -262,7 +262,7 @@ Item {
         if (d.showBorder !== undefined) dockShowBorder = d.showBorder
         if (d.followHyprland !== undefined) dockFollowHyprland = d.followHyprland
         if (d.rounding !== undefined) dockRounding = d.rounding
-        // Legacy dockShape: square corners are now corner radius 0.
+        // Legacy shape "square" maps to corner radius 0.
         if (d.shape === "square") dockRounding = 0
         if (d.iconSize !== undefined) dockIconSize = d.iconSize
         if (d.spanFullWidth !== undefined) dockSpanFullWidth = d.spanFullWidth
