@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""Checks that widget shadows track Hyprland shadow presets."""
+"""Checks that widget shadows track Hyprland shadow presets via RectangularShadow."""
 
 import re
 import unittest
@@ -8,6 +8,7 @@ from pathlib import Path
 ROOT = Path(__file__).resolve().parents[2]
 EFFECT = ROOT / "quickshell" / "components" / "WidgetShadowEffect.qml"
 PANEL = ROOT / "quickshell" / "modules" / "settings" / "SettingsPanel.qml"
+PANEL_CHROME = ROOT / "quickshell" / "components" / "Panel.qml"
 
 PRESETS = {
     "off": {"range": 0, "alpha": 0},
@@ -17,22 +18,16 @@ PRESETS = {
 }
 
 
-def shadow_px(range_px: int) -> int:
-    return max(2, min(64, range_px))
+def shadow_blur(range_px: int) -> float:
+    return max(0, range_px) * 1.2
+
+
+def shadow_spread(range_px: int) -> float:
+    return max(0, range_px) * 0.2
 
 
 def shadow_alpha(alpha_pct: int) -> float:
     return min(1.0, alpha_pct / 100 * 1.15)
-
-
-def shadow_scale(range_px: int) -> float:
-    return 1.0 + shadow_px(range_px) / 200
-
-
-def legacy_effective_radius(range_px: int, blur_max: int = 32) -> float:
-    """Old WidgetShadowEffect mapping that collapsed presets."""
-    blur = min(1.0, 0.55 + range_px / 70)
-    return blur * blur_max
 
 
 class WidgetShadowTests(unittest.TestCase):
@@ -40,6 +35,7 @@ class WidgetShadowTests(unittest.TestCase):
     def setUpClass(cls):
         cls.effect = EFFECT.read_text(encoding="utf-8")
         cls.panel = PANEL.read_text(encoding="utf-8")
+        cls.chrome = PANEL_CHROME.read_text(encoding="utf-8")
 
     def test_presets_match_settings_panel(self):
         for name, expected in PRESETS.items():
@@ -51,33 +47,37 @@ class WidgetShadowTests(unittest.TestCase):
             self.assertEqual(int(match.group(1)), expected["range"])
             self.assertEqual(int(match.group(2)), expected["alpha"])
 
-    def test_effect_maps_range_to_blur_max(self):
-        self.assertIn("blurMax: shadowPx", self.effect)
-        self.assertIn("shadowBlur: 1.0", self.effect)
-        self.assertNotIn("0.55 + ThemeManager.hyprShadowRange / 70", self.effect)
+    def test_uses_rectangular_shadow_not_multieffect_layer(self):
+        self.assertRegex(self.effect, r"(?m)^RectangularShadow \{")
+        self.assertNotRegex(self.effect, r"(?m)^MultiEffect \{")
+        self.assertNotIn("layer.effect: WidgetShadowEffect", self.chrome)
+        self.assertNotIn("layer.enabled:", self.chrome)
+        self.assertIn("WidgetShadowEffect {", self.chrome)
+        self.assertIn("cornerRadius: panel.freeR", self.chrome)
 
-    def test_presets_diverge_in_pixel_radius(self):
-        light = shadow_px(PRESETS["light"]["range"])
-        moderate = shadow_px(PRESETS["moderate"]["range"])
-        heavy = shadow_px(PRESETS["heavy"]["range"])
-        self.assertEqual(light, 10)
-        self.assertEqual(moderate, 20)
-        self.assertEqual(heavy, 40)
-        # Heavy should be clearly larger than light (old mapping was ~1.4x).
+    def test_blur_and_spread_track_hyprland_range(self):
+        self.assertIn("blur: shadowPx * 1.2", self.effect)
+        self.assertIn("spread: shadowPx * 0.2", self.effect)
+
+    def test_presets_diverge_in_blur_pixels(self):
+        light = shadow_blur(PRESETS["light"]["range"])
+        moderate = shadow_blur(PRESETS["moderate"]["range"])
+        heavy = shadow_blur(PRESETS["heavy"]["range"])
+        self.assertEqual(light, 12.0)
+        self.assertEqual(moderate, 24.0)
+        self.assertEqual(heavy, 48.0)
         self.assertGreaterEqual(heavy / light, 3.0)
+        self.assertLess(shadow_spread(PRESETS["light"]["range"]),
+                        shadow_spread(PRESETS["heavy"]["range"]))
 
-    def test_legacy_mapping_was_compressed(self):
-        light = legacy_effective_radius(PRESETS["light"]["range"])
-        heavy = legacy_effective_radius(PRESETS["heavy"]["range"])
-        self.assertLess(heavy / light, 1.6)
-
-    def test_alpha_and_scale_track_presets(self):
+    def test_alpha_tracks_presets(self):
         alphas = [shadow_alpha(PRESETS[p]["alpha"]) for p in ("light", "moderate", "heavy")]
-        scales = [shadow_scale(PRESETS[p]["range"]) for p in ("light", "moderate", "heavy")]
         self.assertLess(alphas[0], alphas[1])
         self.assertLess(alphas[1], alphas[2])
-        self.assertLess(scales[0], scales[1])
-        self.assertLess(scales[1], scales[2])
+
+    def test_legacy_multieffect_blurmax_mapping_removed(self):
+        self.assertNotIn("blurMax: shadowPx", self.effect)
+        self.assertNotIn("0.55 + ThemeManager.hyprShadowRange / 70", self.effect)
 
 
 if __name__ == "__main__":
