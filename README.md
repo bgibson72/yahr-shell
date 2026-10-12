@@ -51,7 +51,7 @@ yahr-theme save --name Dusk --bg 1e1e2e --blue 89b4fa --purple cba6f7 \
 yahr-theme delete dusk
 ```
 
-**Super+T** opens the theme switcher. Settings → Theme has the color editor (Save & Apply). Right-click a custom theme card to delete it.
+**Super+T** opens Settings → Theme. Presets browse in a Cover Flow inside the panel (same interaction as wallpapers, without a full-screen overlay). The color editor (Save & Apply) is below. Right-click a custom theme cover to delete it.
 
 Palettes are JSON in `themes/` (bundled) and `~/.config/yahr/themes/` (yours). `~/.config/yahr/current.json` is what Quickshell watches, so colors update live.
 

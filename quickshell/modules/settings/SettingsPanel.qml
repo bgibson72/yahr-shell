@@ -5,6 +5,7 @@ import Qt5Compat.GraphicalEffects
 import Quickshell
 import Quickshell.Io
 import "../../components"
+import "../theme"
 import "../.."
 
 Panel {
@@ -1483,84 +1484,19 @@ exec python3 "$SCRIPT" "$@"`
                             current: Settings.themeMode
                             onPicked: id => { Settings.themeMode = id; Settings.save() }
                         }
-                        GridLayout {
+                        ThemeCoverFlow {
                             Layout.fillWidth: true
-                            columns: 3
-                            columnSpacing: 8
-                            rowSpacing: 8
-                            Repeater {
-                                model: root.filteredThemes
-                                Rectangle {
-                                    id: themeCard
-                                    required property var modelData
-                                    readonly property color chipBg: modelData.bgBase || ThemeManager.surface1
-                                    readonly property color chipFg: modelData.fgPrimary || ThemeManager.fgPrimary
-                                    readonly property color chipAccent: modelData.accentBlue || ThemeManager.accentBlue
-                                    readonly property color chipBorder: modelData.border0 || ThemeManager.border0
-                                    Layout.fillWidth: true
-                                    Layout.preferredHeight: 56
-                                    height: 56
-                                    radius: 8
-                                    color: chipBg
-
-                                    scale: themeCardMouse.pressed ? ThemeManager.bouncePressScale : (themeCardMouse.containsMouse ? ThemeManager.bounceHoverScale : 1.0)
-                                    Behavior on scale {
-                                        SpringAnimation { spring: ThemeManager.bounceSpring; damping: ThemeManager.bounceDamping; mass: ThemeManager.bounceMass }
-                                    }
-
-                                    Column {
-                                        anchors.centerIn: parent
-                                        spacing: 4
-                                        ThemePreview {
-                                            anchors.horizontalCenter: parent.horizontalCenter
-                                            themeId: themeCard.modelData.id
-                                            implicitWidth: 120
-                                            implicitHeight: 14
-                                        }
-                                        Text {
-                                            text: themeCard.modelData.name
-                                            color: themeCard.chipFg
-                                            font.family: ThemeManager.uiFont
-                                            font.pixelSize: 13
-                                            anchors.horizontalCenter: parent.horizontalCenter
-                                        }
-                                        Text {
-                                            visible: themeCard.modelData.custom
-                                            text: "custom"
-                                            color: themeCard.modelData.fgTertiary || themeCard.chipFg
-                                            font.pixelSize: 10
-                                            anchors.horizontalCenter: parent.horizontalCenter
-                                        }
-                                    }
-                                    Rectangle {
-                                        visible: themeCard.modelData.active
-                                        anchors.horizontalCenter: parent.horizontalCenter
-                                        anchors.bottom: parent.bottom
-                                        anchors.bottomMargin: 5
-                                        width: 28
-                                        height: 3
-                                        radius: 2
-                                        color: themeCard.chipAccent
-                                    }
-                                    MouseArea {
-                                        id: themeCardMouse
-                                        anchors.fill: parent
-                                        hoverEnabled: true
-                                        acceptedButtons: Qt.LeftButton | Qt.RightButton
-                                        cursorShape: Qt.PointingHandCursor
-                                        onClicked: mouse => {
-                                            if (mouse.button === Qt.RightButton && themeCard.modelData.custom) {
-                                                deleteTheme.themeId = themeCard.modelData.id
-                                                deleteTheme.running = true
-                                                return
-                                            }
-                                            Settings.themeMode = themeCard.modelData.mode || Settings.themeMode
-                                            Settings.save()
-                                            applyTheme.themeId = themeCard.modelData.id
-                                            applyTheme.running = true
-                                        }
-                                    }
-                                }
+                            Layout.preferredHeight: 300
+                            themes: root.filteredThemes
+                            onApplyRequested: theme => {
+                                Settings.themeMode = theme.mode || Settings.themeMode
+                                Settings.save()
+                                applyTheme.themeId = theme.id
+                                applyTheme.running = true
+                            }
+                            onDeleteRequested: theme => {
+                                deleteTheme.themeId = theme.id
+                                deleteTheme.running = true
                             }
                         }
                     }
