@@ -1,7 +1,6 @@
 import QtQuick
 import QtQuick.Layouts
 import Quickshell
-import Quickshell.Io
 import "../../components"
 import "../.."
 
@@ -16,7 +15,10 @@ Panel {
     Keys.onEscapePressed: root.requestClose()
 
     function capture(mode) {
-        proc.command = [
+        // Detach before/as the picker closes. A child Process is torn down with
+        // the overlay window, which aborted delayed captures (e.g. 5s Workspace).
+        const cmd = [
+            "bash",
             `${Quickshell.shellDir}/scripts/take-screenshot.sh`,
             mode,
             "true",
@@ -24,24 +26,8 @@ Panel {
             Settings.screenshotDir,
             String(Settings.screenshotDelay)
         ]
-        // Close first so the picker itself never ends up in the shot, and so
-        // region/window selection isn't fighting it for input focus.
         root.requestClose()
-        startTimer.mode = mode
-        startTimer.start()
-    }
-
-    Timer {
-        id: startTimer
-        interval: 120
-        repeat: false
-        property string mode: ""
-        onTriggered: proc.running = true
-    }
-
-    Process {
-        id: proc
-        running: false
+        Quickshell.execDetached(cmd)
     }
 
     ColumnLayout {
