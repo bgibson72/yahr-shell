@@ -84,8 +84,8 @@ Defaults from `hypr/keybinds.lua`. **Super+K** opens Yahr Keybinds to view or ch
 | Super+Shift+W | Wallpaper picker |
 | Super+Shift+V | Clipboard |
 | Super+Shift+C | Control center |
-| Super+Print | Region screenshot |
-| Print | Output screenshot |
+| Super+Print | Region screenshot (uses picker save/copy/delay settings) |
+| Print | Output screenshot (uses picker save/copy/delay settings) |
 
 Calendar and Calculator are in the app launcher as **Yahr Calendar** and **Yahr Calculator**.
 

@@ -22,8 +22,10 @@ hl.bind(MOD .. " + SHIFT + S", hl.dsp.exec_cmd(ipc .. " toggleSettings"))
 hl.bind(MOD .. " + SHIFT + V", hl.dsp.exec_cmd(ipc .. " toggleClipboard"))
 hl.bind(MOD .. " + SHIFT + C", hl.dsp.exec_cmd(ipc .. " toggleAudio"))
 
-hl.bind(MOD .. " + Print", hl.dsp.exec_cmd("hyprshot -m region --clipboard-only"))
-hl.bind("Print", hl.dsp.exec_cmd("hyprshot -m output --clipboard-only"))
+-- Print keybinds use the same save/copy/delay prefs as the screenshot picker
+-- (~/.config/yahr/settings.json via take-screenshot.sh --from-settings).
+hl.bind(MOD .. " + Print", hl.dsp.exec_cmd(qs .. "/take-screenshot.sh region --from-settings"))
+hl.bind("Print", hl.dsp.exec_cmd(qs .. "/take-screenshot.sh output --from-settings"))
 
 hl.bind(MOD .. " + L", hl.dsp.exec_cmd("hyprlock"))
 hl.bind(MOD .. " + Z", hl.dsp.exec_cmd(restart))

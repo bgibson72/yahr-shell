@@ -95,7 +95,16 @@ KEY_LABELS = {
 CMD_LABELS = {
     "hyprshot -m region --clipboard-only": ("Screenshot (region)", "Shell"),
     "hyprshot -m output --clipboard-only": ("Screenshot (output)", "Shell"),
+    "take-screenshot.sh region --from-settings": ("Screenshot (region)", "Shell"),
+    "take-screenshot.sh output --from-settings": ("Screenshot (output)", "Shell"),
 }
+
+# Suffixes so full paths like ~/.config/quickshell/scripts/take-screenshot.sh …
+# still resolve to friendly Keybinds labels.
+CMD_LABEL_SUFFIXES = (
+    ("take-screenshot.sh region --from-settings", ("Screenshot (region)", "Shell")),
+    ("take-screenshot.sh output --from-settings", ("Screenshot (output)", "Shell")),
+)
 
 KEY_CANON = {
     "left": "left",
@@ -384,6 +393,9 @@ def fingerprint(kind: str, payload: str) -> str:
 def describe(kind: str, payload: str, command: str, combo: str) -> tuple[str, str]:
     if command in CMD_LABELS:
         return CMD_LABELS[command]
+    for suffix, label in CMD_LABEL_SUFFIXES:
+        if command.endswith(suffix) or f"/{suffix}" in command or command == suffix:
+            return label
     if (kind, payload) in LABELS:
         return LABELS[(kind, payload)]
     key = combo.split(" + ")[-1] if combo else ""
@@ -456,7 +468,33 @@ def parse_lua(text: str) -> list[dict]:
     return binds
 
 
+_SCREENSHOT_CMD_MIGRATIONS = {
+    "hyprshot -m region --clipboard-only": f"{QS_SCRIPTS}/take-screenshot.sh region --from-settings",
+    "hyprshot -m output --clipboard-only": f"{QS_SCRIPTS}/take-screenshot.sh output --from-settings",
+}
+
+
+def migrate_screenshot_binds(binds: list[dict]) -> list[dict]:
+    """Point legacy clipboard-only hyprshot Print binds at take-screenshot.sh."""
+    out: list[dict] = []
+    for b in binds:
+        row = dict(b)
+        command = (row.get("command") or "").strip()
+        payload = (row.get("payload") or "").strip()
+        replacement = _SCREENSHOT_CMD_MIGRATIONS.get(command) or _SCREENSHOT_CMD_MIGRATIONS.get(payload)
+        if replacement:
+            row["kind"] = "exec"
+            row["command"] = replacement
+            row["payload"] = replacement
+            label, group = describe("exec", replacement, replacement, row.get("combo") or "")
+            row["label"] = label
+            row["group"] = group
+        out.append(row)
+    return out
+
+
 def ensure_keybinds_app(binds: list[dict]) -> list[dict]:
+    binds = migrate_screenshot_binds(binds)
     for b in binds:
         if b.get("payload") == "ipc:toggleKeybinds" or b.get("id", "").startswith("exec:ipc:toggleKeybinds"):
             return binds
@@ -617,20 +655,39 @@ def lua_candidates() -> list[Path]:
     return out
 
 
+def _has_legacy_screenshot_cmds(binds: list[dict]) -> bool:
+    for b in binds:
+        command = (b.get("command") or "").strip()
+        payload = (b.get("payload") or "").strip()
+        if command in _SCREENSHOT_CMD_MIGRATIONS or payload in _SCREENSHOT_CMD_MIGRATIONS:
+            return True
+    return False
+
+
 def load_binds() -> list[dict]:
     if JSON_PATH.is_file():
         try:
             data = json.loads(JSON_PATH.read_text())
             binds = data.get("binds")
             if isinstance(binds, list) and binds:
-                return ensure_keybinds_app(binds)
+                return _load_and_migrate(binds)
         except (OSError, json.JSONDecodeError):
             pass
     for path in lua_candidates():
         binds = parse_lua(path.read_text())
         if binds:
-            return ensure_keybinds_app(binds)
+            return _load_and_migrate(binds)
     return ensure_keybinds_app([])
+
+
+def _load_and_migrate(binds: list[dict]) -> list[dict]:
+    needs_migrate = _has_legacy_screenshot_cmds(binds)
+    migrated = ensure_keybinds_app(binds)
+    # Persist so Hyprland Print binds stop using clipboard-only hyprshot even if
+    # the user never opens the Keybinds app after upgrading.
+    if needs_migrate:
+        apply(migrated, reload=True)
+    return migrated
 
 
 def dump() -> dict:
