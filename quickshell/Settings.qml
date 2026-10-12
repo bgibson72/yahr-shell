@@ -93,6 +93,8 @@ Item {
     property string calendarWeekStart: "sunday"
     property bool screenshotSaveToDisk: true
     property bool screenshotCopyToClipboard: true
+    // Seconds to wait after the picker closes before starting capture (0–5)
+    property int screenshotDelay: 0
     property bool launcherGridView: false
     property bool sddmFollowDesktop: true
     property string sddmCustomWallpaper: ""
@@ -184,7 +186,8 @@ Item {
             screenshot: {
                 saveLocation: screenshotDir,
                 saveToDisk: screenshotSaveToDisk,
-                copyToClipboard: screenshotCopyToClipboard
+                copyToClipboard: screenshotCopyToClipboard,
+                delay: screenshotDelay
             },
             wallpaper: {
                 directory: wallpaperDir,
@@ -295,6 +298,10 @@ Item {
         if (s.saveLocation !== undefined) screenshotDir = s.saveLocation
         if (s.saveToDisk !== undefined) screenshotSaveToDisk = s.saveToDisk
         if (s.copyToClipboard !== undefined) screenshotCopyToClipboard = s.copyToClipboard
+        if (s.delay !== undefined) {
+            const d = Number(s.delay)
+            screenshotDelay = Number.isFinite(d) ? Math.max(0, Math.min(5, Math.round(d))) : 0
+        }
 
         const w = data.wallpaper || {}
         if (w.directory !== undefined) wallpaperDir = w.directory

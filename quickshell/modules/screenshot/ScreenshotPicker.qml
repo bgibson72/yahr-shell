@@ -8,7 +8,7 @@ import "../.."
 Panel {
     id: root
     width: 420
-    height: 200
+    height: 310
 
     signal requestClose()
 
@@ -19,9 +19,10 @@ Panel {
         proc.command = [
             `${Quickshell.shellDir}/scripts/take-screenshot.sh`,
             mode,
-            Settings.screenshotSaveToDisk ? "true" : "false",
+            "true",
             Settings.screenshotCopyToClipboard ? "true" : "false",
-            Settings.screenshotDir
+            Settings.screenshotDir,
+            String(Settings.screenshotDelay)
         ]
         // Close first so the picker itself never ends up in the shot, and so
         // region/window selection isn't fighting it for input focus.
@@ -59,7 +60,7 @@ Panel {
 
         RowLayout {
             Layout.fillWidth: true
-            Layout.fillHeight: true
+            Layout.preferredHeight: 100
             spacing: 12
 
             Repeater {
@@ -111,6 +112,110 @@ Panel {
                         hoverEnabled: true
                         cursorShape: Qt.PointingHandCursor
                         onClicked: root.capture(modeCard.modelData.mode)
+                    }
+                }
+            }
+        }
+
+        ColumnLayout {
+            Layout.fillWidth: true
+            spacing: 8
+
+            Text {
+                text: "Delay"
+                font.family: ThemeManager.uiFont
+                font.pixelSize: ThemeManager.fontSizeSmall
+                color: ThemeManager.fgSecondary
+            }
+
+            RowLayout {
+                Layout.fillWidth: true
+                spacing: 8
+
+                Repeater {
+                    model: [0, 1, 2, 3, 4, 5]
+
+                    Rectangle {
+                        id: delayChip
+                        required property int modelData
+                        Layout.fillWidth: true
+                        Layout.preferredHeight: 32
+                        radius: 6
+                        readonly property bool selected: Settings.screenshotDelay === modelData
+                        color: selected ? ThemeManager.accentBlue : ThemeManager.surface1
+
+                        scale: delayMouse.pressed ? ThemeManager.bouncePressScale : (delayMouse.containsMouse ? ThemeManager.bounceHoverScale : 1.0)
+                        Behavior on scale {
+                            SpringAnimation { spring: ThemeManager.bounceSpring; damping: ThemeManager.bounceDamping; mass: ThemeManager.bounceMass }
+                        }
+
+                        Text {
+                            anchors.centerIn: parent
+                            text: delayChip.modelData === 0 ? "0s" : `${delayChip.modelData}s`
+                            font.family: ThemeManager.uiFont
+                            font.pixelSize: ThemeManager.fontSizeSmall
+                            color: delayChip.selected ? ThemeManager.bgBase : ThemeManager.fgPrimary
+                        }
+
+                        MouseArea {
+                            id: delayMouse
+                            anchors.fill: parent
+                            hoverEnabled: true
+                            cursorShape: Qt.PointingHandCursor
+                            onClicked: {
+                                Settings.screenshotDelay = delayChip.modelData
+                                Settings.save()
+                            }
+                        }
+                    }
+                }
+            }
+        }
+
+        RowLayout {
+            Layout.fillWidth: true
+            spacing: 10
+
+            Text {
+                text: "Copy to clipboard"
+                font.family: ThemeManager.uiFont
+                font.pixelSize: 13
+                color: ThemeManager.fgPrimary
+                Layout.fillWidth: true
+                elide: Text.ElideRight
+            }
+
+            Rectangle {
+                id: clipToggle
+                Layout.preferredWidth: 42
+                Layout.preferredHeight: 22
+                Layout.alignment: Qt.AlignVCenter
+                radius: 11
+                color: Settings.screenshotCopyToClipboard ? ThemeManager.accentBlue : ThemeManager.surface2
+
+                scale: clipMouse.pressed ? ThemeManager.bouncePressScale : (clipMouse.containsMouse ? ThemeManager.bounceHoverScale : 1.0)
+                Behavior on scale {
+                    SpringAnimation { spring: ThemeManager.bounceSpring; damping: ThemeManager.bounceDamping; mass: ThemeManager.bounceMass }
+                }
+
+                Rectangle {
+                    width: 18
+                    height: 18
+                    radius: 9
+                    x: Settings.screenshotCopyToClipboard ? 22 : 2
+                    y: 2
+                    color: ThemeManager.fgPrimary
+                    Behavior on x { NumberAnimation { duration: 120 } }
+                }
+
+                MouseArea {
+                    id: clipMouse
+                    anchors.fill: parent
+                    hoverEnabled: true
+                    cursorShape: Qt.PointingHandCursor
+                    onClicked: {
+                        Settings.screenshotCopyToClipboard = !Settings.screenshotCopyToClipboard
+                        Settings.save()
                     }
                 }
             }
