@@ -8,6 +8,10 @@ hl.on("hyprland.start", function()
     -- Sync with --keep-running here: Hypr has not started qs yet on this event.
     hl.exec_cmd("bash -c 'ROOT=$(tr -d \"[:space:]\" < \"$HOME/.config/yahr/repo-root\" 2>/dev/null || true); SYNC=\"\"; [ -n \"$ROOT\" ] && [ -f \"$ROOT/quickshell/scripts/sync-quickshell-from-repo.py\" ] && SYNC=\"$ROOT/quickshell/scripts/sync-quickshell-from-repo.py\"; [ -z \"$SYNC\" ] && [ -f \"$HOME/.config/quickshell/scripts/sync-quickshell-from-repo.py\" ] && SYNC=\"$HOME/.config/quickshell/scripts/sync-quickshell-from-repo.py\"; [ -n \"$SYNC\" ] && python3 \"$SYNC\" --keep-running >/tmp/yahr-quickshell-sync.log 2>&1 || true'")
 
+    -- Same for theme-engine: ~/.local/bin/yahr-theme used to load only the share
+    -- copy from install.sh, so pulled Firefox userChrome fixes never applied.
+    hl.exec_cmd("bash -c 'ROOT=$(tr -d \"[:space:]\" < \"$HOME/.config/yahr/repo-root\" 2>/dev/null || true); [ -n \"$ROOT\" ] && [ -f \"$ROOT/theme-engine/sync-theme-engine-from-repo.py\" ] && python3 \"$ROOT/theme-engine/sync-theme-engine-from-repo.py\" >/tmp/yahr-theme-engine-sync.log 2>&1 || true'")
+
     -- Prefer the clone from repo-root, then the live config tree, then a common path.
     local candidates = {}
     local repo_root_file = io.open(home .. "/.config/yahr/repo-root", "r")
