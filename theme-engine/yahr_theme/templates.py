@@ -691,15 +691,33 @@ toolbar {{
     color: var(--bg-base) !important;
 }}
 
+/* Color icon glyphs, but leave the button chrome transparent. Proton paints
+   the circular / pill hover on .toolbarbutton-icon (and badge-stack / text)
+   via --toolbarbutton-*-background*; a background on toolbarbutton itself
+   draws a second, squared highlight behind that pill. */
+#navigator-toolbox {{
+    --toolbarbutton-hover-background: var(--surface1) !important;
+    --toolbarbutton-active-background: var(--surface1) !important;
+    --toolbarbutton-background-color-hover: var(--surface1) !important;
+    --toolbarbutton-background-color-active: var(--surface1) !important;
+}}
+
 toolbarbutton,
 .toolbarbutton-1 {{
     fill: var(--fg-primary) !important;
     color: var(--fg-primary) !important;
+    background-color: transparent !important;
 }}
 
 toolbarbutton:hover,
-.toolbarbutton-1:hover {{
-    background-color: var(--surface1) !important;
+.toolbarbutton-1:hover,
+toolbarbutton:hover:active,
+.toolbarbutton-1:hover:active,
+toolbarbutton[open],
+.toolbarbutton-1[open],
+toolbarbutton[checked],
+.toolbarbutton-1[checked] {{
+    background-color: transparent !important;
 }}
 
 #sidebar-box,
