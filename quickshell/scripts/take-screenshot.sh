@@ -91,13 +91,32 @@ if [[ "$DELAY" =~ ^[0-5]$ ]] && [ "$DELAY" -gt 0 ]; then
     sleep "$DELAY"
 fi
 
+active_output_geometry() {
+    local active_workspace monitors ws_id
+    active_workspace=$(hyprctl -j activeworkspace) || return 1
+    monitors=$(hyprctl -j monitors) || return 1
+    ws_id=$(echo "$active_workspace" | jq -r '.id')
+    echo "$monitors" | jq -r --argjson id "$ws_id" \
+        'first(.[] | select(.activeWorkspace.id == $id)) | "\(.x),\(.y) \((.width / .scale | round))x\((.height / .scale | round))"'
+}
+
+run_hyprshot() {
+    # Workspace (output) captures the active monitor without an interactive pick —
+    # otherwise a delay feels like "nothing happened" while slurp waits for a click.
+    if [ "$MODE" = "output" ]; then
+        exec hyprshot -m output -m active "$@"
+    else
+        exec hyprshot -m "$MODE" "$@"
+    fi
+}
+
 # Hyprshot always copies to the clipboard when saving to disk. When the user
 # wants a file only, capture with grim after the same selection UX.
 capture_save_only() {
     local geometry=""
     case "$MODE" in
         output)
-            geometry=$(slurp -or) || exit 1
+            geometry=$(active_output_geometry) || exit 1
             ;;
         region)
             geometry=$(slurp -d) || exit 1
@@ -122,11 +141,11 @@ capture_save_only() {
 
 if [ "$SAVE_TO_DISK" = "true" ] && [ "$COPY_TO_CLIPBOARD" = "true" ]; then
     mkdir -p "$SAVE_LOCATION"
-    exec hyprshot -m "$MODE" -o "$SAVE_LOCATION"
+    run_hyprshot -o "$SAVE_LOCATION"
 fi
 
 if [ "$SAVE_TO_DISK" = "false" ] && [ "$COPY_TO_CLIPBOARD" = "true" ]; then
-    exec hyprshot -m "$MODE" --clipboard-only
+    run_hyprshot --clipboard-only
 fi
 
 if [ "$SAVE_TO_DISK" = "true" ]; then

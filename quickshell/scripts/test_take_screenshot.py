@@ -54,7 +54,12 @@ class TakeScreenshotTests(unittest.TestCase):
     def test_save_and_copy_uses_hyprshot(self) -> None:
         self.run_script("output", "true", "true", str(self.out), "0")
         logged = self.log.read_text().strip()
-        self.assertEqual(logged, f"hyprshot -m output -o {self.out}")
+        self.assertEqual(logged, f"hyprshot -m output -m active -o {self.out}")
+
+    def test_region_save_and_copy_uses_hyprshot(self) -> None:
+        self.run_script("region", "true", "true", str(self.out), "0")
+        logged = self.log.read_text().strip()
+        self.assertEqual(logged, f"hyprshot -m region -o {self.out}")
 
     def test_clipboard_only_uses_hyprshot_flag(self) -> None:
         self.run_script("region", "false", "true", str(self.out), "0")
@@ -62,6 +67,14 @@ class TakeScreenshotTests(unittest.TestCase):
         self.assertEqual(logged, "hyprshot -m region --clipboard-only")
 
     def test_save_only_uses_grim_not_hyprshot(self) -> None:
+        write_stub(
+            self.bin / "hyprctl",
+            'case "$2" in\n'
+            '  activeworkspace) echo \'{"id":1}\' ;;\n'
+            '  monitors) echo \'[{"activeWorkspace":{"id":1},"x":0,"y":0,"width":100,"height":100,"scale":1}]\' ;;\n'
+            "  *) echo '{}' ;;\n"
+            "esac\n",
+        )
         self.run_script("output", "true", "false", str(self.out), "0")
         self.assertFalse(self.log.exists(), "hyprshot should not run for save-only")
         shots = list(self.out.glob("*.png"))
@@ -108,7 +121,34 @@ class TakeScreenshotTests(unittest.TestCase):
         logged = self.log.read_text().strip()
         self.assertEqual(logged, f"hyprshot -m region -o {self.out}")
 
+    def test_from_settings_output_uses_active_monitor(self) -> None:
+        config_yahr = self.tmp / ".config" / "yahr"
+        config_yahr.mkdir(parents=True)
+        (config_yahr / "settings.json").write_text(
+            """{
+  "screenshot": {
+    "saveLocation": "%s",
+    "copyToClipboard": true,
+    "delay": 0
+  }
+}
+"""
+            % self.out
+        )
+        self.env["HOME"] = str(self.tmp)
+        self.run_script("output", "--from-settings")
+        logged = self.log.read_text().strip()
+        self.assertEqual(logged, f"hyprshot -m output -m active -o {self.out}")
+
     def test_from_settings_save_only_when_copy_disabled(self) -> None:
+        write_stub(
+            self.bin / "hyprctl",
+            'case "$2" in\n'
+            '  activeworkspace) echo \'{"id":1}\' ;;\n'
+            '  monitors) echo \'[{"activeWorkspace":{"id":1},"x":0,"y":0,"width":100,"height":100,"scale":1}]\' ;;\n'
+            "  *) echo '{}' ;;\n"
+            "esac\n",
+        )
         config_yahr = self.tmp / ".config" / "yahr"
         config_yahr.mkdir(parents=True)
         (config_yahr / "settings.json").write_text(
