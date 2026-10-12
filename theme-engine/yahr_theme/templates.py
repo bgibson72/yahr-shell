@@ -695,7 +695,10 @@ toolbar {{
    the circular / pill hover on .toolbarbutton-icon (and badge-stack / text)
    via --toolbarbutton-*-background*; a background on toolbarbutton itself
    draws a second, squared highlight behind that pill. */
-#navigator-toolbox {{
+#navigator-toolbox,
+#nav-bar,
+#TabsToolbar,
+#PersonalToolbar {{
     --toolbarbutton-hover-background: var(--surface1) !important;
     --toolbarbutton-active-background: var(--surface1) !important;
     --toolbarbutton-background-color-hover: var(--surface1) !important;
@@ -706,18 +709,18 @@ toolbarbutton,
 .toolbarbutton-1 {{
     fill: var(--fg-primary) !important;
     color: var(--fg-primary) !important;
+    background: transparent !important;
     background-color: transparent !important;
+    background-image: none !important;
 }}
 
 toolbarbutton:hover,
 .toolbarbutton-1:hover,
-toolbarbutton:hover:active,
-.toolbarbutton-1:hover:active,
-toolbarbutton[open],
-.toolbarbutton-1[open],
-toolbarbutton[checked],
-.toolbarbutton-1[checked] {{
+toolbarbutton:is(:hover:active, [open], [checked]),
+.toolbarbutton-1:is(:hover:active, [open], [checked]) {{
+    background: transparent !important;
     background-color: transparent !important;
+    background-image: none !important;
 }}
 
 #sidebar-box,

@@ -408,16 +408,36 @@ install_configs() {
 
     mkdir -p "$HOME/.local/share/yahr-shell/theme-engine"
     cp -a "$REPO_ROOT/theme-engine/yahr_theme" "$HOME/.local/share/yahr-shell/theme-engine/"
-    cat > "$HOME/.local/bin/yahr-theme" <<'WRAP'
+    # Prefer the git checkout (repo-root) so `git pull` + apply picks up template
+    # fixes without a full reinstall. Fall back to the share copy.
+    if [ -f "$REPO_ROOT/theme-engine/sync-theme-engine-from-repo.py" ]; then
+        python3 "$REPO_ROOT/theme-engine/sync-theme-engine-from-repo.py" --repo "$REPO_ROOT" \
+            || warn "theme-engine sync reported an issue; check ~/.local/bin/yahr-theme"
+    else
+        cat > "$HOME/.local/bin/yahr-theme" <<'WRAP'
 #!/usr/bin/env python3
 import sys
 from pathlib import Path
-sys.path.insert(0, str(Path.home() / ".local/share/yahr-shell/theme-engine"))
+home = Path.home()
+candidates = []
+repo_root_file = home / ".config/yahr/repo-root"
+if repo_root_file.is_file():
+    try:
+        root = Path(repo_root_file.read_text().strip()).expanduser()
+        candidates.append(root / "theme-engine")
+    except OSError:
+        pass
+candidates.append(home / ".local/share/yahr-shell" / "theme-engine")
+for path in candidates:
+    if (path / "yahr_theme").is_dir():
+        sys.path.insert(0, str(path))
+        break
 from yahr_theme.cli import main
 if __name__ == "__main__":
     raise SystemExit(main())
 WRAP
-    chmod +x "$HOME/.local/bin/yahr-theme"
+        chmod +x "$HOME/.local/bin/yahr-theme"
+    fi
 
     chmod +x "$HOME/.config/quickshell/scripts/"* 2>/dev/null || true
     chmod +x "$HOME/.config/hypr/scripts/"* 2>/dev/null || true

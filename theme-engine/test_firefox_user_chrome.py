@@ -47,6 +47,9 @@ class FirefoxUserChromeTests(unittest.TestCase):
         ):
             self.assertIn(var, self.css)
 
+    def test_clears_background_image_on_button_chrome(self) -> None:
+        self.assertIn("background-image: none !important;", self.css)
+
 
 if __name__ == "__main__":
     unittest.main()

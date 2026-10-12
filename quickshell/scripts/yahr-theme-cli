@@ -3,10 +3,11 @@
 # Hyprland-launched Quickshell often lacks ~/.local/bin.
 #
 # Resolution order:
-#   1. theme-engine next to a full yahr-shell checkout (dev)
-#   2. ~/.local/bin/yahr-theme (install.sh wrapper → share copy)
-#   3. python -m against ~/.local/share/yahr-shell/theme-engine
-#   4. yahr-theme on PATH
+#   1. ~/.config/yahr/repo-root/theme-engine (git checkout after pull)
+#   2. theme-engine next to this script's checkout (dev / symlinked quickshell)
+#   3. ~/.local/bin/yahr-theme (wrapper; prefers repo-root when synced)
+#   4. python -m against ~/.local/share/yahr-shell/theme-engine
+#   5. yahr-theme on PATH
 set -euo pipefail
 
 script_dir="$(cd "$(dirname "$0")" && pwd)"
@@ -15,6 +16,14 @@ script_dir="$(cd "$(dirname "$0")" && pwd)"
 maybe_repo="$(cd "$script_dir/../.." && pwd)"
 share_engine="${HOME}/.local/share/yahr-shell/theme-engine"
 installed_bin="${HOME}/.local/bin/yahr-theme"
+repo_root_file="${HOME}/.config/yahr/repo-root"
+
+if [[ -f "$repo_root_file" ]]; then
+    root="$(tr -d '[:space:]' < "$repo_root_file")"
+    if [[ -n "$root" && -x "$root/theme-engine/yahr-theme" && -d "$root/theme-engine/yahr_theme" ]]; then
+        exec "$root/theme-engine/yahr-theme" "$@"
+    fi
+fi
 
 if [[ -x "$maybe_repo/theme-engine/yahr-theme" && -d "$maybe_repo/theme-engine/yahr_theme" ]]; then
     exec "$maybe_repo/theme-engine/yahr-theme" "$@"
@@ -33,5 +42,5 @@ if command -v yahr-theme >/dev/null 2>&1; then
     exec yahr-theme "$@"
 fi
 
-echo "yahr-theme CLI not found (checked checkout, ~/.local/bin, and $share_engine)" >&2
+echo "yahr-theme CLI not found (checked repo-root, checkout, ~/.local/bin, and $share_engine)" >&2
 exit 127
