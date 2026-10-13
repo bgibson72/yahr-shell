@@ -2,7 +2,7 @@ import QtQuick
 import QtQuick.Layouts
 import "../.."
 
-// Inset panel for one subsetting group inside a SettingsCard (card-on-card).
+// Option card nested on a SettingsCard section base (card-on-card).
 Rectangle {
     id: root
     default property alias content: body.data
