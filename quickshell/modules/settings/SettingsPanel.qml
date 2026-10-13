@@ -849,152 +849,66 @@ exec python3 "$SCRIPT" "$@"`
                 title: "Position & Size"
                 SettingsCard {
                     SettingsSubcard {
-                        ColumnLayout {
-                            Layout.fillWidth: true
-                            spacing: 8
-                            Text {
-                                text: "Bar position"
-                                color: ThemeManager.fgPrimary
-                                font.family: ThemeManager.uiFont
-                                font.pixelSize: 13
-                            }
-                            ChoiceChipRow {
-                                options: [
-                                    { id: "top", label: "Top" },
-                                    { id: "bottom", label: "Bottom" }
-                                ]
-                                current: Settings.barPosition
-                                onPicked: id => {
-                                    Settings.barPosition = id
-                                    if (id === "bottom")
-                                        Settings.dockEnabled = false
-                                    Settings.save()
-                                }
-                            }
-                            Text {
-                                visible: Settings.barPosition === "bottom"
-                                text: "The dock is turned off while the bar is on the bottom."
-                                color: ThemeManager.fgTertiary
-                                font.family: ThemeManager.uiFont
-                                font.pixelSize: 12
-                                wrapMode: Text.WordWrap
-                                Layout.fillWidth: true
+                        BarVisualChoice {
+                            title: "Bar position"
+                            help: Settings.barPosition === "bottom"
+                                ? "The dock is turned off while the bar is on the bottom."
+                                : "Place the bar along the top or bottom edge of the screen."
+                            options: [
+                                { id: "top", label: "Top", preview: "position-top" },
+                                { id: "bottom", label: "Bottom", preview: "position-bottom" }
+                            ]
+                            current: Settings.barPosition
+                            onPicked: id => {
+                                Settings.barPosition = id
+                                if (id === "bottom")
+                                    Settings.dockEnabled = false
+                                Settings.save()
                             }
                         }
                     }
 
                     SettingsSubcard {
-                        ColumnLayout {
-                            Layout.fillWidth: true
-                            spacing: 8
-                            Text {
-                                text: "Bar size"
-                                color: ThemeManager.fgPrimary
-                                font.family: ThemeManager.uiFont
-                                font.pixelSize: 13
-                            }
-                            ChoiceChipRow {
-                                options: [
-                                    { id: "small", label: "Normal" },
-                                    { id: "large", label: "Large" }
-                                ]
-                                current: Settings.barSize === "large" ? "large" : "small"
-                                onPicked: id => { Settings.barSize = id; Settings.save() }
-                            }
+                        BarVisualChoice {
+                            title: "Bar size"
+                            options: [
+                                { id: "small", label: "Normal", preview: "size-normal" },
+                                { id: "large", label: "Large", preview: "size-large" }
+                            ]
+                            current: Settings.barSize === "large" ? "large" : "small"
+                            onPicked: id => { Settings.barSize = id; Settings.save() }
                         }
                     }
 
                     SettingsSubcard {
                         enabled: Settings.barStyle !== "islands"
-                        ColumnLayout {
-                            Layout.fillWidth: true
-                            spacing: 8
-                            Text {
-                                text: "Bar mode"
-                                color: ThemeManager.fgPrimary
-                                font.family: ThemeManager.uiFont
-                                font.pixelSize: 13
-                            }
-                            ChoiceChipRow {
-                                options: [
-                                    { id: "floating", label: "Floating" },
-                                    { id: "docked", label: "Docked" }
-                                ]
-                                current: Settings.barFloating ? "floating" : "docked"
-                                disabledIds: Settings.barStyle === "islands" ? ["docked"] : []
-                                onPicked: id => {
-                                    Settings.barFloating = id === "floating"
-                                    if (id === "docked")
-                                        Settings.barStyle = "single"
-                                    Settings.save()
-                                }
-                            }
-                            Text {
-                                text: Settings.barStyle === "islands"
-                                    ? "Islands stay floating. Switch Appearance → Bar style to Single to dock the bar."
-                                    : (Settings.barFloating
-                                        ? "Inset from the screen edge with a small gap. Panels open with an elastic pop."
-                                        : "Flush against the screen edge. Widgets emerge from a screen frame.")
-                                color: ThemeManager.fgTertiary
-                                font.family: ThemeManager.uiFont
-                                font.pixelSize: 12
-                                wrapMode: Text.WordWrap
-                                Layout.fillWidth: true
+                        BarVisualChoice {
+                            title: "Bar mode"
+                            help: Settings.barStyle === "islands"
+                                ? "Islands stay floating. Switch Appearance → Bar style to Single to dock the bar."
+                                : (Settings.barFloating
+                                    ? "Inset from the screen edge with a small gap. Panels open with an elastic pop."
+                                    : "Flush against the screen edge. Widgets emerge from a screen frame.")
+                            options: [
+                                { id: "floating", label: "Floating", preview: "mode-floating" },
+                                { id: "docked", label: "Docked", preview: "mode-docked" }
+                            ]
+                            current: Settings.barFloating ? "floating" : "docked"
+                            disabledIds: Settings.barStyle === "islands" ? ["docked"] : []
+                            onPicked: id => {
+                                Settings.barFloating = id === "floating"
+                                if (id === "docked")
+                                    Settings.barStyle = "single"
+                                Settings.save()
                             }
                         }
                     }
-
                 }
             }
 
             SettingsSection {
                 title: "Appearance"
                 SettingsCard {
-                    SettingsSubcard {
-                        ColumnLayout {
-                            Layout.fillWidth: true
-                            spacing: 8
-                            Text {
-                                text: "Bar style"
-                                color: ThemeManager.fgPrimary
-                                font.family: ThemeManager.uiFont
-                                font.pixelSize: 13
-                            }
-                            ChoiceChipRow {
-                                options: [
-                                    { id: "single", label: "Single" },
-                                    { id: "islands", label: "Islands" }
-                                ]
-                                current: Settings.barStyle
-                                disabledIds: Settings.barFloating ? [] : ["islands"]
-                                onPicked: id => {
-                                    Settings.barStyle = id
-                                    if (id === "islands")
-                                        Settings.barFloating = true
-                                    Settings.save()
-                                }
-                            }
-                            Text {
-                                text: Settings.barStyle === "islands"
-                                    ? "Left, center, and right each sit in their own pill. Islands require a floating bar."
-                                    : "One continuous bar across the screen."
-                                color: ThemeManager.fgTertiary
-                                font.family: ThemeManager.uiFont
-                                font.pixelSize: 12
-                                wrapMode: Text.WordWrap
-                                Layout.fillWidth: true
-                            }
-                        }
-                    }
-
-                    SettingsSubcard {
-                        ToggleRow {
-                            label: "Numbered workspaces"
-                            checked: Settings.workspaceStyle === "numbers"
-                            onToggled: { Settings.workspaceStyle = !checked ? "numbers" : "dots"; Settings.save() }
-                        }
-                    }
-
                     SettingsSubcard {
                         ToggleRow {
                             label: "Follow Hyprland Window Rules"
@@ -1012,12 +926,55 @@ exec python3 "$SCRIPT" "$@"`
                             Layout.fillWidth: true
                         }
                     }
+
+                    SettingsSubcard {
+                        BarVisualChoice {
+                            title: "Bar style"
+                            help: Settings.barStyle === "islands"
+                                ? "Left, center, and right each sit in their own pill. Islands require a floating bar."
+                                : "One continuous bar across the screen."
+                            options: [
+                                { id: "single", label: "Single", preview: "style-single" },
+                                { id: "islands", label: "Islands", preview: "style-islands" }
+                            ]
+                            current: Settings.barStyle
+                            disabledIds: Settings.barFloating ? [] : ["islands"]
+                            onPicked: id => {
+                                Settings.barStyle = id
+                                if (id === "islands")
+                                    Settings.barFloating = true
+                                Settings.save()
+                            }
+                        }
+                    }
+
+                    SettingsSubcard {
+                        BarVisualChoice {
+                            title: "Workspace indicators"
+                            help: "How open workspaces are shown in the bar."
+                            options: [
+                                { id: "dots", label: "Dots", preview: "workspace-dots" },
+                                { id: "numbers", label: "Numbers", preview: "workspace-numbers" }
+                            ]
+                            current: Settings.workspaceStyle === "numbers" ? "numbers" : "dots"
+                            onPicked: id => { Settings.workspaceStyle = id; Settings.save() }
+                        }
+                    }
+
                     SettingsSubcard {
                         enabled: !Settings.barFollowHyprland
-                        ToggleRow {
-                            label: "Bar border"
-                            checked: Settings.barShowBorder
-                            onToggled: { Settings.barShowBorder = !checked; Settings.save() }
+                        BarVisualChoice {
+                            title: "Bar border"
+                            help: "Outline around the bar chrome. Thickness is shared with Hyprland window borders."
+                            options: [
+                                { id: "off", label: "Off", preview: "border-off" },
+                                { id: "on", label: "On", preview: "border-on" }
+                            ]
+                            current: Settings.barShowBorder ? "on" : "off"
+                            onPicked: id => {
+                                Settings.barShowBorder = id === "on"
+                                Settings.save()
+                            }
                         }
                         ColumnLayout {
                             visible: Settings.barShowBorder || (Settings.barFollowHyprland && Settings.hyprShowBorder)
@@ -1036,6 +993,7 @@ exec python3 "$SCRIPT" "$@"`
                             }
                         }
                     }
+
                     SettingsSubcard {
                         ToggleRow {
                             label: "Follow Hyprland rounding"
@@ -1072,23 +1030,14 @@ exec python3 "$SCRIPT" "$@"`
 
                     SettingsSubcard {
                         enabled: !Settings.barFollowHyprland
-                        ColumnLayout {
-                            Layout.fillWidth: true
-                            spacing: 8
-                            Text {
-                                text: "Background fill"
-                                color: ThemeManager.fgPrimary
-                                font.family: ThemeManager.uiFont
-                                font.pixelSize: 13
-                            }
-                            ChoiceChipRow {
-                                options: [
-                                    { id: "opaque", label: "Solid" },
-                                    { id: "translucent", label: "Transparent" }
-                                ]
-                                current: Settings.barBackgroundStyle === "opaque" ? "opaque" : "translucent"
-                                onPicked: id => { Settings.barBackgroundStyle = id; Settings.save() }
-                            }
+                        BarVisualChoice {
+                            title: "Background fill"
+                            options: [
+                                { id: "opaque", label: "Solid", preview: "fill-solid" },
+                                { id: "translucent", label: "Transparent", preview: "fill-transparent" }
+                            ]
+                            current: Settings.barBackgroundStyle === "opaque" ? "opaque" : "translucent"
+                            onPicked: id => { Settings.barBackgroundStyle = id; Settings.save() }
                         }
                         TransparencySlider {
                             visible: Settings.barBackgroundStyle !== "opaque"
@@ -1097,7 +1046,6 @@ exec python3 "$SCRIPT" "$@"`
                             onReleased: Settings.save()
                         }
                     }
-
                 }
             }
 
