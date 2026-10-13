@@ -109,20 +109,29 @@ _G.YAHR_FILE_ROLLER_OPEN_SUB = hl.on("window.open", yahrMaybeFloatFileRollerPopu
 
 -- Thunar rename dialog (F2). Title is `Rename "filename"`. Wayland app
 -- id is `org.xfce.Thunar` (capital T) — same RE2 class pattern as
--- opacity_apps. GTK often maps the dialog tiled and ignores static
--- float, so also float/center from window events (wiki-recommended)
--- and again after map settle.
+-- opacity_apps.
+--
+-- GTK maps the dialog as a large tiled window first. Floating without an
+-- explicit target can hit the main Thunar window instead, leaving the
+-- rename dialog fullscreen underneath. Always target by window object or
+-- title, then resize (tile geometry sticks after float), center, focus,
+-- and raise.
 local thunar_class = "^([Tt]hunar|org\\.xfce\\.[Tt]hunar)$"
+local thunar_rename_w = 480
+local thunar_rename_h = 170
 hl.window_rule({
     match = { class = thunar_class, title = "^Rename" },
     float = true,
     center = true,
-    size = { 520, 200 },
+    size = { thunar_rename_w, thunar_rename_h },
+    max_size = { 560, 220 },
+    stay_focused = true,
 })
 hl.window_rule({
     match = { class = thunar_class, modal = true },
     float = true,
     center = true,
+    stay_focused = true,
 })
 
 local function yahrIsThunarClass(class)
@@ -133,15 +142,28 @@ local function yahrIsThunarClass(class)
     return class == "thunar" or class == "org.xfce.thunar"
 end
 
-local function yahrFloatThunarRenameNow()
-    -- Event-window is focused on open/title; dispatch without a selector.
-    hl.dispatch(hl.dsp.window.float({ action = "set" }))
-    hl.dispatch(hl.dsp.window.center())
+local function yahrThunarRenameSelector(w)
+    -- Prefer the event window object; fall back to title regex.
+    if w ~= nil then
+        return w
+    end
+    return "title:^(Rename)"
 end
 
-local function yahrFloatThunarRenameLater()
-    -- Title is dynamic (`Rename "foo.txt"`); regex selector after settle.
-    hl.exec_cmd("sleep 0.25 && hyprctl dispatch 'hl.dsp.window.float({ action = \"set\", window = \"title:^(Rename)\" })' && hyprctl dispatch 'hl.dsp.window.center({ window = \"title:^(Rename)\" })'")
+local function yahrPlaceThunarRename(w)
+    local sel = yahrThunarRenameSelector(w)
+    hl.dispatch(hl.dsp.window.float({ action = "set", window = sel }))
+    -- Compact dialog size — floating a just-tiled GTK dialog keeps the
+    -- monitor/tile geometry unless we resize after float.
+    hl.dispatch(hl.dsp.window.resize({
+        x = thunar_rename_w,
+        y = thunar_rename_h,
+        relative = false,
+        window = sel,
+    }))
+    hl.dispatch(hl.dsp.window.center({ window = sel }))
+    hl.dispatch(hl.dsp.focus({ window = sel }))
+    hl.dispatch(hl.dsp.window.alter_zorder({ mode = "top", window = sel }))
 end
 
 local function yahrMaybeFloatThunarRename(w)
@@ -156,8 +178,11 @@ local function yahrMaybeFloatThunarRename(w)
     if class ~= "" and not yahrIsThunarClass(class) then
         return
     end
-    yahrFloatThunarRenameNow()
-    yahrFloatThunarRenameLater()
+    yahrPlaceThunarRename(w)
+    -- Map settle can overwrite float/size; re-place by title once settled.
+    hl.timer(function()
+        yahrPlaceThunarRename("title:^(Rename)")
+    end, { timeout = 200, type = "oneshot" })
 end
 
 if _G.YAHR_THUNAR_RENAME_TITLE_SUB and _G.YAHR_THUNAR_RENAME_TITLE_SUB.remove then
