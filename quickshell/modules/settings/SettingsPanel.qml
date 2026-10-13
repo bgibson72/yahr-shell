@@ -913,7 +913,12 @@ exec python3 "$SCRIPT" "$@"`
                         ToggleRow {
                             label: "Follow Hyprland Window Rules"
                             checked: Settings.barFollowHyprland
-                            onToggled: { Settings.barFollowHyprland = !checked; Settings.save() }
+                            onToggled: {
+                                Settings.barFollowHyprland = !checked
+                                // Keep legacy roundingFollowHyprland in sync for saved settings.
+                                Settings.barRoundingFollowHyprland = Settings.barFollowHyprland
+                                Settings.save()
+                            }
                         }
                         Text {
                             text: Settings.barFollowHyprland
