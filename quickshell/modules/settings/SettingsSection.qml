@@ -2,9 +2,9 @@ import QtQuick
 import QtQuick.Layouts
 import "../.."
 
-// Labeled group of settings cards within a Settings tab. The small-caps
-// title sits on the content background; each SettingsCard child is its own
-// rounded surface underneath.
+// Labeled group within a Settings tab. The small-caps title sits on the
+// content background; each SettingsCard child is one section base card that
+// holds SettingsSubcard option panels (card-on-card).
 ColumnLayout {
     id: root
     default property alias content: cards.data

@@ -591,8 +591,7 @@ exec python3 "$SCRIPT" "$@"`
                         ToggleRow { label: "24-hour clock"; checked: Settings.clockFormat24hr; onToggled: { Settings.clockFormat24hr = !checked; Settings.save() } }
                         ToggleRow { label: "Show seconds"; checked: Settings.showSeconds; onToggled: { Settings.showSeconds = !checked; Settings.save() } }
                     }
-                }
-                SettingsCard {
+
                     SettingsSubcard {
                         ToggleRow { label: "Day of week"; checked: Settings.showDayOfWeek; onToggled: { Settings.showDayOfWeek = !checked; Settings.save() } }
                         ToggleRow { label: "Long date"; checked: Settings.dateLong; onToggled: { Settings.dateLong = !checked; Settings.save() } }
@@ -629,6 +628,7 @@ exec python3 "$SCRIPT" "$@"`
                             onPicked: id => { Settings.calendarWeekStart = id; Settings.save() }
                         }
                     }
+
                 }
             }
 
@@ -650,8 +650,7 @@ exec python3 "$SCRIPT" "$@"`
                             Layout.fillWidth: true
                         }
                     }
-                }
-                SettingsCard {
+
                     SettingsSubcard {
                         ColumnLayout {
                             Layout.fillWidth: true
@@ -675,8 +674,7 @@ exec python3 "$SCRIPT" "$@"`
                             }
                         }
                     }
-                }
-                SettingsCard {
+
                     SettingsSubcard {
                         ColumnLayout {
                             Layout.fillWidth: true
@@ -715,6 +713,7 @@ exec python3 "$SCRIPT" "$@"`
                             }
                         }
                     }
+
                 }
             }
 
@@ -738,10 +737,9 @@ exec python3 "$SCRIPT" "$@"`
                             Layout.fillWidth: true
                         }
                     }
-                }
-                SettingsCard {
-                    enabled: !Settings.followHyprlandRules
+
                     SettingsSubcard {
+                        enabled: !Settings.followHyprlandRules
                         ToggleRow {
                             label: "Transparent backgrounds"
                             checked: Settings.widgetTransparent
@@ -767,10 +765,9 @@ exec python3 "$SCRIPT" "$@"`
                             onReleased: Settings.save()
                         }
                     }
-                }
-                SettingsCard {
-                    enabled: !Settings.followHyprlandRules
+
                     SettingsSubcard {
+                        enabled: !Settings.followHyprlandRules
                         ToggleRow {
                             label: "Widget borders"
                             checked: Settings.showWidgetBorders
@@ -785,11 +782,10 @@ exec python3 "$SCRIPT" "$@"`
                             Layout.fillWidth: true
                         }
                     }
-                }
-                SettingsCard {
-                    enabled: !Settings.followHyprlandRules
-                    visible: Settings.showWidgetBorders || (Settings.followHyprlandRules && Settings.hyprShowBorder)
+
                     SettingsSubcard {
+                        enabled: !Settings.followHyprlandRules
+                        visible: Settings.showWidgetBorders || (Settings.followHyprlandRules && Settings.hyprShowBorder)
                         ColumnLayout {
                             Layout.fillWidth: true
                             spacing: 8
@@ -806,6 +802,7 @@ exec python3 "$SCRIPT" "$@"`
                             }
                         }
                     }
+
                 }
             }
 
@@ -885,8 +882,7 @@ exec python3 "$SCRIPT" "$@"`
                             }
                         }
                     }
-                }
-                SettingsCard {
+
                     SettingsSubcard {
                         ColumnLayout {
                             Layout.fillWidth: true
@@ -907,10 +903,9 @@ exec python3 "$SCRIPT" "$@"`
                             }
                         }
                     }
-                }
-                SettingsCard {
-                    enabled: Settings.barStyle !== "islands"
+
                     SettingsSubcard {
+                        enabled: Settings.barStyle !== "islands"
                         ColumnLayout {
                             Layout.fillWidth: true
                             spacing: 8
@@ -948,6 +943,7 @@ exec python3 "$SCRIPT" "$@"`
                             }
                         }
                     }
+
                 }
             }
 
@@ -990,8 +986,7 @@ exec python3 "$SCRIPT" "$@"`
                             }
                         }
                     }
-                }
-                SettingsCard {
+
                     SettingsSubcard {
                         ToggleRow {
                             label: "Numbered workspaces"
@@ -999,8 +994,7 @@ exec python3 "$SCRIPT" "$@"`
                             onToggled: { Settings.workspaceStyle = !checked ? "numbers" : "dots"; Settings.save() }
                         }
                     }
-                }
-                SettingsCard {
+
                     SettingsSubcard {
                         ToggleRow {
                             label: "Follow Hyprland Window Rules"
@@ -1075,10 +1069,9 @@ exec python3 "$SCRIPT" "$@"`
                             }
                         }
                     }
-                }
-                SettingsCard {
-                    enabled: !Settings.barFollowHyprland
+
                     SettingsSubcard {
+                        enabled: !Settings.barFollowHyprland
                         ColumnLayout {
                             Layout.fillWidth: true
                             spacing: 8
@@ -1104,6 +1097,7 @@ exec python3 "$SCRIPT" "$@"`
                             onReleased: Settings.save()
                         }
                     }
+
                 }
             }
 
@@ -1125,8 +1119,7 @@ exec python3 "$SCRIPT" "$@"`
                             Layout.fillWidth: true
                         }
                     }
-                }
-                SettingsCard {
+
                     SettingsSubcard {
                         ToggleRow {
                             label: "Show battery percentage"
@@ -1142,8 +1135,7 @@ exec python3 "$SCRIPT" "$@"`
                             Layout.fillWidth: true
                         }
                     }
-                }
-                SettingsCard {
+
                     SettingsSubcard {
                         ToggleRow {
                             label: "Show volume percentage"
@@ -1159,8 +1151,7 @@ exec python3 "$SCRIPT" "$@"`
                             Layout.fillWidth: true
                         }
                     }
-                }
-                SettingsCard {
+
                     SettingsSubcard {
                         ToggleRow {
                             label: "Show network up/down speeds"
@@ -1176,6 +1167,7 @@ exec python3 "$SCRIPT" "$@"`
                             Layout.fillWidth: true
                         }
                     }
+
                 }
             }
             }
@@ -1476,27 +1468,31 @@ exec python3 "$SCRIPT" "$@"`
                 SettingsSection {
                     title: "Presets"
                     SettingsCard {
-                        ChoiceChipRow {
-                            options: [
-                            { id: "dark", label: "Dark" },
-                            { id: "light", label: "Light" }
-                            ]
-                            current: Settings.themeMode
-                            onPicked: id => { Settings.themeMode = id; Settings.save() }
-                        }
-                        ThemeCoverFlow {
-                            Layout.fillWidth: true
-                            Layout.preferredHeight: 300
-                            themes: root.filteredThemes
-                            onApplyRequested: theme => {
-                                Settings.themeMode = theme.mode || Settings.themeMode
-                                Settings.save()
-                                applyTheme.themeId = theme.id
-                                applyTheme.running = true
+                        SettingsSubcard {
+                            ChoiceChipRow {
+                                options: [
+                                    { id: "dark", label: "Dark" },
+                                    { id: "light", label: "Light" }
+                                ]
+                                current: Settings.themeMode
+                                onPicked: id => { Settings.themeMode = id; Settings.save() }
                             }
-                            onDeleteRequested: theme => {
-                                deleteTheme.themeId = theme.id
-                                deleteTheme.running = true
+                        }
+                        SettingsSubcard {
+                            ThemeCoverFlow {
+                                Layout.fillWidth: true
+                                Layout.preferredHeight: 300
+                                themes: root.filteredThemes
+                                onApplyRequested: theme => {
+                                    Settings.themeMode = theme.mode || Settings.themeMode
+                                    Settings.save()
+                                    applyTheme.themeId = theme.id
+                                    applyTheme.running = true
+                                }
+                                onDeleteRequested: theme => {
+                                    deleteTheme.themeId = theme.id
+                                    deleteTheme.running = true
+                                }
                             }
                         }
                     }
@@ -1505,120 +1501,124 @@ exec python3 "$SCRIPT" "$@"`
                 SettingsSection {
                     title: "Custom Theme"
                     SettingsCard {
-                        Text {
-                            text: "Background + 8 accents (hex). Right-click a custom preset above to delete it."
-                            color: ThemeManager.fgSecondary
-                            font.family: ThemeManager.uiFont
-                            font.pixelSize: 12
-                        }
-
-                        GridLayout {
-                            Layout.fillWidth: true
-                            columns: 3
-                            columnSpacing: 8
-                            rowSpacing: 8
-                            ColorSeed { label: "Background"; text: root.seedBg; onEdited: root.seedBg = value }
-                            ColorSeed { label: "Blue"; text: root.seedBlue; onEdited: root.seedBlue = value }
-                            ColorSeed { label: "Purple"; text: root.seedPurple; onEdited: root.seedPurple = value }
-                            ColorSeed { label: "Pink"; text: root.seedPink; onEdited: root.seedPink = value }
-                            ColorSeed { label: "Red"; text: root.seedRed; onEdited: root.seedRed = value }
-                            ColorSeed { label: "Orange"; text: root.seedOrange; onEdited: root.seedOrange = value }
-                            ColorSeed { label: "Yellow"; text: root.seedYellow; onEdited: root.seedYellow = value }
-                            ColorSeed { label: "Green"; text: root.seedGreen; onEdited: root.seedGreen = value }
-                            ColorSeed { label: "Teal"; text: root.seedTeal; onEdited: root.seedTeal = value }
-                        }
-
-                        Text {
-                            text: "Papirus folder color. Auto picks the closest Papirus shade to the Blue accent."
-                            color: ThemeManager.fgSecondary
-                            font.family: ThemeManager.uiFont
-                            font.pixelSize: 12
-                            wrapMode: Text.WordWrap
-                            Layout.fillWidth: true
-                        }
-                        ComboBox {
-                            id: papirusFolderBox
-                            Layout.preferredWidth: 280
-                            Layout.preferredHeight: 32
-                            model: [
-                            { id: "auto", label: "Auto (closest to accent)" },
-                            { id: "adwaita", label: "adwaita" },
-                            { id: "black", label: "black" },
-                            { id: "blue", label: "blue" },
-                            { id: "bluegrey", label: "bluegrey" },
-                            { id: "breeze", label: "breeze" },
-                            { id: "brown", label: "brown" },
-                            { id: "carmine", label: "carmine" },
-                            { id: "cyan", label: "cyan" },
-                            { id: "darkcyan", label: "darkcyan" },
-                            { id: "deeporange", label: "deeporange" },
-                            { id: "green", label: "green" },
-                            { id: "grey", label: "grey" },
-                            { id: "indigo", label: "indigo" },
-                            { id: "magenta", label: "magenta" },
-                            { id: "nordic", label: "nordic" },
-                            { id: "orange", label: "orange" },
-                            { id: "palebrown", label: "palebrown" },
-                            { id: "paleorange", label: "paleorange" },
-                            { id: "pink", label: "pink" },
-                            { id: "red", label: "red" },
-                            { id: "teal", label: "teal" },
-                            { id: "violet", label: "violet" },
-                            { id: "white", label: "white" },
-                            { id: "yaru", label: "yaru" },
-                            { id: "yellow", label: "yellow" }
-                            ]
-                            textRole: "label"
-                            currentIndex: {
-                                const rows = papirusFolderBox.model
-                                for (let i = 0; i < rows.length; i++) {
-                                    if (rows[i].id === root.seedPapirus)
-                                    return i
-                                }
-                                return 0
-                            }
-                            onActivated: index => root.seedPapirus = model[index].id
-                            background: Rectangle {
-                                implicitWidth: 280
-                                implicitHeight: 32
-                                color: ThemeManager.surface1
-                                radius: 6
-                            }
-                            contentItem: Text {
-                                leftPadding: 10
-                                rightPadding: 28
-                                text: papirusFolderBox.displayText
-                                color: ThemeManager.fgPrimary
+                        SettingsSubcard {
+                            Text {
+                                text: "Background + 8 accents (hex). Right-click a custom preset above to delete it."
+                                color: ThemeManager.fgSecondary
                                 font.family: ThemeManager.uiFont
                                 font.pixelSize: 12
-                                verticalAlignment: Text.AlignVCenter
-                                elide: Text.ElideRight
+                            }
+
+                            GridLayout {
+                                Layout.fillWidth: true
+                                columns: 3
+                                columnSpacing: 8
+                                rowSpacing: 8
+                                ColorSeed { label: "Background"; text: root.seedBg; onEdited: root.seedBg = value }
+                                ColorSeed { label: "Blue"; text: root.seedBlue; onEdited: root.seedBlue = value }
+                                ColorSeed { label: "Purple"; text: root.seedPurple; onEdited: root.seedPurple = value }
+                                ColorSeed { label: "Pink"; text: root.seedPink; onEdited: root.seedPink = value }
+                                ColorSeed { label: "Red"; text: root.seedRed; onEdited: root.seedRed = value }
+                                ColorSeed { label: "Orange"; text: root.seedOrange; onEdited: root.seedOrange = value }
+                                ColorSeed { label: "Yellow"; text: root.seedYellow; onEdited: root.seedYellow = value }
+                                ColorSeed { label: "Green"; text: root.seedGreen; onEdited: root.seedGreen = value }
+                                ColorSeed { label: "Teal"; text: root.seedTeal; onEdited: root.seedTeal = value }
                             }
                         }
-
-                        RowLayout {
-                            Layout.fillWidth: true
-                            spacing: 8
-                            InputField {
-                                id: nameField
+                        SettingsSubcard {
+                            Text {
+                                text: "Papirus folder color. Auto picks the closest Papirus shade to the Blue accent."
+                                color: ThemeManager.fgSecondary
+                                font.family: ThemeManager.uiFont
+                                font.pixelSize: 12
+                                wrapMode: Text.WordWrap
                                 Layout.fillWidth: true
-                                text: root.saveName
-                                onTextChanged: root.saveName = text
-                                background: Rectangle { color: ThemeManager.surface1; radius: 6 }
                             }
-                            Rectangle {
-                                Layout.preferredWidth: 110
+                            ComboBox {
+                                id: papirusFolderBox
+                                Layout.preferredWidth: 280
                                 Layout.preferredHeight: 32
-                                width: 110
-                                height: 32
-                                radius: 6
-                                color: ThemeManager.accentBlue
-                                scale: saveMouse.pressed ? ThemeManager.bouncePressScale : (saveMouse.containsMouse ? ThemeManager.bounceHoverScale : 1.0)
-                                Behavior on scale {
-                                    SpringAnimation { spring: ThemeManager.bounceSpring; damping: ThemeManager.bounceDamping; mass: ThemeManager.bounceMass }
+                                model: [
+                                    { id: "auto", label: "Auto (closest to accent)" },
+                                    { id: "adwaita", label: "adwaita" },
+                                    { id: "black", label: "black" },
+                                    { id: "blue", label: "blue" },
+                                    { id: "bluegrey", label: "bluegrey" },
+                                    { id: "breeze", label: "breeze" },
+                                    { id: "brown", label: "brown" },
+                                    { id: "carmine", label: "carmine" },
+                                    { id: "cyan", label: "cyan" },
+                                    { id: "darkcyan", label: "darkcyan" },
+                                    { id: "deeporange", label: "deeporange" },
+                                    { id: "green", label: "green" },
+                                    { id: "grey", label: "grey" },
+                                    { id: "indigo", label: "indigo" },
+                                    { id: "magenta", label: "magenta" },
+                                    { id: "nordic", label: "nordic" },
+                                    { id: "orange", label: "orange" },
+                                    { id: "palebrown", label: "palebrown" },
+                                    { id: "paleorange", label: "paleorange" },
+                                    { id: "pink", label: "pink" },
+                                    { id: "red", label: "red" },
+                                    { id: "teal", label: "teal" },
+                                    { id: "violet", label: "violet" },
+                                    { id: "white", label: "white" },
+                                    { id: "yaru", label: "yaru" },
+                                    { id: "yellow", label: "yellow" }
+                                ]
+                                textRole: "label"
+                                currentIndex: {
+                                    const rows = papirusFolderBox.model
+                                    for (let i = 0; i < rows.length; i++) {
+                                        if (rows[i].id === root.seedPapirus)
+                                            return i
+                                    }
+                                    return 0
                                 }
-                                Text { anchors.centerIn: parent; text: "Save & Apply"; color: ThemeManager.bgBase; font.pixelSize: 12 }
-                                MouseArea { id: saveMouse; anchors.fill: parent; hoverEnabled: true; cursorShape: Qt.PointingHandCursor; onClicked: saveTheme.running = true }
+                                onActivated: index => root.seedPapirus = model[index].id
+                                background: Rectangle {
+                                    implicitWidth: 280
+                                    implicitHeight: 32
+                                    color: ThemeManager.surface1
+                                    radius: 6
+                                }
+                                contentItem: Text {
+                                    leftPadding: 10
+                                    rightPadding: 28
+                                    text: papirusFolderBox.displayText
+                                    color: ThemeManager.fgPrimary
+                                    font.family: ThemeManager.uiFont
+                                    font.pixelSize: 12
+                                    verticalAlignment: Text.AlignVCenter
+                                    elide: Text.ElideRight
+                                }
+                            }
+                        }
+                        SettingsSubcard {
+                            RowLayout {
+                                Layout.fillWidth: true
+                                spacing: 8
+                                InputField {
+                                    id: nameField
+                                    Layout.fillWidth: true
+                                    text: root.saveName
+                                    onTextChanged: root.saveName = text
+                                    background: Rectangle { color: ThemeManager.surface1; radius: 6 }
+                                }
+                                Rectangle {
+                                    Layout.preferredWidth: 110
+                                    Layout.preferredHeight: 32
+                                    width: 110
+                                    height: 32
+                                    radius: 6
+                                    color: ThemeManager.accentBlue
+                                    scale: saveMouse.pressed ? ThemeManager.bouncePressScale : (saveMouse.containsMouse ? ThemeManager.bounceHoverScale : 1.0)
+                                    Behavior on scale {
+                                        SpringAnimation { spring: ThemeManager.bounceSpring; damping: ThemeManager.bounceDamping; mass: ThemeManager.bounceMass }
+                                    }
+                                    Text { anchors.centerIn: parent; text: "Save & Apply"; color: ThemeManager.bgBase; font.pixelSize: 12 }
+                                    MouseArea { id: saveMouse; anchors.fill: parent; hoverEnabled: true; cursorShape: Qt.PointingHandCursor; onClicked: saveTheme.running = true }
+                                }
                             }
                         }
                     }
@@ -2207,7 +2207,7 @@ exec python3 "$SCRIPT" "$@"`
                 SettingsSection {
                     title: "User Avatar"
                     SettingsCard {
-                    SettingsSubcard {
+                        SettingsSubcard {
                             Text {
                                 text: "Shown on the SDDM login screen in place of the first-letter placeholder. The image is saved to ~/.face.icon and copied into /usr/share/sddm/faces."
                                 color: ThemeManager.fgTertiary
@@ -2350,9 +2350,9 @@ exec python3 "$SCRIPT" "$@"`
                                     }
                                 }
                             }
-                    
+
+                        }
                     }
-                }
                 }
 
                 SettingsSection {
