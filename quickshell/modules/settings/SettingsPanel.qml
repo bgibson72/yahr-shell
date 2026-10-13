@@ -885,10 +885,10 @@ exec python3 "$SCRIPT" "$@"`
                         BarVisualChoice {
                             title: "Bar mode"
                             help: Settings.barStyle === "islands"
-                                ? "Islands stay floating. Switch Appearance → Bar style to Single to dock the bar."
+                                ? "Islands stay floating. Switch Bar style to Single to dock the bar."
                                 : (Settings.barFloating
                                     ? "Inset from the screen edge with a small gap. Panels open with an elastic pop."
-                                    : "Flush against the screen edge. Widgets emerge from a screen frame.")
+                                    : "Flush against the screen edge as a picture frame with inverse corners. Bar style is locked to Single.")
                             options: [
                                 { id: "floating", label: "Floating", preview: "mode-floating" },
                                 { id: "docked", label: "Docked", preview: "mode-docked" }
@@ -933,6 +933,9 @@ exec python3 "$SCRIPT" "$@"`
                     }
 
                     SettingsSubcard {
+                        // Docked mode is always the framed single bar, so style
+                        // only matters while floating.
+                        visible: Settings.barFloating
                         BarVisualChoice {
                             title: "Bar style"
                             help: Settings.barStyle === "islands"

@@ -112,11 +112,96 @@ ColumnLayout {
                             }
                         }
 
+                        readonly property bool dockedPreview: tile.preview === "mode-docked"
+                        readonly property int frameT: Math.max(7, Math.round(desk.width * 0.055))
+                        readonly property int frameBarH: Math.max(12, Math.round(desk.height * 0.16))
+                        readonly property int frameR: Math.max(6, Math.round(Math.min(desk.width, desk.height) * 0.08))
+                        readonly property color frameFill: ThemeManager.surface1
+
+                        // Docked picture-frame bezel with inverse corners (matches ScreenFrame).
+                        Canvas {
+                            id: frameCanvas
+                            anchors.fill: parent
+                            visible: desk.dockedPreview
+                            antialiasing: true
+                            renderTarget: Canvas.FramebufferObject
+
+                            onVisibleChanged: if (visible) requestPaint()
+                            onWidthChanged: requestPaint()
+                            onHeightChanged: requestPaint()
+                            Connections {
+                                target: desk
+                                function onFrameTChanged() { frameCanvas.requestPaint() }
+                                function onFrameBarHChanged() { frameCanvas.requestPaint() }
+                                function onFrameRChanged() { frameCanvas.requestPaint() }
+                                function onFrameFillChanged() { frameCanvas.requestPaint() }
+                            }
+                            Component.onCompleted: requestPaint()
+
+                            onPaint: {
+                                const ctx = getContext("2d")
+                                const w = width
+                                const h = height
+                                const t = desk.frameT
+                                const barH = desk.frameBarH
+                                const joinTop = barH
+                                const joinBot = h - t
+                                let rr = desk.frameR
+                                const innerW = w - 2 * t
+                                const innerH = joinBot - joinTop
+                                if (rr * 2 > innerW)
+                                    rr = innerW / 2
+                                if (rr * 2 > innerH)
+                                    rr = innerH / 2
+                                if (w < 4 || h < 4)
+                                    return
+
+                                function invCorner(x0, y0, kind) {
+                                    ctx.beginPath()
+                                    if (kind === "tl") {
+                                        ctx.moveTo(x0, y0)
+                                        ctx.lineTo(x0 + rr, y0)
+                                        ctx.arc(x0 + rr, y0 + rr, rr, -Math.PI / 2, Math.PI, true)
+                                    } else if (kind === "tr") {
+                                        ctx.moveTo(x0, y0)
+                                        ctx.lineTo(x0, y0 + rr)
+                                        ctx.arc(x0 - rr, y0 + rr, rr, 0, -Math.PI / 2, true)
+                                    } else if (kind === "bl") {
+                                        ctx.moveTo(x0, y0)
+                                        ctx.lineTo(x0, y0 - rr)
+                                        ctx.arc(x0 + rr, y0 - rr, rr, Math.PI, Math.PI / 2, true)
+                                    } else {
+                                        ctx.moveTo(x0, y0)
+                                        ctx.lineTo(x0 - rr, y0)
+                                        ctx.arc(x0 - rr, y0 - rr, rr, Math.PI / 2, 0, true)
+                                    }
+                                    ctx.closePath()
+                                    ctx.fill()
+                                }
+
+                                ctx.clearRect(0, 0, w, h)
+                                ctx.fillStyle = desk.frameFill
+
+                                // Top bar strip + side/bottom bezels
+                                ctx.fillRect(0, 0, w, joinTop)
+                                ctx.fillRect(0, joinTop - 1, t, h - joinTop + 1)
+                                ctx.fillRect(w - t, joinTop - 1, t, h - joinTop + 1)
+                                ctx.fillRect(t, joinBot, w - 2 * t, h - joinBot)
+
+                                invCorner(t, joinTop, "tl")
+                                invCorner(w - t, joinTop, "tr")
+                                invCorner(t, joinBot, "bl")
+                                invCorner(w - t, joinBot, "br")
+                            }
+                        }
+
                         // Fake floating window
                         Rectangle {
                             anchors.horizontalCenter: parent.horizontalCenter
                             anchors.verticalCenter: parent.verticalCenter
                             anchors.verticalCenterOffset: {
+                                if (desk.dockedPreview)
+                                    return Math.round(desk.frameBarH * 0.22)
                                 const p = tile.preview
                                 if (p === "position-bottom")
                                     return Math.round(-6 * tile.px)
@@ -124,8 +209,12 @@ ColumnLayout {
                                     return Math.round(6 * tile.px)
                                 return Math.round(4 * tile.px)
                             }
-                            width: Math.round(desk.width * 0.48)
-                            height: Math.round(desk.height * 0.46)
+                            width: desk.dockedPreview
+                                ? Math.round((desk.width - desk.frameT * 2) * 0.62)
+                                : Math.round(desk.width * 0.48)
+                            height: desk.dockedPreview
+                                ? Math.round((desk.height - desk.frameBarH - desk.frameT) * 0.55)
+                                : Math.round(desk.height * 0.46)
                             radius: Math.max(4, Math.round(6 * tile.px))
                             color: Qt.rgba(
                                 ThemeManager.surface1.r,
@@ -164,6 +253,8 @@ ColumnLayout {
                             readonly property bool forceBorder: tile.preview === "border-on"
                             readonly property bool forceNoBorder: tile.preview === "border-off"
                             readonly property int barH: {
+                                if (barHost.docked)
+                                    return desk.frameBarH
                                 if (tile.preview === "size-large")
                                     return Math.max(14, Math.round(desk.height * 0.20))
                                 if (tile.preview === "size-normal")
@@ -186,9 +277,13 @@ ColumnLayout {
                                 visible: !barHost.islands
                                 anchors.fill: parent
                                 radius: barHost.docked ? 0 : Math.max(3, Math.round((barHost.large ? 5 : 4) * tile.px))
-                                color: barHost.transparent
-                                    ? Qt.rgba(ThemeManager.surface1.r, ThemeManager.surface1.g, ThemeManager.surface1.b, 0.42)
-                                    : ThemeManager.surface1
+                                // Docked: frame canvas paints the bezel; keep this strip
+                                // transparent so only the icons sit on the frame.
+                                color: barHost.docked
+                                    ? "transparent"
+                                    : (barHost.transparent
+                                        ? Qt.rgba(ThemeManager.surface1.r, ThemeManager.surface1.g, ThemeManager.surface1.b, 0.42)
+                                        : ThemeManager.surface1)
                                 border.width: barHost.forceBorder ? Math.max(1, Math.round(tile.px)) : 0
                                 border.color: ThemeManager.accentBlue
 
