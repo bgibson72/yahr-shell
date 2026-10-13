@@ -10,11 +10,14 @@ Item {
     property real horizontalPadding: 8
     property bool circular: false
     property int spacing: 4
+    // Callers can suppress the pill (e.g. numbered workspaces already have
+    // their own cards). Islands still never nest an extra pill.
+    property bool backgroundEnabled: true
 
     // Nested icon-group cards belong to the solid bar. Islands already
     // wrap the whole right cluster in its own pill, so extra cards just
     // stack chrome on chrome.
-    readonly property bool showBackground: Settings.barStyle !== "islands"
+    readonly property bool showBackground: backgroundEnabled && Settings.barStyle !== "islands"
     readonly property real effectivePadding: showBackground ? horizontalPadding : 0
 
     // Sized off the glyph's own pixel size rather than the icon buttons'
