@@ -1,9 +1,10 @@
 #!/usr/bin/env python3
-"""Lock Thunar rename float rules to the real Wayland app id.
+"""Lock Thunar rename float rules to the real Wayland app id and placement.
 
-Thunar reports class `org.xfce.Thunar` (capital T). A lowercase-only
-`org.xfce.thunar` RE2 pattern never matches, so the rename dialog stays
-tiled. Handler class checks must be case-insensitive for the same reason.
+Thunar reports class `org.xfce.Thunar` (capital T). The rename dialog also
+maps as a large tiled window; floating without a window selector can hit the
+main Thunar instead, leaving the dialog fullscreen underneath. Placement
+must target the dialog, resize after float, center, focus, and raise.
 """
 
 from __future__ import annotations
@@ -60,11 +61,22 @@ class ThunarRenameFloatTest(unittest.TestCase):
             _handler_accepts("ghostty", 'Rename "walls-main"')
         )
 
-    def test_uses_hl_dispatch_for_immediate_float(self) -> None:
-        self.assertIn("hl.dispatch(hl.dsp.window.float", RULES)
-        self.assertIn("hl.dispatch(hl.dsp.window.center", RULES)
-        self.assertIn("title:^(Rename)", RULES)
-        self.assertIn("size = { 520, 200 }", RULES)
+    def test_places_dialog_with_explicit_target_resize_and_raise(self) -> None:
+        self.assertIn("yahrPlaceThunarRename", RULES)
+        # Must not float the active window blindly (that hit main Thunar).
+        self.assertNotIn(
+            'hl.dsp.window.float({ action = "set" })',
+            RULES,
+        )
+        self.assertIn('float({ action = "set", window = sel })', RULES)
+        self.assertIn("hl.dsp.window.resize({", RULES)
+        self.assertIn("relative = false", RULES)
+        self.assertIn('alter_zorder({ mode = "top", window = sel })', RULES)
+        self.assertIn("hl.dsp.focus({ window = sel })", RULES)
+        self.assertIn("stay_focused = true", RULES)
+        self.assertIn("thunar_rename_w = 480", RULES)
+        self.assertIn("thunar_rename_h = 170", RULES)
+        self.assertIn('type = "oneshot"', RULES)
 
 
 if __name__ == "__main__":
