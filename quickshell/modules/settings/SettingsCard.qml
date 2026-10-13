@@ -2,7 +2,8 @@ import QtQuick
 import QtQuick.Layouts
 import "../.."
 
-// Rounded card body for one group of related options inside a SettingsSection.
+// Section base card inside a SettingsSection. Nested SettingsSubcards are the
+// individual option panels (card-on-card).
 Rectangle {
     id: root
     default property alias content: body.data
