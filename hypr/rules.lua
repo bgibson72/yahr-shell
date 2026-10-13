@@ -6,23 +6,27 @@ local blur_enabled = YAHR_SETTINGS.blur == true
 
 hl.layer_rule({ match = { namespace = "^quickshell" }, blur = blur_enabled })
 hl.layer_rule({ match = { namespace = "^mako" }, blur = blur_enabled })
-hl.layer_rule({ match = { namespace = "^yahr%-bar" }, blur = false })
+hl.layer_rule({ match = { namespace = "^yahr-bar" }, blur = false })
 
 -- File managers, terminals, and editors that actually composite with
 -- window alpha. Ghostty is included here too: Hyprland's window opacity
 -- is what you see immediately. Ghostty's own background-opacity is kept
 -- at 1 so the two do not stack.
+--
+-- Hyprland class matches are RE2 (not Lua patterns). Escape dots as `\\.`
+-- and leave hyphens plain — `%.` / `%-` are literal percent signs and will
+-- never match app ids like org.xfce.Thunar.
 local opacity_apps = {
-    { key = "thunar", class = "^thunar$" },
-    { key = "xfce_thunar", class = "^org%.xfce%.thunar$" },
+    { key = "thunar", class = "^[Tt]hunar$" },
+    { key = "xfce_thunar", class = "^org\\.xfce\\.[Tt]hunar$" },
     { key = "ghostty", class = "^ghostty$" },
     { key = "ghostty_id", class = "^com\\.mitchellh\\.ghostty$" },
     { key = "code", class = "^code$" },
-    { key = "code_oss", class = "^code%-oss$" },
+    { key = "code_oss", class = "^code-oss$" },
     { key = "codium", class = "^[Cc]odium$" },
     { key = "vscodium", class = "^VSCodium$" },
     { key = "cursor", class = "^[Cc]ursor$" },
-    { key = "zed", class = "^dev%.zed%.Zed$" },
+    { key = "zed", class = "^dev\\.zed\\.Zed$" },
     { key = "zed_short", class = "^zed$" },
 }
 
@@ -58,18 +62,16 @@ yahrApplyWindowOpacity(
 hl.window_rule({ match = { title = "^(.*Hyprshot.*)$" }, float = true })
 hl.window_rule({ match = { title = "^(.*Waypaper.*)$" }, float = true })
 
-hl.window_rule({ match = { class = "^(org%.pulseaudio%.pavucontrol)$" }, float = true, center = true, size = { 800, 600 } })
+hl.window_rule({ match = { class = "^(org\\.pulseaudio\\.pavucontrol)$" }, float = true, center = true, size = { 800, 600 } })
 hl.window_rule({ match = { class = "^(pavucontrol)$" }, float = true, center = true, size = { 800, 600 } })
 hl.window_rule({ match = { class = "^(blueman-manager)$" }, float = true, center = true, size = { 800, 600 } })
-hl.window_rule({ match = { class = "^(%.blueman-manager-wrapped)$" }, float = true, center = true, size = { 800, 600 } })
+hl.window_rule({ match = { class = "^(\\.blueman-manager-wrapped)$" }, float = true, center = true, size = { 800, 600 } })
 hl.window_rule({ match = { class = "^(xfce4-power-manager-settings)$" }, float = true, center = true, size = { 800, 600 } })
-hl.window_rule({ match = { class = "^(nm%-connection%-editor)$" }, float = true, center = true, size = { 800, 600 } })
+hl.window_rule({ match = { class = "^(nm-connection-editor)$" }, float = true, center = true, size = { 800, 600 } })
 hl.window_rule({ match = { title = "^(HyprEmoji)$" }, float = true, center = true, size = { 800, 600 } })
 hl.window_rule({ match = { title = "^(Pluck - Color Palette Extractor)$" }, float = true, center = true })
 
--- File Roller popups. Hyprland class matches are RE2, so dots in the
--- app id must be `\\.`. Lua `%.` is a literal percent sign and will
--- not match org.gnome.FileRoller.
+-- File Roller popups (same RE2 class escaping as opacity_apps above).
 hl.window_rule({
     match = { class = "^(org\\.gnome\\.FileRoller|file-roller)$", title = "^Extract" },
     float = true,
