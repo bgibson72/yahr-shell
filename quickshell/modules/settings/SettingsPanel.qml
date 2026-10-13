@@ -913,11 +913,16 @@ exec python3 "$SCRIPT" "$@"`
                         ToggleRow {
                             label: "Follow Hyprland Window Rules"
                             checked: Settings.barFollowHyprland
-                            onToggled: { Settings.barFollowHyprland = !checked; Settings.save() }
+                            onToggled: {
+                                Settings.barFollowHyprland = !checked
+                                // Keep legacy roundingFollowHyprland in sync for saved settings.
+                                Settings.barRoundingFollowHyprland = Settings.barFollowHyprland
+                                Settings.save()
+                            }
                         }
                         Text {
                             text: Settings.barFollowHyprland
-                                ? "Fill, borders, and thickness match the Hyprland tab."
+                                ? "Fill, borders, thickness, and corner radius match the Hyprland tab."
                                 : "Bar chrome can be set independently. Turn this on to match Hyprland window rules."
                             color: ThemeManager.fgTertiary
                             font.family: ThemeManager.uiFont
@@ -995,40 +1000,6 @@ exec python3 "$SCRIPT" "$@"`
                     }
 
                     SettingsSubcard {
-                        ToggleRow {
-                            label: "Follow Hyprland rounding"
-                            checked: Settings.barRoundingFollowHyprland
-                            onToggled: { Settings.barRoundingFollowHyprland = !checked; Settings.save() }
-                        }
-                        Text {
-                            text: Settings.barRoundingFollowHyprland
-                                ? `Using Hyprland window rounding (${Settings.hyprRounding}px). Docked frame bars stay square against the screen edge.`
-                                : "Set an independent radius for floating single and island bars. Docked frame bars stay square against the screen edge."
-                            color: ThemeManager.fgTertiary
-                            font.family: ThemeManager.uiFont
-                            font.pixelSize: 12
-                            wrapMode: Text.WordWrap
-                            Layout.fillWidth: true
-                        }
-                        ColumnLayout {
-                            visible: !Settings.barRoundingFollowHyprland
-                            Layout.fillWidth: true
-                            spacing: 8
-                            Text {
-                                text: `Corner radius: ${Settings.barRounding}px`
-                                color: ThemeManager.fgPrimary
-                                font.family: ThemeManager.uiFont
-                                font.pixelSize: 13
-                            }
-                            ValueChipRow {
-                                values: [0, 4, 8, 12, 16, 20, 24]
-                                current: Settings.barRounding
-                                onPicked: value => { Settings.barRounding = value; Settings.save() }
-                            }
-                        }
-                    }
-
-                    SettingsSubcard {
                         enabled: !Settings.barFollowHyprland
                         BarVisualChoice {
                             title: "Background fill"
@@ -1044,6 +1015,31 @@ exec python3 "$SCRIPT" "$@"`
                             opacityValue: Settings.barOpacity
                             onChanged: value => Settings.barOpacity = value
                             onReleased: Settings.save()
+                        }
+                    }
+
+                    SettingsSubcard {
+                        enabled: !Settings.barFollowHyprland
+                        Text {
+                            text: "Bar corner radius"
+                            color: ThemeManager.fgPrimary
+                            font.family: ThemeManager.uiFont
+                            font.pixelSize: 13
+                        }
+                        Text {
+                            text: Settings.barFollowHyprland
+                                ? `Using Hyprland window rounding (${Settings.hyprRounding}px). Docked frame bars stay square against the screen edge.`
+                                : `Corner radius for floating single and island bars (${Settings.barRounding}px). Docked frame bars stay square against the screen edge.`
+                            color: ThemeManager.fgTertiary
+                            font.family: ThemeManager.uiFont
+                            font.pixelSize: 12
+                            wrapMode: Text.WordWrap
+                            Layout.fillWidth: true
+                        }
+                        ValueChipRow {
+                            values: [0, 4, 8, 12, 16, 20, 24]
+                            current: Settings.barRounding
+                            onPicked: value => { Settings.barRounding = value; Settings.save() }
                         }
                     }
                 }
