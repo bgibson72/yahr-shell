@@ -1,0 +1,24 @@
+#!/usr/bin/env bash
+# Resolve and run sync-hypr-from-repo.py (git clone via repo-root, else local).
+set -euo pipefail
+SCRIPT=""
+if [[ -f "${HOME}/.config/yahr/repo-root" ]]; then
+  ROOT="$(tr -d '[:space:]' < "${HOME}/.config/yahr/repo-root")"
+  if [[ -n "${ROOT}" && -f "${ROOT}/hypr/scripts/sync-hypr-from-repo.py" ]]; then
+    SCRIPT="${ROOT}/hypr/scripts/sync-hypr-from-repo.py"
+  fi
+fi
+if [[ -z "${SCRIPT}" && -f "${HOME}/.config/hypr/scripts/sync-hypr-from-repo.py" ]]; then
+  SCRIPT="${HOME}/.config/hypr/scripts/sync-hypr-from-repo.py"
+fi
+if [[ -z "${SCRIPT}" ]]; then
+  HERE="$(cd "$(dirname "$0")" && pwd)"
+  if [[ -f "${HERE}/sync-hypr-from-repo.py" ]]; then
+    SCRIPT="${HERE}/sync-hypr-from-repo.py"
+  fi
+fi
+if [[ -z "${SCRIPT}" ]]; then
+  echo "sync-hypr-from-repo.py not found (checked repo-root and ~/.config/hypr)" >&2
+  exit 2
+fi
+exec python3 "${SCRIPT}" "$@"
