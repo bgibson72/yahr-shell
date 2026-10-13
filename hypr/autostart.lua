@@ -3,6 +3,12 @@
 hl.on("hyprland.start", function()
     local home = os.getenv("HOME")
 
+    -- Keep ~/.config/hypr tracking the git checkout. install.sh prefers a
+    -- symlink, but a copied tree goes stale after `git pull` (Thunar rename
+    -- float rules never load). Sync first; reload once if files changed
+    -- (rules are parsed before this event, so a one-shot reload is required).
+    hl.exec_cmd("bash -c 'ROOT=$(tr -d \"[:space:]\" < \"$HOME/.config/yahr/repo-root\" 2>/dev/null || true); SYNC=\"\"; [ -n \"$ROOT\" ] && [ -f \"$ROOT/hypr/scripts/sync-hypr-from-repo.py\" ] && SYNC=\"$ROOT/hypr/scripts/sync-hypr-from-repo.py\"; [ -z \"$SYNC\" ] && [ -f \"$HOME/.config/hypr/scripts/sync-hypr-from-repo.py\" ] && SYNC=\"$HOME/.config/hypr/scripts/sync-hypr-from-repo.py\"; if [ -n \"$SYNC\" ]; then python3 \"$SYNC\" >/tmp/yahr-hypr-sync.log 2>&1; code=$?; if [ \"$code\" -eq 10 ]; then hyprctl reload; fi; fi'")
+
     -- Keep ~/.config/quickshell pointed at the git checkout when repo-root is set.
     -- A stale copied SettingsPanel.qml is why removed SDDM controls can still appear.
     -- Sync with --keep-running here: Hypr has not started qs yet on this event.
