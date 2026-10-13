@@ -113,6 +113,9 @@ Item {
 
         PillGroup {
             horizontalPadding: 10
+            // Numbered indicators already sit on their own cards; only dots
+            // need the shared pill behind the cluster.
+            backgroundEnabled: Settings.workspaceStyle === "dots"
             WorkspaceBar {
                 minWorkspaces: Settings.minWorkspaces
             }
