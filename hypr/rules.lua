@@ -107,14 +107,17 @@ end
 _G.YAHR_FILE_ROLLER_TITLE_SUB = hl.on("window.title", yahrMaybeFloatFileRollerPopup)
 _G.YAHR_FILE_ROLLER_OPEN_SUB = hl.on("window.open", yahrMaybeFloatFileRollerPopup)
 
--- Thunar rename dialog (F2). Title is `Rename "filename"`; class is
--- `thunar` or `org.xfce.thunar`. Same GTK map race as File Roller, so
--- keep a delayed float/center after the static rule.
-local thunar_class = "^(thunar|org\\.xfce\\.thunar)$"
+-- Thunar rename dialog (F2). Title is `Rename "filename"`. Wayland app
+-- id is `org.xfce.Thunar` (capital T) — same RE2 class pattern as
+-- opacity_apps. GTK often maps the dialog tiled and ignores static
+-- float, so also float/center from window events (wiki-recommended)
+-- and again after map settle.
+local thunar_class = "^([Tt]hunar|org\\.xfce\\.[Tt]hunar)$"
 hl.window_rule({
     match = { class = thunar_class, title = "^Rename" },
     float = true,
     center = true,
+    size = { 520, 200 },
 })
 hl.window_rule({
     match = { class = thunar_class, modal = true },
@@ -122,23 +125,39 @@ hl.window_rule({
     center = true,
 })
 
-local function yahrFloatThunarRename()
-    -- Title is dynamic (`Rename "foo.txt"`), so match with a regex
-    -- selector rather than an exact title: string.
-    hl.exec_cmd("sleep 0.2 && hyprctl dispatch 'hl.dsp.window.float({ action = \"set\", window = \"title:^(Rename)\" })' && hyprctl dispatch 'hl.dsp.window.center({ window = \"title:^(Rename)\" })'")
+local function yahrIsThunarClass(class)
+    if not class or class == "" then
+        return false
+    end
+    class = string.lower(class)
+    return class == "thunar" or class == "org.xfce.thunar"
+end
+
+local function yahrFloatThunarRenameNow()
+    -- Event-window is focused on open/title; dispatch without a selector.
+    hl.dispatch(hl.dsp.window.float({ action = "set" }))
+    hl.dispatch(hl.dsp.window.center())
+end
+
+local function yahrFloatThunarRenameLater()
+    -- Title is dynamic (`Rename "foo.txt"`); regex selector after settle.
+    hl.exec_cmd("sleep 0.25 && hyprctl dispatch 'hl.dsp.window.float({ action = \"set\", window = \"title:^(Rename)\" })' && hyprctl dispatch 'hl.dsp.window.center({ window = \"title:^(Rename)\" })'")
 end
 
 local function yahrMaybeFloatThunarRename(w)
     if not w then return end
-    local class = w.class or w.initialClass or ""
-    if class ~= "thunar" and class ~= "org.xfce.thunar" then
-        return
-    end
     local title = w.title or w.initialTitle or ""
     if not title:match("^Rename") then
         return
     end
-    yahrFloatThunarRename()
+    -- Title `Rename …` is Thunar-specific; if class is present, require it
+    -- (case-insensitive — org.xfce.Thunar vs org.xfce.thunar).
+    local class = w.class or w.initialClass or w.initial_class or ""
+    if class ~= "" and not yahrIsThunarClass(class) then
+        return
+    end
+    yahrFloatThunarRenameNow()
+    yahrFloatThunarRenameLater()
 end
 
 if _G.YAHR_THUNAR_RENAME_TITLE_SUB and _G.YAHR_THUNAR_RENAME_TITLE_SUB.remove then
