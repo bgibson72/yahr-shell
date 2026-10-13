@@ -234,7 +234,9 @@ Item {
     readonly property int barRadius: {
         if (useFrameEmerge)
             return 0
-        const requested = Settings.barRoundingFollowHyprland
+        // Follow Hyprland Window Rules also drives corner radius; the old
+        // separate roundingFollowHyprland toggle was removed from Settings.
+        const requested = Settings.barFollowHyprland
             ? Settings.hyprRounding
             : Settings.barRounding
         return Math.max(0, Math.min(requested, Math.floor(barHeight / 2)))
