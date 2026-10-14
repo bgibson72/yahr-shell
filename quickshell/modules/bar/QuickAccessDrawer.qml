@@ -1,6 +1,7 @@
 import QtQuick
 import QtQuick.Layouts
 import Quickshell
+import Quickshell.Io
 import "../../components"
 import "../.."
 
@@ -16,10 +17,52 @@ Item {
     signal toggleSettings()
 
     property bool expanded: false
+    property bool gameModeOn: false
 
     implicitWidth: content.implicitWidth
     implicitHeight: 40
     Layout.leftMargin: 10
+
+    function refreshGameMode() {
+        gameModeProbe.running = false
+        gameModeProbe.running = true
+    }
+
+    function toggleGameMode() {
+        Quickshell.execDetached([`${Quickshell.shellDir}/scripts/toggle-gamemode.sh`, "toggle"])
+        // State file write is nearly immediate; re-probe shortly after.
+        gameModeRefresh.restart()
+    }
+
+    Timer {
+        id: gameModeRefresh
+        interval: 200
+        repeat: false
+        onTriggered: drawer.refreshGameMode()
+    }
+
+    Process {
+        id: gameModeProbe
+        running: false
+        command: [`${Quickshell.shellDir}/scripts/toggle-gamemode.sh`, "status"]
+        stdout: StdioCollector {
+            onStreamFinished: {
+                const text = (this.text || "").trim()
+                drawer.gameModeOn = text === "on"
+            }
+        }
+    }
+
+    FileView {
+        id: gameModeFile
+        path: `${Quickshell.env("HOME")}/.config/yahr/gamemode`
+        watchChanges: true
+        onFileChanged: reload()
+        onLoaded: drawer.refreshGameMode()
+        onLoadFailed: drawer.gameModeOn = false
+    }
+
+    Component.onCompleted: drawer.refreshGameMode()
 
     RowLayout {
         id: content
@@ -99,6 +142,7 @@ Item {
                         { glyph: "\uf030", action: "screenshot" },
                         { glyph: "󰈊", action: "picker", md: true },
                         { glyph: "\uf03e", action: "wallpaper" },
+                        { glyph: "\uf11b", action: "gamemode" },
                         { glyph: "󰒓", action: "settings", md: true }
                     ]
 
@@ -122,7 +166,9 @@ Item {
                         IconButton {
                             anchors.fill: parent
                             glyph: wrap.modelData.glyph
-                            glyphColor: ThemeManager.accentBlue
+                            glyphColor: (wrap.modelData.action === "gamemode" && drawer.gameModeOn)
+                                ? ThemeManager.accentOrange
+                                : ThemeManager.accentBlue
                             pixelSize: wrap.modelData.md ? ThemeManager.fontSizeIcon : ThemeManager.fontSizeIconFA
                             onClicked: {
                                 switch (wrap.modelData.action) {
@@ -131,6 +177,7 @@ Item {
                                 case "screenshot": drawer.toggleScreenshot(); break
                                 case "picker": Quickshell.execDetached(["hyprpicker", "-a"]); break
                                 case "wallpaper": drawer.toggleWallpaper(); break
+                                case "gamemode": drawer.toggleGameMode(); break
                                 case "settings": drawer.toggleSettings(); break
                                 }
                             }
