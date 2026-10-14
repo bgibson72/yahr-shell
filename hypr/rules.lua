@@ -220,3 +220,55 @@ hl.window_rule({
     },
     no_focus = true,
 })
+
+-- ============================================================
+-- Gaming — Steam / gamescope / common launchers
+-- Tag games, then apply performance effects to the tag. Do not
+-- force fullscreen: borderless-windowed is a common preference.
+-- Tearing needs general.allow_tearing (appearance.lua) + immediate.
+-- ============================================================
+
+-- Steam Proton / native titles (class steam_app_<AppID>).
+hl.window_rule({
+    name = "yahr-tag-steam-game",
+    match = { class = "^steam_app_" },
+    tag = "+game",
+    content = "game",
+})
+
+-- gamescope compositor (Steam Deck / nested gaming).
+hl.window_rule({
+    name = "yahr-tag-gamescope",
+    match = { class = "^(gamescope|[Gg]amescope)$" },
+    tag = "+game",
+    content = "game",
+})
+
+-- Effects for anything tagged `game` / `game*`.
+hl.window_rule({
+    name = "yahr-game-perf",
+    match = { tag = "game" },
+    immediate = true,
+    idle_inhibit = "focus",
+    no_anim = true,
+    no_blur = true,
+})
+
+-- Steam client chrome (not games) — float utility windows.
+hl.window_rule({
+    name = "yahr-steam-friends",
+    match = { class = "^([Ss]team)$", title = "^(Friends List)$" },
+    float = true,
+})
+hl.window_rule({
+    name = "yahr-steam-settings",
+    match = { class = "^([Ss]team)$", title = "^(Steam Settings)$" },
+    float = true,
+    center = true,
+})
+hl.window_rule({
+    name = "yahr-steam-news",
+    match = { class = "^([Ss]team)$", title = "^(Steam - News)$" },
+    float = true,
+    center = true,
+})
