@@ -18,7 +18,8 @@ This is the successor to [yahr-quickshell](https://github.com/bgibson72/yahr-qui
 - **One command apply** — `yahr-theme apply catppuccin` rewrites every target without restarting Quickshell
 - **Quickshell desktop** — floating bar, dock, app launcher, settings, power menu, clipboard, screenshots, network / bluetooth / audio / battery panels
 - **Cover Flow wallpaper picker** — overlay browser for theme-folder or all-wallpapers sources; static or slideshow modes with transitions
-- **Quick-launch strip** — files, Ghostty, Firefox, screenshot, hyprpicker eyedropper, wallpaper picker, settings
+- **Quick-launch strip** — files, Ghostty, screenshot, hyprpicker eyedropper, wallpaper picker, game mode, settings
+- **Gaming tweaks** — Steam / gamescope window rules (tearing, idle inhibit, no animations), VRR on fullscreen, Game Mode toggle (bar + Super+Shift+G)
 - **Yahr apps** — Calendar (ICS + reminders), Calculator, and Keybinds (live map with conflict checks, writes Hyprland Lua)
 - **Themed browsers & terminal** — Firefox `userChrome` (pill urlbar), Ghostty palette + tightened GTK context menus
 - **Unattended installer** — `./install.sh` on a minimal Arch install sets up the desktop, fonts, themes, wallpapers, hyprpicker, and greeter
@@ -84,8 +85,19 @@ Defaults from `hypr/keybinds.lua`. **Super+K** opens Yahr Keybinds to view or ch
 | Super+Shift+W | Wallpaper picker |
 | Super+Shift+V | Clipboard |
 | Super+Shift+C | Control center |
+| Super+Shift+G | Toggle Game Mode (animations off, pause hypridle) |
 | Super+Print | Region screenshot (uses picker save/copy/delay settings) |
 | Print | Output screenshot (uses picker save/copy/delay settings) |
+
+## Gaming
+
+Hyprland is tuned for Steam on AMD (or any GPU with tearing support):
+
+- `allow_tearing` is on; Steam games (`steam_app_*`) and gamescope get the `immediate` effect plus idle inhibit while focused
+- VRR / FreeSync engages on fullscreen windows (`misc.vrr = 2`)
+- **Game Mode** (Tools quick-launch gamepad icon, or Super+Shift+G) turns off animations and blur, pauses `hypridle` so the session will not lock/suspend mid-game, and asks `powerprofilesctl` for the performance profile when available
+
+For Proton titles, Steam’s default launch is enough. Optional extras you may already have: `gamemode` / `mangohud` / `gamescope` from the Arch repos.
 
 Calendar and Calculator are in the app launcher as **Yahr Calendar** and **Yahr Calculator**.
 

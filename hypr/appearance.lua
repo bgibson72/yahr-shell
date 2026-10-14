@@ -4,6 +4,19 @@
 local theme = HYPR_THEME
 local s = YAHR_SETTINGS
 
+-- Game Mode (Tools bar / Super+Shift+G) writes ~/.config/yahr/gamemode.
+-- Honor it on reload so animations/blur stay off and hypridle stays paused.
+local gamemode_on = false
+do
+    local gf = io.open(os.getenv("HOME") .. "/.config/yahr/gamemode", "r")
+    if gf then
+        local g = (gf:read("*l") or ""):match("^%s*(%w+)")
+        gf:close()
+        gamemode_on = g == "on"
+    end
+end
+_G.YAHR_GAMEMODE = gamemode_on
+
 local function hex6(color)
     return (color or ""):match("%((%x%x%x%x%x%x)") or "89b4fa"
 end
@@ -85,7 +98,9 @@ hl.config({
             inactive_border = inactive_border,
         },
         resize_on_border = false,
-        allow_tearing = false,
+        -- Master toggle for tearing; only windows with the `immediate`
+        -- effect (see gaming rules in rules.lua) actually tear.
+        allow_tearing = true,
         layout = "dwindle",
     },
 
@@ -101,7 +116,7 @@ hl.config({
             color = "rgba(" .. shadow_rgb .. shadow_a .. ")",
         },
         blur = {
-            enabled = s.blur_enabled == true,
+            enabled = (s.blur_enabled == true) and not gamemode_on,
             size = s.blur_size or 10,
             passes = 4,
             new_optimizations = true,
@@ -111,7 +126,7 @@ hl.config({
     },
 
     animations = {
-        enabled = s.animations ~= false,
+        enabled = (s.animations ~= false) and not gamemode_on,
     },
 
     dwindle = {
@@ -125,6 +140,9 @@ hl.config({
     misc = {
         force_default_wallpaper = 0,
         disable_hyprland_logo = true,
+        -- 0 off, 1 always, 2 fullscreen only, 3 fullscreen + game/video content.
+        -- Fullscreen-only keeps FreeSync/G-Sync off on the desktop.
+        vrr = 2,
     },
 
     cursor = {
@@ -139,7 +157,7 @@ hl.curve("linear", { type = "bezier", points = { { 0, 0 }, { 1, 1 } } })
 hl.curve("almostLinear", { type = "bezier", points = { { 0.5, 0.5 }, { 0.75, 1 } } })
 hl.curve("quick", { type = "bezier", points = { { 0.15, 0 }, { 0.1, 1 } } })
 
-local anim = s.animations ~= false
+local anim = (s.animations ~= false) and not gamemode_on
 hl.animation({ leaf = "global", enabled = anim, speed = 10, bezier = "default" })
 hl.animation({ leaf = "border", enabled = anim, speed = 5.39, bezier = "easeOutQuint" })
 hl.animation({ leaf = "windows", enabled = anim, speed = 4.79, bezier = "easeOutQuint" })

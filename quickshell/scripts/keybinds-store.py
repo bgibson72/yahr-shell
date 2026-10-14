@@ -104,6 +104,7 @@ CMD_LABELS = {
 CMD_LABEL_SUFFIXES = (
     ("take-screenshot.sh region --from-settings", ("Screenshot (region)", "Shell")),
     ("take-screenshot.sh output --from-settings", ("Screenshot (output)", "Shell")),
+    ("toggle-gamemode.sh", ("Toggle Game Mode", "Shell")),
 )
 
 KEY_CANON = {
@@ -413,6 +414,8 @@ def describe(kind: str, payload: str, command: str, combo: str) -> tuple[str, st
         base = Path(command.split()[0]).name if command else payload
         if "launch-thunar" in command or base == "launch-thunar.sh":
             return ("File manager", "Applications")
+        if "toggle-gamemode" in command or base == "toggle-gamemode.sh":
+            return ("Toggle Game Mode", "Shell")
         if "preview-sddm" in command:
             return ("SDDM preview", "Shell")
         if command.startswith("hyprctl keyword monitor"):

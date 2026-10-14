@@ -21,6 +21,7 @@ hl.bind(MOD .. " + SHIFT + W", hl.dsp.exec_cmd(ipc .. " toggleWallpaper"))
 hl.bind(MOD .. " + SHIFT + S", hl.dsp.exec_cmd(ipc .. " toggleSettings"))
 hl.bind(MOD .. " + SHIFT + V", hl.dsp.exec_cmd(ipc .. " toggleClipboard"))
 hl.bind(MOD .. " + SHIFT + C", hl.dsp.exec_cmd(ipc .. " toggleAudio"))
+hl.bind(MOD .. " + SHIFT + G", hl.dsp.exec_cmd(qs .. "/toggle-gamemode.sh"))
 
 -- Print keybinds use the same save/copy/delay prefs as the screenshot picker
 -- (~/.config/yahr/settings.json via take-screenshot.sh --from-settings).
