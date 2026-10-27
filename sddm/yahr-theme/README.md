@@ -1,14 +1,22 @@
 # YAHR SDDM theme
 
 Login screen that follows the YAHR shell: full-bleed wallpaper, large clock, and a
-floating bottom **dock strip** (avatar, username/password, session, power) tinted
-from the active palette. Background blur is fixed at FastBlur radius 40.
+login plate tinted from the active palette. When the desktop bar is **docked**
+(solid + picture frame), the greeter draws the same screen bezel and joins the
+login plate into the bottom edge with inverse corners — matching docked
+Quickshell widgets. When the bar is floating, the plate stays a floating dock
+strip. Background blur is fixed at FastBlur radius 40.
+
+Typography uses the **UI Font** chosen in Settings (resolved against installed
+families the same way the shell does).
 
 ## Sync
 
 Theme apply (`yahr-theme apply` or Settings → SDDM → Apply) writes the current
-palette from `~/.config/yahr/current.json` into `theme.conf` and copies the
-desktop wallpaper into `/usr/share/sddm/themes/yahr-theme` as
+palette from `~/.config/yahr/current.json`, the Settings UI font, clock/date
+formats, and framed-bar geometry (`UseFrame`, thickness, rounding, bar height /
+position) into `theme.conf`. It also copies `Main.qml` and `Components/` into
+`/usr/share/sddm/themes/yahr-theme` and copies the desktop wallpaper as
 `login-background.png` (or `.jpg`). Colors and wallpaper are never hard-coded to
 a specific theme — every `yahr-theme apply` and every desktop wallpaper change
 (with **Match desktop** on) refreshes the greeter.

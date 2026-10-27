@@ -1,0 +1,3 @@
+module Components
+ScreenFrame 1.0 ScreenFrame.qml
+FrameJoins 1.0 FrameJoins.qml

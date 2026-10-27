@@ -1,11 +1,10 @@
 #!/usr/bin/env python3
-"""Sync the YAHR SDDM greeter with the current palette, clock, and wallpaper.
+"""Sync the YAHR SDDM greeter with the current palette, clock, font, and wallpaper.
 
-Writes colors from ~/.config/yahr/current.json, clock/date formats from
-settings.json, then copies a sharp login-background.png into
-/usr/share/sddm/themes/yahr-theme. Full-screen blur is fixed at FastBlur
-radius 40; field opacity is fixed. The login-window crop uses the same sharp
-file.
+Writes colors from ~/.config/yahr/current.json, UI font / clock formats / framed
+bar geometry from settings.json, then copies a sharp login-background.png and
+refreshes Main.qml + Components/ into /usr/share/sddm/themes/yahr-theme.
+Full-screen blur is fixed at FastBlur radius 40; field opacity is fixed.
 
 Needs the yahr-sddm sudoers rule.
 """
@@ -78,6 +77,48 @@ def clock_formats(settings: dict) -> tuple[str, str]:
 
 def ui_font(settings: dict) -> str:
     return str((settings.get("general") or {}).get("uiFont") or "Inter")
+
+
+def frame_settings(settings: dict) -> dict[str, str]:
+    """Mirror quickshell framed mode (solid + docked bar) into theme.conf."""
+    bar = settings.get("bar") or {}
+    hypr = settings.get("hypr") or {}
+    style = str(bar.get("barStyle") or "single")
+    floating = bool(bar.get("floating", False))
+    if style == "islands":
+        floating = True
+    use_frame = style == "single" and not floating
+    try:
+        gaps = int(hypr.get("gapsOut") or 10)
+    except (TypeError, ValueError):
+        gaps = 10
+    try:
+        rounding = int(hypr.get("rounding") or 12)
+    except (TypeError, ValueError):
+        rounding = 12
+    bar_size = str(bar.get("barSize") or "small")
+    bar_h = 58 if bar_size == "large" else 48
+    position = str(bar.get("position") or "top")
+    if position not in ("top", "bottom"):
+        position = "top"
+    try:
+        opacity = float(bar.get("barOpacity") if bar.get("barOpacity") is not None else 0.7)
+    except (TypeError, ValueError):
+        opacity = 0.7
+    bg_style = str(bar.get("backgroundStyle") or "translucent")
+    follow = bool(bar.get("followHyprland", False))
+    if follow or bg_style == "opaque":
+        frame_opacity = 1.0
+    else:
+        frame_opacity = max(0.92, opacity)
+    return {
+        "UseFrame": "true" if use_frame else "false",
+        "FrameThickness": str(max(10, gaps)),
+        "FrameInnerRadius": str(max(0, rounding)),
+        "BarHeight": str(bar_h),
+        "BarPosition": position,
+        "FrameOpacity": f"{frame_opacity:.2f}",
+    }
 
 
 def set_key(text: str, key: str, value: str, quoted: bool = False) -> str:
@@ -271,25 +312,47 @@ def clear_stale_wallpaper_assets(keep: set[str]) -> None:
         sudo_rm(path)
 
 
-def find_theme_main() -> Path | None:
-    """Locate Main.qml from the git clone or installed share tree."""
+def find_theme_dir() -> Path | None:
+    """Locate the yahr-theme source directory (git clone or share tree)."""
     candidates: list[Path] = []
     repo_root_file = HOME / ".config/yahr/repo-root"
     if repo_root_file.is_file():
         try:
             root = Path(repo_root_file.read_text().strip()).expanduser()
             if root.is_dir():
-                candidates.append(root / "sddm" / "yahr-theme" / "Main.qml")
+                candidates.append(root / "sddm" / "yahr-theme")
         except OSError:
             pass
     here = Path(__file__).resolve()
-    # repo/quickshell/scripts → repo/sddm/...
-    candidates.append(here.parents[2] / "sddm" / "yahr-theme" / "Main.qml")
-    candidates.append(HOME / ".local/share/yahr-shell/sddm/yahr-theme/Main.qml")
+    # repo/quickshell/scripts → repo/sddm/yahr-theme
+    candidates.append(here.parents[2] / "sddm" / "yahr-theme")
+    candidates.append(HOME / ".local/share/yahr-shell/sddm/yahr-theme")
     for path in candidates:
-        if path.is_file():
+        if (path / "Main.qml").is_file():
             return path
     return None
+
+
+def copy_theme_qml() -> list[str]:
+    """Refresh greeter QML from the clone, including Components/."""
+    theme_dir = find_theme_dir()
+    if theme_dir is None:
+        return []
+    copied: list[str] = []
+    rel_paths = [
+        "Main.qml",
+        "Components/qmldir",
+        "Components/ScreenFrame.qml",
+        "Components/FrameJoins.qml",
+    ]
+    for rel in rel_paths:
+        src = theme_dir / rel
+        if not src.is_file():
+            continue
+        dest = THEME_DIR / rel
+        if sudo_cp(src, dest):
+            copied.append(rel)
+    return copied
 
 
 def apply_palette(text: str, settings: dict) -> str:
@@ -306,11 +369,16 @@ def apply_palette(text: str, settings: dict) -> str:
     for key, value in mapping.items():
         text = set_key(text, key, str(value), quoted=True)
     font = ui_font(settings)
+    # Catalog key from Settings → UI Font; greeter resolves installed families.
     text = set_key(text, "Font", font, quoted=True)
-    text = set_key(text, "TitleFont", f"{font} ExtraBold", quoted=True)
+    # Legacy key kept for older greeters; Main.qml uses Font + weight.
+    text = set_key(text, "TitleFont", font, quoted=True)
     time_fmt, date_fmt = clock_formats(settings)
     text = set_key(text, "TimeFormat", time_fmt, quoted=True)
     text = set_key(text, "DateFormat", date_fmt, quoted=True)
+    for key, value in frame_settings(settings).items():
+        # Match BackgroundBlur-style unquoted values; quote string enums.
+        text = set_key(text, key, value, quoted=(key == "BarPosition"))
     return text
 
 
@@ -356,10 +424,9 @@ def main() -> int:
     if face.is_file():
         sudo_cp(face, Path("/usr/share/sddm/faces") / f"{HOME.name}.face.icon")
 
-    theme_main = find_theme_main()
-    main_copied = False
-    if theme_main is not None:
-        main_copied = sudo_cp(theme_main, THEME_DIR / "Main.qml")
+    qml_copied = copy_theme_qml()
+    frame = frame_settings(settings)
+    font = ui_font(settings)
 
     text = CONF.read_text()
     text = set_key(text, "WidgetOpacity", runtime_opacity)
@@ -382,6 +449,7 @@ def main() -> int:
         except OSError:
             return "missing"
 
+    qml_note = ",".join(qml_copied) if qml_copied else "unchanged"
     if dest_name:
         print("OK")
         print(f"wallpaper={wallpaper}")
@@ -395,12 +463,16 @@ def main() -> int:
         print("hero=shared-with-background")
         print(f"runtime_blur={runtime_blur}")
         print(f"widget_opacity={runtime_opacity}")
-        print(f"main_qml={'copied ' + str(theme_main) if main_copied else 'unchanged'}")
+        print(f"ui_font={font}")
+        print(f"use_frame={frame['UseFrame']}")
+        print(f"qml={qml_note}")
     else:
         print("OK_NO_WALLPAPER")
         print(f"runtime_blur={runtime_blur}")
         print(f"widget_opacity={runtime_opacity}")
-        print(f"main_qml={'copied ' + str(theme_main) if main_copied else 'unchanged'}")
+        print(f"ui_font={font}")
+        print(f"use_frame={frame['UseFrame']}")
+        print(f"qml={qml_note}")
     return 0
 
 
