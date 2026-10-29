@@ -38,8 +38,22 @@ while IFS= read -r line; do
     fi
 done < <(nmcli -t -f NAME,TYPE connection show)
 
+notify_fail() {
+    local detail="${1:-Connection failed}"
+    notify-send -a "Yahr Shell" "Wi-Fi" "$detail" 2>/dev/null || true
+}
+
 if [[ -n "$saved" ]]; then
-    exec nmcli -w 20 connection up id "$saved"
+    if nmcli -w 20 connection up id "$saved"; then
+        exit 0
+    fi
+    notify_fail "Could not activate “$saved”"
+    exit 1
 fi
 
-exec nmcli -w 20 device wifi connect "$ssid"
+if nmcli -w 20 device wifi connect "$ssid"; then
+    exit 0
+fi
+
+notify_fail "Could not connect to “$ssid”. Open Network settings if a password is needed."
+exit 1
