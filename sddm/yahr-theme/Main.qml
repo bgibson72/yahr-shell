@@ -754,10 +754,13 @@ Rectangle {
                 Row {
                     id: tabRow
                     anchors.centerIn: parent
-                    spacing: 10
+                    spacing: loginLabel.visible ? 10 : 0
 
                     Text {
+                        id: loginLabel
                         anchors.verticalCenter: parent.verticalCenter
+                        // Label only while collapsed; open state keeps the chevron alone.
+                        visible: !root.loginOpen
                         text: root.translateLogin
                         font.family: root.fontFamily
                         font.pixelSize: root.fontSize + 2
