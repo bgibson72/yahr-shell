@@ -186,7 +186,8 @@ repo_packages() {
         qt6ct nwg-look
         xdg-desktop-portal xdg-desktop-portal-gtk xdg-desktop-portal-hyprland
         pipewire pipewire-pulse pipewire-alsa wireplumber libpulse pavucontrol
-        networkmanager bluez bluez-utils blueman upower accountsservice
+        # network-manager-applet provides nm-connection-editor (Network panel → Settings).
+        networkmanager network-manager-applet bluez bluez-utils blueman upower accountsservice
         brightnessctl cliphist wl-clipboard playerctl jq imagemagick
         python python-gobject gtk3 xdg-utils
         lm_sensors pacman-contrib
