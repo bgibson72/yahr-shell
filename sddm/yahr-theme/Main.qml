@@ -25,8 +25,9 @@ Rectangle {
     property color fgPrimary: config.stringValue("FgPrimary") || "#cdcbe0"
     property color fgSecondary: config.stringValue("FgSecondary") || "#aeafca"
     property color failColor: config.stringValue("FailColor") || "#eb746b"
-    // Catalog key from Settings → UI Font (synced by sddm-apply).
-    property string fontKey: config.stringValue("Font") || "Inter"
+    // Catalog key and/or resolved family from Settings → UI Font (synced by sddm-apply).
+    property string fontKey: config.stringValue("FontKey") || config.stringValue("Font") || "Inter"
+    property string fontHint: config.stringValue("Font") || "Inter"
     property int fontSize: config.intValue("FontSize") || 13
     property int titleFontSize: config.intValue("TitleFontSize") || 56
     property bool enableAvatars: config.boolValue("EnableAvatars")
@@ -52,11 +53,6 @@ Rectangle {
         const v = config.intValue("FrameInnerRadius")
         return v > 0 ? v : 12
     }
-    property int barHeight: {
-        const v = config.intValue("BarHeight")
-        return v > 0 ? v : 48
-    }
-    property string barPosition: config.stringValue("BarPosition") || "top"
     property real frameOpacity: {
         const v = parseFloat(config.stringValue("FrameOpacity") || "0.92")
         return isNaN(v) ? 0.92 : Math.max(0.5, Math.min(1, v))
@@ -78,7 +74,7 @@ Rectangle {
         { key: "Roboto", families: ["Roboto Flex", "Roboto"] },
         { key: "Manrope", families: ["Manrope"] },
         { key: "Overpass", families: ["Overpass", "Overpass Nerd Font"] },
-        { key: "Space Grotesk", families: ["Space Grotesk"] },
+        { key: "Space Grotesk", families: ["Space Grotesk", "SpaceGrotesk"] },
         { key: "IBM Plex Sans", families: ["IBM Plex Sans Var", "IBM Plex Sans"] }
     ]
 
@@ -90,11 +86,21 @@ Rectangle {
         return false
     }
 
+    function normalizeFontKey(name) {
+        return String(name || "").toLowerCase().replace(/[^a-z0-9]/g, "")
+    }
+
     function matchFamily(installed, name) {
         let best = ""
+        const want = normalizeFontKey(name)
         for (let i = 0; i < installed.length; i++) {
             const fam = installed[i]
             if (fam === name)
+                return fam
+            if (fam.toLowerCase() === String(name).toLowerCase())
+                return fam
+            const norm = normalizeFontKey(fam)
+            if (norm === want)
                 return fam
             if (fam.indexOf(name + " ") === 0 && (!best || fam.length < best.length))
                 best = fam
@@ -102,30 +108,45 @@ Rectangle {
         return best
     }
 
-    function resolveUiFont(stored) {
-        const wanted = stored || "Inter"
-        let families = [wanted]
+    function resolveUiFont(stored, hint) {
+        const wanted = stored || hint || "Inter"
+        let families = []
+        if (hint)
+            families.push(hint)
+        families.push(wanted)
         for (let i = 0; i < uiFontCatalog.length; i++) {
             const item = uiFontCatalog[i]
-            if (item.key === wanted || listHas(item.families, wanted)) {
-                families = item.families
+            const keyNorm = normalizeFontKey(item.key)
+            const wantNorm = normalizeFontKey(wanted)
+            if (item.key === wanted || listHas(item.families, wanted)
+                || keyNorm === wantNorm
+                || (wantNorm.indexOf("space") !== -1 && wantNorm.indexOf("grost") !== -1 && item.key === "Space Grotesk")) {
+                for (let k = 0; k < item.families.length; k++)
+                    families.push(item.families[k])
                 break
             }
         }
+        // Dedupe while preserving order.
+        const seen = {}
+        const ordered = []
+        for (let n = 0; n < families.length; n++) {
+            const f = families[n]
+            if (!f || seen[f])
+                continue
+            seen[f] = true
+            ordered.push(f)
+        }
         const installed = Qt.fontFamilies()
-        for (let j = 0; j < families.length; j++) {
-            const found = matchFamily(installed, families[j])
+        for (let j = 0; j < ordered.length; j++) {
+            const found = matchFamily(installed, ordered[j])
             if (found)
                 return found
         }
-        return families[0]
+        return ordered[0] || "Inter"
     }
 
-    readonly property string fontFamily: resolveUiFont(fontKey)
-    readonly property bool barBottom: useFrame && barPosition === "bottom"
-    readonly property int holeTop: useFrame ? (barBottom ? frameThickness : Math.max(frameThickness, barHeight)) : 0
-    readonly property int holeBottom: useFrame ? (barBottom ? Math.max(frameThickness, barHeight) : frameThickness) : 0
-    readonly property int holeSide: useFrame ? frameThickness : 0
+    readonly property string fontFamily: resolveUiFont(fontKey, fontHint)
+    readonly property int holeInset: useFrame ? frameThickness : 0
     readonly property color frameFill: Qt.rgba(bgBase.r, bgBase.g, bgBase.b, frameOpacity)
     readonly property color dockColor: useFrame
         ? frameFill
@@ -141,6 +162,7 @@ Rectangle {
     readonly property string systemFace: lastUser !== "" ? "file:///usr/share/sddm/faces/" + lastUser + ".face.icon" : ""
     readonly property int avatarSize: 140
     readonly property int dockWidth: Math.min(860, Math.max(560, width * 0.48))
+    readonly property int tabHeight: 44
     readonly property int joinR: useFrame ? frameInnerRadius : 0
     readonly property int dockRadius: useFrame ? frameInnerRadius : 28
     readonly property var backgroundFallbacks: {
@@ -160,8 +182,46 @@ Rectangle {
         return names
     }
 
+    property bool loginOpen: false
+    property real loginReveal: loginOpen ? 1 : 0
+    Behavior on loginReveal {
+        NumberAnimation {
+            duration: 420
+            easing.type: Easing.OutCubic
+        }
+    }
+
     function doLogin() {
         sddm.login(usernameField.text, passwordField.text, sessionCombo.index)
+    }
+
+    function openLogin() {
+        loginOpen = true
+        openFocusTimer.restart()
+    }
+
+    function closeLogin() {
+        loginOpen = false
+    }
+
+    function toggleLogin() {
+        if (loginOpen)
+            closeLogin()
+        else
+            openLogin()
+    }
+
+    Timer {
+        id: openFocusTimer
+        interval: 280
+        onTriggered: {
+            if (!root.loginOpen)
+                return
+            if (usernameField.text === "")
+                usernameField.forceActiveFocus()
+            else
+                passwordField.forceActiveFocus()
+        }
     }
 
     Image {
@@ -223,9 +283,15 @@ Rectangle {
         z: 5
         frameThickness: root.frameThickness
         frameInnerRadius: root.frameInnerRadius
-        barHeight: root.barHeight
-        barBottom: root.barBottom
         fill: root.frameFill
+    }
+
+    // Click empty wallpaper to collapse an open login plate.
+    MouseArea {
+        anchors.fill: parent
+        z: 1
+        enabled: root.loginOpen
+        onClicked: root.closeLogin()
     }
 
     Column {
@@ -233,7 +299,7 @@ Rectangle {
         anchors.horizontalCenter: parent.horizontalCenter
         anchors.top: parent.top
         anchors.topMargin: root.useFrame
-            ? root.holeTop + Math.max(28, parent.height * 0.05)
+            ? root.holeInset + Math.max(28, parent.height * 0.05)
             : Math.max(48, parent.height * 0.08)
         spacing: 8
         z: 2
@@ -285,123 +351,145 @@ Rectangle {
         }
     }
 
+    // Clip-reveal host: collapsed shows only the Login tab; open slides the plate up.
     Item {
-        id: dockHost
+        id: clipper
         anchors.horizontalCenter: parent.horizontalCenter
         anchors.bottom: parent.bottom
-        anchors.bottomMargin: root.useFrame ? root.holeBottom : Math.max(48, parent.height * 0.07)
+        anchors.bottomMargin: root.useFrame ? root.holeInset : Math.max(48, parent.height * 0.07)
         width: root.dockWidth + (root.useFrame ? root.joinR * 2 : 0)
-        height: dock.implicitHeight + root.avatarSize * 0.52 + (root.useFrame ? root.joinR : 0)
+        height: {
+            const panelH = dockBody.implicitHeight + (root.enableAvatars && root.loginReveal > 0.02 ? root.avatarSize * 0.52 : 0)
+            return root.tabHeight + panelH * root.loginReveal + (root.useFrame ? root.joinR * root.loginReveal : 0)
+        }
+        clip: true
         z: 6
 
         DropShadow {
-            anchors.fill: dock
-            source: dock
+            anchors.fill: stack
+            source: stack
             horizontalOffset: 0
-            verticalOffset: 22
-            radius: 36
-            samples: 52
-            color: Qt.rgba(0, 0, 0, 0.55)
+            verticalOffset: 18
+            radius: 32
+            samples: 48
+            color: Qt.rgba(0, 0, 0, 0.5)
             cached: true
-            visible: !root.useFrame
-        }
-
-        Rectangle {
-            id: avatarFrame
-            z: 2
-            width: root.avatarSize
-            height: root.avatarSize
-            radius: width / 2
-            anchors.horizontalCenter: parent.horizontalCenter
-            anchors.top: parent.top
-            color: root.cardColor
-            border.width: 4
-            border.color: Qt.rgba(root.themeColor.r, root.themeColor.g, root.themeColor.b, 0.55)
-            visible: root.enableAvatars
-
-            Image {
-                id: avatar
-                property int faceTry: 0
-                readonly property var faceCandidates: root.homeFace !== "" ? [root.homeFace, root.systemFace] : []
-                anchors.fill: parent
-                anchors.margins: 4
-                source: faceTry < faceCandidates.length ? faceCandidates[faceTry] : ""
-                fillMode: Image.PreserveAspectCrop
-                visible: false
-                cache: false
-                onStatusChanged: {
-                    if (status === Image.Error && faceTry < faceCandidates.length - 1)
-                        faceTry++
-                }
-            }
-
-            Rectangle {
-                id: avatarMask
-                anchors.fill: avatar
-                radius: width / 2
-                visible: false
-            }
-
-            OpacityMask {
-                anchors.fill: avatar
-                source: avatar
-                maskSource: avatarMask
-                visible: avatar.status === Image.Ready
-            }
-
-            Text {
-                anchors.centerIn: parent
-                visible: avatar.status !== Image.Ready
-                text: {
-                    const name = usernameField.text || root.lastUser
-                    if (name !== "")
-                        return name.charAt(0).toUpperCase()
-                    return "\uf007"
-                }
-                font.family: (usernameField.text || root.lastUser) !== "" ? root.fontFamily : "Symbols Nerd Font"
-                font.pixelSize: (usernameField.text || root.lastUser) !== "" ? 56 : 40
-                font.weight: Font.DemiBold
-                color: root.themeColor
-            }
+            visible: !root.useFrame && root.loginReveal > 0.05
         }
 
         Item {
-            id: dockChrome
+            id: stack
             anchors.left: parent.left
             anchors.right: parent.right
             anchors.bottom: parent.bottom
-            anchors.leftMargin: root.useFrame ? root.joinR : 0
-            anchors.rightMargin: root.useFrame ? root.joinR : 0
-            anchors.bottomMargin: 0
-            height: dock.implicitHeight
+            height: dockBody.implicitHeight
+                + root.tabHeight
+                + (root.enableAvatars ? root.avatarSize * 0.52 : 0)
+                + (root.useFrame ? root.joinR : 0)
 
             FrameJoins {
-                x: -root.joinR
-                y: -root.joinR
+                // Join the visible chrome (tab, or tab + sliding plate) into the bezel.
+                x: chromeX - root.joinR
+                y: chromeY - root.joinR
                 z: 1
                 joinR: root.joinR
-                contentW: dock.width
-                contentH: dock.height
+                contentW: chromeW
+                contentH: chromeH
                 joinBottom: root.useFrame
                 joinTop: false
                 fill: root.frameFill
+                readonly property int chromeX: root.useFrame ? root.joinR : loginTab.x
+                readonly property int chromeY: loginTab.y - Math.round(dockBody.height * root.loginReveal)
+                readonly property int chromeW: root.useFrame ? root.dockWidth : loginTab.width
+                readonly property int chromeH: root.tabHeight + Math.round(dockBody.height * root.loginReveal)
+            }
+
+            // Avatar rides above the plate while revealed.
+            Rectangle {
+                id: avatarFrame
+                z: 3
+                width: root.avatarSize
+                height: root.avatarSize
+                radius: width / 2
+                anchors.horizontalCenter: parent.horizontalCenter
+                anchors.bottom: dockBody.top
+                anchors.bottomMargin: -root.avatarSize * 0.48
+                color: root.cardColor
+                border.width: 4
+                border.color: Qt.rgba(root.themeColor.r, root.themeColor.g, root.themeColor.b, 0.55)
+                visible: root.enableAvatars
+                opacity: root.loginReveal
+                scale: 0.85 + 0.15 * root.loginReveal
+
+                Image {
+                    id: avatar
+                    property int faceTry: 0
+                    readonly property var faceCandidates: root.homeFace !== "" ? [root.homeFace, root.systemFace] : []
+                    anchors.fill: parent
+                    anchors.margins: 4
+                    source: faceTry < faceCandidates.length ? faceCandidates[faceTry] : ""
+                    fillMode: Image.PreserveAspectCrop
+                    visible: false
+                    cache: false
+                    onStatusChanged: {
+                        if (status === Image.Error && faceTry < faceCandidates.length - 1)
+                            faceTry++
+                    }
+                }
+
+                Rectangle {
+                    id: avatarMask
+                    anchors.fill: avatar
+                    radius: width / 2
+                    visible: false
+                }
+
+                OpacityMask {
+                    anchors.fill: avatar
+                    source: avatar
+                    maskSource: avatarMask
+                    visible: avatar.status === Image.Ready
+                }
+
+                Text {
+                    anchors.centerIn: parent
+                    visible: avatar.status !== Image.Ready
+                    text: {
+                        const name = usernameField.text || root.lastUser
+                        if (name !== "")
+                            return name.charAt(0).toUpperCase()
+                        return "\uf007"
+                    }
+                    font.family: (usernameField.text || root.lastUser) !== "" ? root.fontFamily : "Symbols Nerd Font"
+                    font.pixelSize: (usernameField.text || root.lastUser) !== "" ? 56 : 40
+                    font.weight: Font.DemiBold
+                    color: root.themeColor
+                }
             }
 
             Rectangle {
-                id: dock
+                id: dockBody
                 anchors.left: parent.left
                 anchors.right: parent.right
-                anchors.bottom: parent.bottom
-                implicitHeight: dockColumn.implicitHeight + 56
+                anchors.bottom: loginTab.top
+                anchors.leftMargin: root.useFrame ? root.joinR : 0
+                anchors.rightMargin: root.useFrame ? root.joinR : 0
+                implicitHeight: dockColumn.implicitHeight + 40
                 height: implicitHeight
                 radius: root.dockRadius
                 topLeftRadius: root.dockRadius
                 topRightRadius: root.dockRadius
-                bottomLeftRadius: root.useFrame ? 0 : root.dockRadius
-                bottomRightRadius: root.useFrame ? 0 : root.dockRadius
+                bottomLeftRadius: 0
+                bottomRightRadius: 0
                 color: root.dockColor
                 border.width: root.useFrame ? 0 : 1
                 border.color: Qt.rgba(root.themeColor.r, root.themeColor.g, root.themeColor.b, 0.22)
+                // Swallow clicks so wallpaper dismiss doesn't steal them.
+                MouseArea {
+                    anchors.fill: parent
+                    acceptedButtons: Qt.LeftButton
+                    onClicked: {}
+                }
 
                 Column {
                     id: dockColumn
@@ -410,8 +498,7 @@ Rectangle {
                     anchors.bottom: parent.bottom
                     anchors.leftMargin: 28
                     anchors.rightMargin: 28
-                    anchors.bottomMargin: 24
-                    // Leave room for the overlapping avatar.
+                    anchors.bottomMargin: 18
                     topPadding: root.enableAvatars ? root.avatarSize * 0.42 : 8
                     spacing: 14
 
@@ -444,6 +531,7 @@ Rectangle {
                                 background: Item {}
                                 Keys.onReturnPressed: passwordField.forceActiveFocus()
                                 Keys.onTabPressed: passwordField.forceActiveFocus()
+                                Keys.onEscapePressed: root.closeLogin()
                             }
                         }
 
@@ -466,12 +554,16 @@ Rectangle {
                                 font.pixelSize: root.fontSize + 1
                                 color: root.fgPrimary
                                 echoMode: TextInput.Password
-                                focus: true
                                 selectionColor: root.themeColor
                                 selectedTextColor: root.bgBase
                                 background: Item {}
                                 Keys.onReturnPressed: root.doLogin()
-                                Keys.onEscapePressed: passwordField.text = ""
+                                Keys.onEscapePressed: {
+                                    if (passwordField.text !== "")
+                                        passwordField.text = ""
+                                    else
+                                        root.closeLogin()
+                                }
                                 onTextChanged: loginFailedText.visible = false
                             }
                         }
@@ -517,6 +609,7 @@ Rectangle {
                         Connections {
                             target: sddm
                             function onLoginFailed() {
+                                root.openLogin()
                                 loginFailedText.visible = true
                                 passwordField.selectAll()
                                 passwordField.forceActiveFocus()
@@ -633,13 +726,68 @@ Rectangle {
                     }
                 }
             }
+
+            // Persistent tab on the frame edge — click to reveal / hide the plate.
+            // Framed mode uses a full-width strip so joins stay flush with the plate.
+            Rectangle {
+                id: loginTab
+                anchors.horizontalCenter: parent.horizontalCenter
+                anchors.bottom: parent.bottom
+                anchors.left: root.useFrame ? parent.left : undefined
+                anchors.right: root.useFrame ? parent.right : undefined
+                anchors.leftMargin: root.useFrame ? root.joinR : 0
+                anchors.rightMargin: root.useFrame ? root.joinR : 0
+                width: root.useFrame ? undefined : Math.max(148, tabRow.implicitWidth + 36)
+                height: root.tabHeight
+                radius: root.useFrame ? root.dockRadius : 18
+                topLeftRadius: root.useFrame ? (root.loginOpen ? 0 : root.dockRadius) : 18
+                topRightRadius: root.useFrame ? (root.loginOpen ? 0 : root.dockRadius) : 18
+                bottomLeftRadius: root.useFrame ? 0 : 18
+                bottomRightRadius: root.useFrame ? 0 : 18
+                color: tabMouse.containsMouse
+                    ? Qt.rgba(root.themeColor.r, root.themeColor.g, root.themeColor.b, 0.22)
+                    : root.dockColor
+                border.width: root.useFrame ? 0 : 1
+                border.color: Qt.rgba(root.themeColor.r, root.themeColor.g, root.themeColor.b, 0.28)
+                z: 4
+
+                Row {
+                    id: tabRow
+                    anchors.centerIn: parent
+                    spacing: 10
+
+                    Text {
+                        anchors.verticalCenter: parent.verticalCenter
+                        text: root.translateLogin
+                        font.family: root.fontFamily
+                        font.pixelSize: root.fontSize + 2
+                        font.weight: Font.DemiBold
+                        color: root.fgPrimary
+                    }
+
+                    Text {
+                        anchors.verticalCenter: parent.verticalCenter
+                        // Up chevron when collapsed, down when open.
+                        text: root.loginOpen ? "\uf078" : "\uf077"
+                        font.family: "Symbols Nerd Font"
+                        font.pixelSize: root.fontSize + 1
+                        color: root.themeColor
+                    }
+                }
+
+                MouseArea {
+                    id: tabMouse
+                    anchors.fill: parent
+                    hoverEnabled: true
+                    cursorShape: Qt.PointingHandCursor
+                    onClicked: root.toggleLogin()
+                }
+            }
         }
     }
 
     Component.onCompleted: {
-        if (usernameField.text === "")
-            usernameField.forceActiveFocus()
-        else
-            passwordField.forceActiveFocus()
+        // Stay collapsed until the user opens the Login tab.
+        root.loginOpen = false
     }
 }

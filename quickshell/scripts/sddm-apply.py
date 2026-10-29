@@ -75,8 +75,93 @@ def clock_formats(settings: dict) -> tuple[str, str]:
     return time_fmt, date_fmt
 
 
+# Same catalog keys as ThemeManager.uiFontCatalog / Settings UI Font chips.
+UI_FONT_CATALOG: dict[str, list[str]] = {
+    "Inter": ["Inter", "Inter Variable"],
+    "Source Sans": ["Source Sans 3", "Source Sans Variable", "Source Sans 3 VF", "Source Sans Pro"],
+    "Roboto": ["Roboto Flex", "Roboto"],
+    "Manrope": ["Manrope"],
+    "Overpass": ["Overpass", "Overpass Nerd Font"],
+    "Space Grotesk": ["Space Grotesk", "SpaceGrotesk"],
+    "IBM Plex Sans": ["IBM Plex Sans Var", "IBM Plex Sans"],
+}
+
+
+def _normalize_font_key(name: str) -> str:
+    return re.sub(r"[^a-z0-9]", "", (name or "").lower())
+
+
+def ui_font_key(settings: dict) -> str:
+    """Return the Settings catalog key (or raw family) for the UI font."""
+    raw = str((settings.get("general") or {}).get("uiFont") or "Inter").strip()
+    if not raw:
+        return "Inter"
+    if raw in UI_FONT_CATALOG:
+        return raw
+    norm = _normalize_font_key(raw)
+    for key, families in UI_FONT_CATALOG.items():
+        if _normalize_font_key(key) == norm:
+            return key
+        for fam in families:
+            if _normalize_font_key(fam) == norm:
+                return key
+    # Common typo: Grostek → Grotesk
+    if "grostek" in norm and "space" in norm:
+        return "Space Grotesk"
+    return raw
+
+
+def fontconfig_families() -> set[str]:
+    fc_list = shutil.which("fc-list")
+    if not fc_list:
+        return set()
+    try:
+        result = subprocess.run(
+            [fc_list, ":", "family"],
+            capture_output=True,
+            text=True,
+            check=False,
+        )
+    except OSError:
+        return set()
+    if result.returncode != 0:
+        return set()
+    names: set[str] = set()
+    for line in result.stdout.splitlines():
+        for part in line.split(","):
+            name = part.strip()
+            if name:
+                names.add(name)
+    return names
+
+
+def resolve_ui_font(settings: dict) -> str:
+    """Resolve Settings UI font to an installed family name for the greeter."""
+    key = ui_font_key(settings)
+    families = list(UI_FONT_CATALOG.get(key, [key]))
+    if key not in families:
+        families.insert(0, key)
+    installed = fontconfig_families()
+    if not installed:
+        return families[0]
+    lower = {name.lower(): name for name in installed}
+    for fam in families:
+        if fam in installed:
+            return fam
+        hit = lower.get(fam.lower())
+        if hit:
+            return hit
+        # Prefix match (e.g. "Inter" → "Inter Variable" already listed; also "Space Grotesk Medium")
+        norm = _normalize_font_key(fam)
+        for name in installed:
+            if _normalize_font_key(name) == norm or _normalize_font_key(name).startswith(norm):
+                return name
+    return families[0]
+
+
 def ui_font(settings: dict) -> str:
-    return str((settings.get("general") or {}).get("uiFont") or "Inter")
+    """Back-compat alias: resolved family written to theme.conf Font=."""
+    return resolve_ui_font(settings)
 
 
 def frame_settings(settings: dict) -> dict[str, str]:
@@ -96,11 +181,6 @@ def frame_settings(settings: dict) -> dict[str, str]:
         rounding = int(hypr.get("rounding") or 12)
     except (TypeError, ValueError):
         rounding = 12
-    bar_size = str(bar.get("barSize") or "small")
-    bar_h = 58 if bar_size == "large" else 48
-    position = str(bar.get("position") or "top")
-    if position not in ("top", "bottom"):
-        position = "top"
     try:
         opacity = float(bar.get("barOpacity") if bar.get("barOpacity") is not None else 0.7)
     except (TypeError, ValueError):
@@ -115,8 +195,6 @@ def frame_settings(settings: dict) -> dict[str, str]:
         "UseFrame": "true" if use_frame else "false",
         "FrameThickness": str(max(10, gaps)),
         "FrameInnerRadius": str(max(0, rounding)),
-        "BarHeight": str(bar_h),
-        "BarPosition": position,
         "FrameOpacity": f"{frame_opacity:.2f}",
     }
 
@@ -368,17 +446,19 @@ def apply_palette(text: str, settings: dict) -> str:
     }
     for key, value in mapping.items():
         text = set_key(text, key, str(value), quoted=True)
-    font = ui_font(settings)
-    # Catalog key from Settings → UI Font; greeter resolves installed families.
+    font_key = ui_font_key(settings)
+    font = resolve_ui_font(settings)
+    # Font = installed family for Qt; FontKey = Settings catalog key.
     text = set_key(text, "Font", font, quoted=True)
+    text = set_key(text, "FontKey", font_key, quoted=True)
     # Legacy key kept for older greeters; Main.qml uses Font + weight.
     text = set_key(text, "TitleFont", font, quoted=True)
     time_fmt, date_fmt = clock_formats(settings)
     text = set_key(text, "TimeFormat", time_fmt, quoted=True)
     text = set_key(text, "DateFormat", date_fmt, quoted=True)
     for key, value in frame_settings(settings).items():
-        # Match BackgroundBlur-style unquoted values; quote string enums.
-        text = set_key(text, key, value, quoted=(key == "BarPosition"))
+        # Match BackgroundBlur-style unquoted values.
+        text = set_key(text, key, value, quoted=False)
     return text
 
 
