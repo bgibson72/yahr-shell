@@ -3062,13 +3062,21 @@ exec python3 "$SCRIPT" "$@"`
         command: ["true"]
         stdout: StdioCollector {
             onStreamFinished: {
-                const result = this.text.trim().split("\n")[0]
+                const lines = this.text.trim().split("\n")
+                const result = lines[0] || ""
+                const liveLine = lines.find(l => l.startsWith("main_version_src=")) || ""
                 if (result === "OK" || result === "OK_NO_WALLPAPER") {
                     root.sddmApplyError = false
                     root.sddmApplySuccess = true
                     sddmApplySuccessTimer.restart()
                     if (result === "OK_NO_WALLPAPER")
                         root.sddmStatusMessage = "Applied colors. No wallpaper file was found to copy."
+                    else if (liveLine)
+                        root.sddmStatusMessage = `Greeter QML refreshed (${liveLine}).`
+                } else if (result === "OK_QML_STALE") {
+                    root.sddmApplyError = true
+                    root.sddmApplySuccess = false
+                    root.sddmStatusMessage = "Colors applied, but Main.qml did not refresh. Re-run sddm/setup-sudoers.sh, then Apply again."
                 } else {
                     root.sddmApplyError = true
                 }

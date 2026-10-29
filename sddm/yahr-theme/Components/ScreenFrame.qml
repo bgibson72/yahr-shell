@@ -1,6 +1,7 @@
 import QtQuick 2.15
 
 // Picture-frame bezel with equal thickness on all four sides.
+// Kept for reference; Main.qml V4+ inlines this canvas so apply only copies Main.qml.
 // Inverse corners open the wallpaper hole the login plate joins into.
 Item {
     id: root

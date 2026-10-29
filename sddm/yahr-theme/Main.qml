@@ -2,7 +2,9 @@ import QtQuick 2.15
 import QtQuick.Controls 2.15
 import Qt5Compat.GraphicalEffects
 import SddmComponents 2.0
-import "Components"
+
+// YAHR_SDDM_MAIN_V=4 equal-frame + loader-panel
+// Frame + joins are inlined so sddm-apply only needs to copy this one QML file.
 
 Rectangle {
     id: root
@@ -13,7 +15,6 @@ Rectangle {
     TextConstants { id: textConstants }
 
     property string background: config.stringValue("Background") || ""
-    // Fixed greeter blur; theme.conf is kept in sync by sddm-apply.
     property int backgroundBlur: {
         const v = config.intValue("BackgroundBlur")
         return v > 0 ? v : 40
@@ -25,7 +26,6 @@ Rectangle {
     property color fgPrimary: config.stringValue("FgPrimary") || "#cdcbe0"
     property color fgSecondary: config.stringValue("FgSecondary") || "#aeafca"
     property color failColor: config.stringValue("FailColor") || "#eb746b"
-    // Catalog key and/or resolved family from Settings → UI Font (synced by sddm-apply).
     property string fontKey: config.stringValue("FontKey") || config.stringValue("Font") || "Inter"
     property string fontHint: config.stringValue("Font") || "Inter"
     property int fontSize: config.intValue("FontSize") || 13
@@ -38,7 +38,6 @@ Rectangle {
     property string dateFormat: config.stringValue("DateFormat") || "ddd MMM d"
     property real widgetOpacity: parseFloat(config.stringValue("WidgetOpacity") || "0.75")
 
-    // Mirror quickshell framed mode (solid bar + docked).
     property bool useFrame: {
         const v = config.stringValue("UseFrame")
         if (v === "false" || v === "0")
@@ -67,7 +66,6 @@ Rectangle {
     property string translateReboot: config.stringValue("TranslateReboot") || "Restart"
     property string translateShutdown: config.stringValue("TranslateShutdown") || "Power Off"
 
-    // Same catalog keys as ThemeManager.uiFontCatalog / Settings UI Font chips.
     readonly property var uiFontCatalog: [
         { key: "Inter", families: ["Inter", "Inter Variable"] },
         { key: "Source Sans", families: ["Source Sans 3", "Source Sans Variable", "Source Sans 3 VF", "Source Sans Pro"] },
@@ -126,7 +124,6 @@ Rectangle {
                 break
             }
         }
-        // Dedupe while preserving order.
         const seen = {}
         const ordered = []
         for (let n = 0; n < families.length; n++) {
@@ -183,7 +180,6 @@ Rectangle {
     }
 
     property bool loginOpen: false
-    // Driven explicitly from open/close (not a binding) so the greeter always animates.
     property real loginReveal: 0
     Behavior on loginReveal {
         NumberAnimation {
@@ -193,7 +189,10 @@ Rectangle {
     }
 
     function doLogin() {
-        sddm.login(usernameField.text, passwordField.text, sessionCombo.index)
+        const body = panelLoader.item
+        if (!body)
+            return
+        sddm.login(body.userField.text, body.passField.text, body.sessionIndex)
     }
 
     function openLogin() {
@@ -218,13 +217,29 @@ Rectangle {
         id: openFocusTimer
         interval: 280
         onTriggered: {
-            if (!root.loginOpen)
+            if (!root.loginOpen || !panelLoader.item)
                 return
-            if (usernameField.text === "")
-                usernameField.forceActiveFocus()
+            const body = panelLoader.item
+            if (!body.userField.text)
+                body.userField.forceActiveFocus()
             else
-                passwordField.forceActiveFocus()
+                body.passField.forceActiveFocus()
         }
+    }
+
+    // Fully unload the form when the close animation finishes.
+    Timer {
+        id: unloadTimer
+        interval: 450
+        onTriggered: {
+            if (!root.loginOpen && root.loginReveal < 0.01)
+                panelLoader.active = false
+        }
+    }
+
+    onLoginRevealChanged: {
+        if (loginReveal < 0.01 && !loginOpen)
+            unloadTimer.restart()
     }
 
     Image {
@@ -246,11 +261,8 @@ Rectangle {
             if (status === Image.Error && sourceTry < root.backgroundFallbacks.length - 1)
                 sourceTry++
         }
-
         layer.enabled: root.backgroundBlur > 0 && status === Image.Ready
-        layer.effect: FastBlur {
-            radius: root.backgroundBlur
-        }
+        layer.effect: FastBlur { radius: root.backgroundBlur }
     }
 
     Rectangle {
@@ -259,7 +271,6 @@ Rectangle {
         visible: !backgroundImage.visible
     }
 
-    // Soft theme-tinted scrims so clock/dock stay readable on any wallpaper.
     Rectangle {
         anchors.fill: parent
         visible: !root.useFrame
@@ -281,15 +292,85 @@ Rectangle {
         }
     }
 
-    ScreenFrame {
+    // Equal thickness on all four sides — never use bar height.
+    Item {
+        id: screenFrame
         visible: root.useFrame
         z: 5
-        frameThickness: root.frameThickness
-        frameInnerRadius: root.frameInnerRadius
-        fill: root.frameFill
+        anchors.fill: parent
+
+        onWidthChanged: frameCanvas.requestPaint()
+        onHeightChanged: frameCanvas.requestPaint()
+        Component.onCompleted: frameCanvas.requestPaint()
+
+        Connections {
+            target: root
+            function onFrameThicknessChanged() { frameCanvas.requestPaint() }
+            function onFrameInnerRadiusChanged() { frameCanvas.requestPaint() }
+            function onFrameFillChanged() { frameCanvas.requestPaint() }
+            function onUseFrameChanged() { if (root.useFrame) frameCanvas.requestPaint() }
+        }
+
+        Canvas {
+            id: frameCanvas
+            anchors.fill: parent
+            antialiasing: false
+            onPaint: {
+                const ctx = getContext("2d")
+                const w = screenFrame.width
+                const h = screenFrame.height
+                const t = Math.max(1, root.frameThickness)
+                const joinTop = t
+                const joinBot = Math.max(joinTop + 2, h - t)
+                const innerW = w - 2 * t
+                const innerH = joinBot - joinTop
+                let rr = root.frameInnerRadius
+                if (rr * 2 > innerW)
+                    rr = Math.max(0, innerW / 2)
+                if (rr * 2 > innerH)
+                    rr = Math.max(0, innerH / 2)
+                if (w < 2 || h < 2)
+                    return
+
+                function invCorner(x0, y0, kind) {
+                    ctx.beginPath()
+                    if (kind === "tl") {
+                        ctx.moveTo(x0, y0)
+                        ctx.lineTo(x0 + rr, y0)
+                        ctx.arc(x0 + rr, y0 + rr, rr, -Math.PI / 2, Math.PI, true)
+                    } else if (kind === "tr") {
+                        ctx.moveTo(x0, y0)
+                        ctx.lineTo(x0, y0 + rr)
+                        ctx.arc(x0 - rr, y0 + rr, rr, 0, -Math.PI / 2, true)
+                    } else if (kind === "bl") {
+                        ctx.moveTo(x0, y0)
+                        ctx.lineTo(x0, y0 - rr)
+                        ctx.arc(x0 + rr, y0 - rr, rr, Math.PI, Math.PI / 2, true)
+                    } else {
+                        ctx.moveTo(x0, y0)
+                        ctx.lineTo(x0 - rr, y0)
+                        ctx.arc(x0 - rr, y0 - rr, rr, Math.PI / 2, 0, true)
+                    }
+                    ctx.closePath()
+                    ctx.fill()
+                }
+
+                ctx.clearRect(0, 0, w, h)
+                ctx.fillStyle = root.frameFill
+                ctx.fillRect(0, 0, t, h)
+                ctx.fillRect(w - t, 0, t, h)
+                ctx.fillRect(t, 0, w - 2 * t, joinTop)
+                ctx.fillRect(t, joinBot, w - 2 * t, h - joinBot)
+                if (rr >= 1) {
+                    invCorner(t, joinTop, "tl")
+                    invCorner(w - t, joinTop, "tr")
+                    invCorner(t, joinBot, "bl")
+                    invCorner(w - t, joinBot, "br")
+                }
+            }
+        }
     }
 
-    // Click empty wallpaper to collapse an open login plate.
     MouseArea {
         anchors.fill: parent
         z: 1
@@ -317,7 +398,6 @@ Rectangle {
             color: root.fgPrimary
             style: Text.Outline
             styleColor: Qt.rgba(bgBase.r, bgBase.g, bgBase.b, 0.35)
-
             Timer {
                 interval: 1000
                 running: true
@@ -334,7 +414,6 @@ Rectangle {
             font.pixelSize: root.fontSize + 5
             font.weight: Font.Medium
             color: root.fgSecondary
-
             Timer {
                 interval: 30000
                 running: true
@@ -354,48 +433,328 @@ Rectangle {
         }
     }
 
-    // Login host: tab always visible; panel lives in a height-animated clip above it.
-    // (Clipping a tall bottom-anchored stack is unreliable in the SDDM greeter.)
+    Component {
+        id: loginPanelComponent
+        Rectangle {
+            id: dockBody
+            property alias userField: usernameField
+            property alias passField: passwordField
+            property alias sessionIndex: sessionCombo.index
+            width: panelSlot.width
+            implicitHeight: dockColumn.implicitHeight + 40
+            height: implicitHeight
+            radius: root.dockRadius
+            topLeftRadius: root.dockRadius
+            topRightRadius: root.dockRadius
+            bottomLeftRadius: 0
+            bottomRightRadius: 0
+            color: root.dockColor
+            border.width: root.useFrame ? 0 : 1
+            border.color: Qt.rgba(root.themeColor.r, root.themeColor.g, root.themeColor.b, 0.22)
+
+            MouseArea {
+                anchors.fill: parent
+                acceptedButtons: Qt.LeftButton
+                onClicked: {}
+            }
+
+            Column {
+                id: dockColumn
+                anchors.left: parent.left
+                anchors.right: parent.right
+                anchors.bottom: parent.bottom
+                anchors.leftMargin: 28
+                anchors.rightMargin: 28
+                anchors.bottomMargin: 18
+                topPadding: root.enableAvatars ? root.avatarSize * 0.42 : 8
+                spacing: 14
+
+                Row {
+                    width: parent.width
+                    spacing: 12
+
+                    Rectangle {
+                        width: (parent.width - loginBtn.width - parent.spacing * 2) / 2
+                        height: 52
+                        radius: 16
+                        color: root.cardColor
+                        border.width: usernameField.activeFocus ? 2 : 0
+                        border.color: root.themeColor
+
+                        TextField {
+                            id: usernameField
+                            anchors.fill: parent
+                            anchors.leftMargin: 16
+                            anchors.rightMargin: 16
+                            placeholderText: root.translateUsername
+                            placeholderTextColor: Qt.rgba(root.fgSecondary.r, root.fgSecondary.g, root.fgSecondary.b, 0.65)
+                            text: userModel.lastUser
+                            font.family: root.fontFamily
+                            font.pixelSize: root.fontSize + 1
+                            color: root.fgPrimary
+                            selectionColor: root.themeColor
+                            selectedTextColor: root.bgBase
+                            background: Item {}
+                            Keys.onReturnPressed: passwordField.forceActiveFocus()
+                            Keys.onTabPressed: passwordField.forceActiveFocus()
+                            Keys.onEscapePressed: root.closeLogin()
+                        }
+                    }
+
+                    Rectangle {
+                        width: (parent.width - loginBtn.width - parent.spacing * 2) / 2
+                        height: 52
+                        radius: 16
+                        color: root.cardColor
+                        border.width: passwordField.activeFocus ? 2 : 0
+                        border.color: root.themeColor
+
+                        TextField {
+                            id: passwordField
+                            anchors.fill: parent
+                            anchors.leftMargin: 16
+                            anchors.rightMargin: 16
+                            placeholderText: root.translatePassword
+                            placeholderTextColor: Qt.rgba(root.fgSecondary.r, root.fgSecondary.g, root.fgSecondary.b, 0.65)
+                            font.family: root.fontFamily
+                            font.pixelSize: root.fontSize + 1
+                            color: root.fgPrimary
+                            echoMode: TextInput.Password
+                            selectionColor: root.themeColor
+                            selectedTextColor: root.bgBase
+                            background: Item {}
+                            Keys.onReturnPressed: root.doLogin()
+                            Keys.onEscapePressed: {
+                                if (passwordField.text !== "")
+                                    passwordField.text = ""
+                                else
+                                    root.closeLogin()
+                            }
+                            onTextChanged: loginFailedText.visible = false
+                        }
+                    }
+
+                    Rectangle {
+                        id: loginBtn
+                        width: 128
+                        height: 52
+                        radius: 16
+                        color: loginMouse.containsPress ? Qt.darker(root.themeColor, 1.12)
+                             : loginMouse.containsMouse ? Qt.lighter(root.themeColor, 1.08)
+                             : root.themeColor
+
+                        Text {
+                            anchors.centerIn: parent
+                            text: root.translateLogin
+                            font.family: root.fontFamily
+                            font.pixelSize: root.fontSize + 2
+                            font.weight: Font.DemiBold
+                            color: root.loginLabelColor
+                        }
+
+                        MouseArea {
+                            id: loginMouse
+                            anchors.fill: parent
+                            hoverEnabled: true
+                            cursorShape: Qt.PointingHandCursor
+                            onClicked: root.doLogin()
+                        }
+                    }
+                }
+
+                Text {
+                    id: loginFailedText
+                    width: parent.width
+                    text: root.translateLoginFailed
+                    font.family: root.fontFamily
+                    font.pixelSize: root.fontSize
+                    color: root.failColor
+                    horizontalAlignment: Text.AlignHCenter
+                    visible: false
+
+                    Connections {
+                        target: sddm
+                        function onLoginFailed() {
+                            root.openLogin()
+                            loginFailedText.visible = true
+                            passwordField.selectAll()
+                            passwordField.forceActiveFocus()
+                        }
+                    }
+                }
+
+                Row {
+                    width: parent.width
+                    spacing: 12
+
+                    Rectangle {
+                        id: sessionCombo
+                        visible: root.showSessionButton
+                        width: Math.min(180, parent.width * 0.34)
+                        height: 36
+                        radius: 18
+                        color: root.cardColor
+                        border.width: 1
+                        border.color: Qt.rgba(root.themeColor.r, root.themeColor.g, root.themeColor.b, 0.35)
+                        property int index: sessionModel.lastIndex
+
+                        Repeater {
+                            id: sessionRepeater
+                            model: sessionModel
+                            Item { property string sessionName: model.name || "" }
+                        }
+
+                        Text {
+                            anchors.centerIn: parent
+                            width: parent.width - 20
+                            horizontalAlignment: Text.AlignHCenter
+                            elide: Text.ElideRight
+                            font.family: root.fontFamily
+                            font.pixelSize: root.fontSize
+                            color: root.themeColor
+                            text: {
+                                sessionCombo.index
+                                if (sessionRepeater.count === 0)
+                                    return root.translateSession
+                                const item = sessionRepeater.itemAt(sessionCombo.index)
+                                return (item && item.sessionName) ? item.sessionName : root.translateSession
+                            }
+                        }
+
+                        MouseArea {
+                            anchors.fill: parent
+                            hoverEnabled: true
+                            cursorShape: Qt.PointingHandCursor
+                            onClicked: {
+                                if (sessionRepeater.count < 2)
+                                    return
+                                sessionCombo.index = (sessionCombo.index + 1) % sessionRepeater.count
+                            }
+                        }
+                    }
+
+                    Item {
+                        width: Math.max(0, parent.width
+                            - (sessionCombo.visible ? sessionCombo.width + parent.spacing : 0)
+                            - powerRow.width)
+                        height: 1
+                    }
+
+                    Row {
+                        id: powerRow
+                        spacing: 8
+                        visible: root.showPowerButtons
+
+                        Repeater {
+                            model: [
+                                { label: root.translateSuspend, kind: "suspend" },
+                                { label: root.translateReboot, kind: "reboot" },
+                                { label: root.translateShutdown, kind: "shutdown" }
+                            ]
+
+                            Rectangle {
+                                height: 36
+                                width: Math.max(78, powerLabel.implicitWidth + 22)
+                                radius: 14
+                                color: powerMouse.containsMouse
+                                    ? Qt.rgba(root.themeColor.r, root.themeColor.g, root.themeColor.b, 0.22)
+                                    : root.cardColor
+
+                                Text {
+                                    id: powerLabel
+                                    anchors.centerIn: parent
+                                    text: modelData.label
+                                    font.family: root.fontFamily
+                                    font.pixelSize: root.fontSize - 1
+                                    font.weight: Font.DemiBold
+                                    color: modelData.kind === "shutdown" ? root.failColor : root.fgPrimary
+                                }
+
+                                MouseArea {
+                                    id: powerMouse
+                                    anchors.fill: parent
+                                    hoverEnabled: true
+                                    cursorShape: Qt.PointingHandCursor
+                                    onClicked: {
+                                        if (modelData.kind === "suspend")
+                                            sddm.suspend()
+                                        else if (modelData.kind === "reboot")
+                                            sddm.reboot()
+                                        else
+                                            sddm.powerOff()
+                                    }
+                                }
+                            }
+                        }
+                    }
+                }
+            }
+        }
+    }
+
     Item {
         id: loginHost
         anchors.horizontalCenter: parent.horizontalCenter
         anchors.bottom: parent.bottom
         anchors.bottomMargin: root.useFrame ? root.holeInset : Math.max(48, parent.height * 0.07)
         width: root.dockWidth + (root.useFrame ? root.joinR * 2 : 0)
-        height: root.tabHeight + panelClip.height
+        height: root.tabHeight + panelSlot.height
             + (root.enableAvatars ? Math.round(root.avatarSize * 0.52 * root.loginReveal) : 0)
         z: 6
 
-        DropShadow {
-            anchors.fill: dockBody
-            source: dockBody
-            horizontalOffset: 0
-            verticalOffset: 18
-            radius: 32
-            samples: 48
-            color: Qt.rgba(0, 0, 0, 0.5)
-            cached: true
-            visible: !root.useFrame && root.loginReveal > 0.05
-            z: 0
-        }
-
-        FrameJoins {
+        Canvas {
+            id: frameJoins
+            antialiasing: false
+            z: 1
+            readonly property int chromeX: root.useFrame ? root.joinR : loginTab.x
+            readonly property int chromeY: loginTab.y - panelSlot.height
+            readonly property int chromeW: root.useFrame ? root.dockWidth : loginTab.width
+            readonly property int chromeH: root.tabHeight + panelSlot.height
             x: chromeX - root.joinR
             y: chromeY - root.joinR
-            z: 1
-            joinR: root.joinR
-            contentW: chromeW
-            contentH: chromeH
-            joinBottom: root.useFrame
-            joinTop: false
-            fill: root.frameFill
-            readonly property int chromeX: root.useFrame ? root.joinR : loginTab.x
-            readonly property int chromeY: loginTab.y - panelClip.height
-            readonly property int chromeW: root.useFrame ? root.dockWidth : loginTab.width
-            readonly property int chromeH: root.tabHeight + panelClip.height
+            width: Math.max(0, chromeW + root.joinR * 2)
+            height: Math.max(0, chromeH + root.joinR * 2)
+            visible: root.useFrame && root.joinR > 1 && chromeW > 1 && chromeH > 1
+            onWidthChanged: requestPaint()
+            onHeightChanged: requestPaint()
+            onVisibleChanged: if (visible) requestPaint()
+            Component.onCompleted: requestPaint()
+            Connections {
+                target: root
+                function onFrameFillChanged() { frameJoins.requestPaint() }
+                function onJoinRChanged() { frameJoins.requestPaint() }
+                function onLoginRevealChanged() { frameJoins.requestPaint() }
+            }
+            onPaint: {
+                const ctx = getContext("2d")
+                const rr = root.joinR
+                const w = frameJoins.chromeW
+                const h = frameJoins.chromeH
+                if (rr < 1 || w < 2 || h < 2)
+                    return
+                ctx.clearRect(0, 0, frameJoins.width, frameJoins.height)
+                ctx.fillStyle = root.frameFill
+                function inv(x0, y0, kind) {
+                    const x = x0 + rr
+                    const y = y0 + rr
+                    ctx.beginPath()
+                    if (kind === "bl") {
+                        ctx.moveTo(x, y)
+                        ctx.lineTo(x, y - rr)
+                        ctx.arc(x + rr, y - rr, rr, Math.PI, Math.PI / 2, true)
+                    } else {
+                        ctx.moveTo(x, y)
+                        ctx.lineTo(x - rr, y)
+                        ctx.arc(x - rr, y - rr, rr, Math.PI / 2, 0, true)
+                    }
+                    ctx.closePath()
+                    ctx.fill()
+                }
+                inv(0, h, "bl")
+                inv(w, h, "br")
+            }
         }
 
-        // Avatar rides above the plate while revealed.
         Rectangle {
             id: avatarFrame
             z: 3
@@ -403,7 +762,7 @@ Rectangle {
             height: root.avatarSize
             radius: width / 2
             anchors.horizontalCenter: parent.horizontalCenter
-            anchors.bottom: panelClip.top
+            anchors.bottom: panelSlot.top
             anchors.bottomMargin: -root.avatarSize * 0.48
             color: root.cardColor
             border.width: 4
@@ -446,291 +805,58 @@ Rectangle {
                 anchors.centerIn: parent
                 visible: avatar.status !== Image.Ready
                 text: {
-                    const name = usernameField.text || root.lastUser
+                    const typed = (panelLoader.item && panelLoader.item.userField)
+                        ? panelLoader.item.userField.text : ""
+                    const name = typed || root.lastUser
                     if (name !== "")
                         return name.charAt(0).toUpperCase()
                     return "\uf007"
                 }
-                font.family: (usernameField.text || root.lastUser) !== "" ? root.fontFamily : "Symbols Nerd Font"
-                font.pixelSize: (usernameField.text || root.lastUser) !== "" ? 56 : 40
+                font.family: {
+                    const typed = (panelLoader.item && panelLoader.item.userField)
+                        ? panelLoader.item.userField.text : ""
+                    return (typed || root.lastUser) !== "" ? root.fontFamily : "Symbols Nerd Font"
+                }
+                font.pixelSize: {
+                    const typed = (panelLoader.item && panelLoader.item.userField)
+                        ? panelLoader.item.userField.text : ""
+                    return (typed || root.lastUser) !== "" ? 56 : 40
+                }
                 font.weight: Font.DemiBold
                 color: root.themeColor
             }
         }
 
-        // Height-animated clip: 0 when collapsed, full panel when open.
         Item {
-            id: panelClip
+            id: panelSlot
             anchors.left: parent.left
             anchors.right: parent.right
             anchors.bottom: loginTab.top
             anchors.leftMargin: root.useFrame ? root.joinR : 0
             anchors.rightMargin: root.useFrame ? root.joinR : 0
-            height: Math.round(dockBody.implicitHeight * root.loginReveal)
+            height: {
+                if (!panelLoader.item)
+                    return 0
+                return Math.round(panelLoader.item.implicitHeight * root.loginReveal)
+            }
             clip: true
             visible: height > 0
-            enabled: root.loginOpen
+            z: 2
 
-            Rectangle {
-                id: dockBody
+            Loader {
+                id: panelLoader
                 anchors.left: parent.left
                 anchors.right: parent.right
                 anchors.bottom: parent.bottom
-                implicitHeight: dockColumn.implicitHeight + 40
-                height: implicitHeight
-                radius: root.dockRadius
-                topLeftRadius: root.dockRadius
-                topRightRadius: root.dockRadius
-                bottomLeftRadius: 0
-                bottomRightRadius: 0
-                color: root.dockColor
-                border.width: root.useFrame ? 0 : 1
-                border.color: Qt.rgba(root.themeColor.r, root.themeColor.g, root.themeColor.b, 0.22)
-
-                MouseArea {
-                    anchors.fill: parent
-                    acceptedButtons: Qt.LeftButton
-                    onClicked: {}
-                }
-
-                Column {
-                    id: dockColumn
-                    anchors.left: parent.left
-                    anchors.right: parent.right
-                    anchors.bottom: parent.bottom
-                    anchors.leftMargin: 28
-                    anchors.rightMargin: 28
-                    anchors.bottomMargin: 18
-                    topPadding: root.enableAvatars ? root.avatarSize * 0.42 : 8
-                    spacing: 14
-
-                    Row {
-                        id: fieldRow
-                        width: parent.width
-                        spacing: 12
-
-                        Rectangle {
-                            width: (parent.width - loginBtn.width - parent.spacing * 2) / 2
-                            height: 52
-                            radius: 16
-                            color: root.cardColor
-                            border.width: usernameField.activeFocus ? 2 : 0
-                            border.color: root.themeColor
-
-                            TextField {
-                                id: usernameField
-                                anchors.fill: parent
-                                anchors.leftMargin: 16
-                                anchors.rightMargin: 16
-                                placeholderText: root.translateUsername
-                                placeholderTextColor: Qt.rgba(root.fgSecondary.r, root.fgSecondary.g, root.fgSecondary.b, 0.65)
-                                text: userModel.lastUser
-                                font.family: root.fontFamily
-                                font.pixelSize: root.fontSize + 1
-                                color: root.fgPrimary
-                                selectionColor: root.themeColor
-                                selectedTextColor: root.bgBase
-                                background: Item {}
-                                Keys.onReturnPressed: passwordField.forceActiveFocus()
-                                Keys.onTabPressed: passwordField.forceActiveFocus()
-                                Keys.onEscapePressed: root.closeLogin()
-                            }
-                        }
-
-                        Rectangle {
-                            width: (parent.width - loginBtn.width - parent.spacing * 2) / 2
-                            height: 52
-                            radius: 16
-                            color: root.cardColor
-                            border.width: passwordField.activeFocus ? 2 : 0
-                            border.color: root.themeColor
-
-                            TextField {
-                                id: passwordField
-                                anchors.fill: parent
-                                anchors.leftMargin: 16
-                                anchors.rightMargin: 16
-                                placeholderText: root.translatePassword
-                                placeholderTextColor: Qt.rgba(root.fgSecondary.r, root.fgSecondary.g, root.fgSecondary.b, 0.65)
-                                font.family: root.fontFamily
-                                font.pixelSize: root.fontSize + 1
-                                color: root.fgPrimary
-                                echoMode: TextInput.Password
-                                selectionColor: root.themeColor
-                                selectedTextColor: root.bgBase
-                                background: Item {}
-                                Keys.onReturnPressed: root.doLogin()
-                                Keys.onEscapePressed: {
-                                    if (passwordField.text !== "")
-                                        passwordField.text = ""
-                                    else
-                                        root.closeLogin()
-                                }
-                                onTextChanged: loginFailedText.visible = false
-                            }
-                        }
-
-                        Rectangle {
-                            id: loginBtn
-                            width: 128
-                            height: 52
-                            radius: 16
-                            color: loginMouse.containsPress ? Qt.darker(root.themeColor, 1.12)
-                                 : loginMouse.containsMouse ? Qt.lighter(root.themeColor, 1.08)
-                                 : root.themeColor
-
-                            Text {
-                                anchors.centerIn: parent
-                                text: root.translateLogin
-                                font.family: root.fontFamily
-                                font.pixelSize: root.fontSize + 2
-                                font.weight: Font.DemiBold
-                                color: root.loginLabelColor
-                            }
-
-                            MouseArea {
-                                id: loginMouse
-                                anchors.fill: parent
-                                hoverEnabled: true
-                                cursorShape: Qt.PointingHandCursor
-                                onClicked: root.doLogin()
-                            }
-                        }
-                    }
-
-                    Text {
-                        id: loginFailedText
-                        width: parent.width
-                        text: root.translateLoginFailed
-                        font.family: root.fontFamily
-                        font.pixelSize: root.fontSize
-                        color: root.failColor
-                        horizontalAlignment: Text.AlignHCenter
-                        visible: false
-
-                        Connections {
-                            target: sddm
-                            function onLoginFailed() {
-                                root.openLogin()
-                                loginFailedText.visible = true
-                                passwordField.selectAll()
-                                passwordField.forceActiveFocus()
-                            }
-                        }
-                    }
-
-                    Row {
-                        width: parent.width
-                        spacing: 12
-
-                        Rectangle {
-                            id: sessionCombo
-                            visible: root.showSessionButton
-                            width: Math.min(180, parent.width * 0.34)
-                            height: 36
-                            radius: 18
-                            color: root.cardColor
-                            border.width: 1
-                            border.color: Qt.rgba(root.themeColor.r, root.themeColor.g, root.themeColor.b, 0.35)
-                            property int index: sessionModel.lastIndex
-
-                            Repeater {
-                                id: sessionRepeater
-                                model: sessionModel
-                                Item {
-                                    property string sessionName: model.name || ""
-                                }
-                            }
-
-                            Text {
-                                anchors.centerIn: parent
-                                width: parent.width - 20
-                                horizontalAlignment: Text.AlignHCenter
-                                elide: Text.ElideRight
-                                font.family: root.fontFamily
-                                font.pixelSize: root.fontSize
-                                color: root.themeColor
-                                text: {
-                                    sessionCombo.index
-                                    if (sessionRepeater.count === 0)
-                                        return root.translateSession
-                                    const item = sessionRepeater.itemAt(sessionCombo.index)
-                                    return (item && item.sessionName) ? item.sessionName : root.translateSession
-                                }
-                            }
-
-                            MouseArea {
-                                anchors.fill: parent
-                                hoverEnabled: true
-                                cursorShape: Qt.PointingHandCursor
-                                onClicked: {
-                                    if (sessionRepeater.count < 2)
-                                        return
-                                    sessionCombo.index = (sessionCombo.index + 1) % sessionRepeater.count
-                                }
-                            }
-                        }
-
-                        Item {
-                            width: Math.max(0, parent.width
-                                - (sessionCombo.visible ? sessionCombo.width + parent.spacing : 0)
-                                - powerRow.width)
-                            height: 1
-                        }
-
-                        Row {
-                            id: powerRow
-                            spacing: 8
-                            visible: root.showPowerButtons
-
-                            Repeater {
-                                model: [
-                                    { label: root.translateSuspend, kind: "suspend" },
-                                    { label: root.translateReboot, kind: "reboot" },
-                                    { label: root.translateShutdown, kind: "shutdown" }
-                                ]
-
-                                Rectangle {
-                                    height: 36
-                                    width: Math.max(78, powerLabel.implicitWidth + 22)
-                                    radius: 14
-                                    color: powerMouse.containsMouse
-                                        ? Qt.rgba(root.themeColor.r, root.themeColor.g, root.themeColor.b, 0.22)
-                                        : root.cardColor
-
-                                    Text {
-                                        id: powerLabel
-                                        anchors.centerIn: parent
-                                        text: modelData.label
-                                        font.family: root.fontFamily
-                                        font.pixelSize: root.fontSize - 1
-                                        font.weight: Font.DemiBold
-                                        color: modelData.kind === "shutdown" ? root.failColor : root.fgPrimary
-                                    }
-
-                                    MouseArea {
-                                        id: powerMouse
-                                        anchors.fill: parent
-                                        hoverEnabled: true
-                                        cursorShape: Qt.PointingHandCursor
-                                        onClicked: {
-                                            if (modelData.kind === "suspend")
-                                                sddm.suspend()
-                                            else if (modelData.kind === "reboot")
-                                                sddm.reboot()
-                                            else
-                                                sddm.powerOff()
-                                        }
-                                    }
-                                }
-                            }
-                        }
-                    }
+                active: false
+                sourceComponent: loginPanelComponent
+                onLoaded: {
+                    if (root.loginOpen)
+                        openFocusTimer.restart()
                 }
             }
         }
 
-        // Persistent tab on the frame edge — click to reveal / hide the plate.
         Rectangle {
             id: loginTab
             anchors.horizontalCenter: parent.horizontalCenter
@@ -789,8 +915,19 @@ Rectangle {
         }
     }
 
+    // Activate the Loader when opening so the plate exists before reveal animates.
+    onLoginOpenChanged: {
+        if (loginOpen) {
+            unloadTimer.stop()
+            panelLoader.active = true
+        } else {
+            unloadTimer.restart()
+        }
+    }
+
     Component.onCompleted: {
-        // Stay collapsed until the user opens the Login tab.
         root.loginOpen = false
+        root.loginReveal = 0
+        panelLoader.active = false
     }
 }
