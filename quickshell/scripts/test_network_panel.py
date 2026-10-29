@@ -32,8 +32,13 @@ class NetworkPanelWiringTests(unittest.TestCase):
     def test_ap_click_uses_connect_helper(self):
         self.assertIn("function connectTo(ssid)", self.panel)
         self.assertIn("wifi-connect.sh", self.panel)
-        self.assertIn("onClicked: root.connectTo(ssid)", self.panel)
+        self.assertIn("root.connectTo(row.ssid)", self.panel)
         self.assertIn("connectingSsid", self.panel)
+        # Process.command + running=true in one turn launches the previous argv
+        # (placeholder `true`), so connect must go through execDetached.
+        self.assertIn("Quickshell.execDetached", self.panel)
+        self.assertNotIn("wifiConnect.running = true", self.panel)
+        self.assertIn("required property bool inUse", self.panel)
 
     def test_installer_ships_connection_editor(self):
         self.assertIn("network-manager-applet", self.install)

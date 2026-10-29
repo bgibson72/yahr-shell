@@ -39,6 +39,39 @@ Panel {
             root.refresh()
         } else {
             root.connectingSsid = ""
+            connectSettle.stop()
+        }
+    }
+
+    // Clear the connecting spinner once NetworkManager reports the target SSID
+    // (or a profile named after it) as the active connection.
+    Connections {
+        target: NetworkState
+        function onConnectionNameChanged() {
+            if (!root.connectingSsid)
+                return
+            if (NetworkState.connectionName === root.connectingSsid)
+                root.connectingSsid = ""
+        }
+        function onConnectionTypeChanged() {
+            if (root.connectingSsid && NetworkState.connectionType === "wifi"
+                    && NetworkState.connectionName === root.connectingSsid)
+                root.connectingSsid = ""
+        }
+    }
+
+    Timer {
+        id: connectSettle
+        interval: 8000
+        repeat: false
+        onTriggered: {
+            if (!root.connectingSsid)
+                return
+            // Still spinning after nmcli's wait window — assume failure and refresh.
+            if (!root.connectError)
+                root.connectError = `Could not connect to ${root.connectingSsid}`
+            root.connectingSsid = ""
+            root.refresh()
         }
     }
 
@@ -50,18 +83,24 @@ Panel {
         wifiListProc.running = true
     }
 
+    // Use execDetached instead of Process: assigning Process.command and
+    // running=true in the same turn can launch the *previous* argv (here the
+    // placeholder `true`), so clicks looked like a no-op.
     function connectTo(ssid) {
-        if (!ssid || ssid === root.connectingSsid)
+        if (!ssid)
+            return
+        if (root.connectingSsid === ssid)
             return
         root.connectError = ""
         root.connectingSsid = ssid
-        wifiConnect.running = false
-        wifiConnect.command = [
+        Quickshell.execDetached([
             "bash",
             `${Quickshell.shellDir}/scripts/wifi-connect.sh`,
             ssid
-        ]
-        wifiConnect.running = true
+        ])
+        connectSettle.restart()
+        // Pull status shortly after; nmcli monitor also drives NetworkState.
+        Qt.callLater(() => root.refresh())
     }
 
     function openNetworkSettings() {
@@ -101,9 +140,9 @@ Panel {
                     let line = lines[i].trim()
                     if (!line)
                         continue
-                    let active = false
+                    let inUse = false
                     if (line.charAt(0) === "*") {
-                        active = true
+                        inUse = true
                         line = line.slice(1)
                     }
                     const parts = line.split(":")
@@ -123,13 +162,13 @@ Panel {
                         continue
                     seen[ssid] = true
                     rows.push({
-                        active: active,
+                        inUse: inUse,
                         ssid: ssid,
                         signal: signal,
                         security: security
                     })
                 }
-                rows.sort((a, b) => (b.active - a.active) || (b.signal - a.signal))
+                rows.sort((a, b) => (b.inUse - a.inUse) || (b.signal - a.signal))
                 networkModel.clear()
                 const max = Math.min(rows.length, 8)
                 for (let j = 0; j < max; j++)
@@ -145,31 +184,20 @@ Panel {
 
     Process {
         id: wifiToggle
+        property string nextState: "on"
         running: false
         command: ["nmcli", "radio", "wifi", "on"]
         onExited: root.refresh()
     }
 
-    Process {
-        id: wifiConnect
-        running: false
-        command: ["true"]
-        stdout: StdioCollector {}
-        stderr: StdioCollector {
-            id: wifiConnectErr
-        }
-        onExited: code => {
-            const target = root.connectingSsid
-            root.connectingSsid = ""
-            if (code === 0) {
-                root.connectError = ""
-                root.refresh()
-                return
-            }
-            const detail = (wifiConnectErr.text || "").trim().split("\n").pop() || "Connection failed"
-            root.connectError = target ? `${target}: ${detail}` : detail
-            root.refresh()
-        }
+    function toggleWifi() {
+        const next = root.wifiRadio ? "off" : "on"
+        wifiToggle.nextState = next
+        // Defer start so Process picks up the new argv (same Quickshell hazard).
+        wifiToggle.command = ["nmcli", "radio", "wifi", next]
+        Qt.callLater(() => {
+            wifiToggle.running = true
+        })
     }
 
     ColumnLayout {
@@ -201,7 +229,7 @@ Panel {
                 Text {
                     Layout.fillWidth: true
                     elide: Text.ElideRight
-                    text: root.connectionName
+                    text: root.connectingSsid ? `Connecting to ${root.connectingSsid}…` : root.connectionName
                     color: ThemeManager.fgSecondary
                     font.family: ThemeManager.uiFont
                     font.pixelSize: 12
@@ -228,10 +256,7 @@ Panel {
                 MouseArea {
                     anchors.fill: parent
                     cursorShape: Qt.PointingHandCursor
-                    onClicked: {
-                        wifiToggle.command = ["nmcli", "radio", "wifi", root.wifiRadio ? "off" : "on"]
-                        wifiToggle.running = true
-                    }
+                    onClicked: root.toggleWifi()
                 }
             }
         }
@@ -249,6 +274,8 @@ Panel {
             spacing: 4
             model: networkModel
             boundsBehavior: Flickable.StopAtBounds
+            // Keep presses on rows from being interpreted as a flick.
+            pressDelay: 0
 
             Text {
                 visible: networkModel.count === 0
@@ -260,18 +287,22 @@ Panel {
             }
 
             delegate: Rectangle {
-                required property bool active
+                id: row
+                required property bool inUse
                 required property string ssid
                 required property int signal
                 required property string security
 
                 readonly property bool isConnecting: root.connectingSsid === ssid
+                readonly property bool canConnect: !inUse
 
                 width: ListView.view.width
                 height: 32
                 radius: 8
-                opacity: root.connectingSsid.length > 0 && !isConnecting && !active ? 0.55 : 1.0
-                color: netMouse.containsMouse ? ThemeManager.surface2 : (active ? Qt.rgba(ThemeManager.accentBlue.r, ThemeManager.accentBlue.g, ThemeManager.accentBlue.b, 0.18) : ThemeManager.surface1)
+                opacity: root.connectingSsid.length > 0 && !isConnecting && !inUse ? 0.55 : 1.0
+                color: netMouse.containsMouse && canConnect
+                    ? ThemeManager.surface2
+                    : (inUse ? Qt.rgba(ThemeManager.accentBlue.r, ThemeManager.accentBlue.g, ThemeManager.accentBlue.b, 0.18) : ThemeManager.surface1)
                 Behavior on opacity { NumberAnimation { duration: 120 } }
 
                 RowLayout {
@@ -292,7 +323,7 @@ Panel {
                         }
                         font.family: "Symbols Nerd Font"
                         font.pixelSize: 14
-                        color: active || isConnecting ? ThemeManager.accentBlue : ThemeManager.fgSecondary
+                        color: inUse || isConnecting ? ThemeManager.accentBlue : ThemeManager.fgSecondary
                     }
                     Text {
                         Layout.fillWidth: true
@@ -315,9 +346,15 @@ Panel {
                     id: netMouse
                     anchors.fill: parent
                     hoverEnabled: true
-                    enabled: !active && root.connectingSsid.length === 0
-                    cursorShape: enabled ? Qt.PointingHandCursor : Qt.ArrowCursor
-                    onClicked: root.connectTo(ssid)
+                    // Do not disable the area while another connect is in flight —
+                    // a stuck connectingSsid previously made every row inert.
+                    enabled: true
+                    cursorShape: canConnect ? Qt.PointingHandCursor : Qt.ArrowCursor
+                    onClicked: {
+                        if (!row.canConnect)
+                            return
+                        root.connectTo(row.ssid)
+                    }
                 }
             }
         }
