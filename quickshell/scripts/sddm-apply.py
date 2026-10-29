@@ -390,8 +390,20 @@ def clear_stale_wallpaper_assets(keep: set[str]) -> None:
         sudo_rm(path)
 
 
+MAIN_VERSION_MARK = "YAHR_SDDM_MAIN_V=4"
+
+
+def _theme_main_version(path: Path) -> int:
+    try:
+        text = path.read_text(errors="ignore")
+    except OSError:
+        return 0
+    match = re.search(r"YAHR_SDDM_MAIN_V=(\d+)", text)
+    return int(match.group(1)) if match else 0
+
+
 def find_theme_dir() -> Path | None:
-    """Locate the yahr-theme source directory (git clone or share tree)."""
+    """Locate the newest yahr-theme source (prefer git clone over stale share)."""
     candidates: list[Path] = []
     repo_root_file = HOME / ".config/yahr/repo-root"
     if repo_root_file.is_file():
@@ -402,34 +414,68 @@ def find_theme_dir() -> Path | None:
         except OSError:
             pass
     here = Path(__file__).resolve()
-    # repo/quickshell/scripts → repo/sddm/yahr-theme
-    candidates.append(here.parents[2] / "sddm" / "yahr-theme")
+    # <repo>/quickshell/scripts/sddm-apply.py → <repo>/sddm/yahr-theme
+    if here.parent.name == "scripts" and here.parent.parent.name == "quickshell":
+        candidates.append(here.parents[2] / "sddm" / "yahr-theme")
     candidates.append(HOME / ".local/share/yahr-shell/sddm/yahr-theme")
+
+    best: Path | None = None
+    best_ver = -1
     for path in candidates:
-        if (path / "Main.qml").is_file():
-            return path
-    return None
+        main = path / "Main.qml"
+        if not main.is_file():
+            continue
+        ver = _theme_main_version(main)
+        # Prefer higher version stamps; tie-break by first candidate (repo-root).
+        if ver > best_ver or (ver == best_ver and best is None):
+            best = path
+            best_ver = ver
+    return best
+
+
+def _file_digest(path: Path) -> str:
+    try:
+        import hashlib
+
+        return hashlib.sha256(path.read_bytes()).hexdigest()[:16]
+    except OSError:
+        return ""
 
 
 def copy_theme_qml() -> list[str]:
-    """Refresh greeter QML from the clone, including Components/."""
+    """Refresh greeter Main.qml from the best source tree.
+
+    Frame/joins live inside Main.qml (V4+) so a single top-level copy is enough
+    for the sudoers rule that only allows paths under yahr-theme/*.
+    Also refreshes ~/.local/share so later applies do not pick a stale copy.
+    """
     theme_dir = find_theme_dir()
     if theme_dir is None:
         return []
+    src = theme_dir / "Main.qml"
+    if not src.is_file():
+        return []
+
     copied: list[str] = []
-    rel_paths = [
-        "Main.qml",
-        "Components/qmldir",
-        "Components/ScreenFrame.qml",
-        "Components/FrameJoins.qml",
-    ]
-    for rel in rel_paths:
-        src = theme_dir / rel
-        if not src.is_file():
-            continue
-        dest = THEME_DIR / rel
-        if sudo_cp(src, dest):
-            copied.append(rel)
+    dest = THEME_DIR / "Main.qml"
+    src_digest = _file_digest(src)
+    if sudo_cp(src, dest):
+        dest_digest = _file_digest(dest)
+        if dest_digest and dest_digest == src_digest:
+            copied.append(f"Main.qml@{src_digest}")
+        else:
+            copied.append(f"Main.qml@MISMATCH:{src_digest}->{dest_digest or 'missing'}")
+    else:
+        copied.append("Main.qml@COPY_FAILED")
+
+    # Keep the installed share tree current for future fallback resolves.
+    share = HOME / ".local/share/yahr-shell/sddm/yahr-theme"
+    try:
+        share.mkdir(parents=True, exist_ok=True)
+        shutil.copy2(src, share / "Main.qml")
+    except OSError:
+        pass
+
     return copied
 
 
@@ -504,6 +550,7 @@ def main() -> int:
     if face.is_file():
         sudo_cp(face, Path("/usr/share/sddm/faces") / f"{HOME.name}.face.icon")
 
+    theme_dir = find_theme_dir()
     qml_copied = copy_theme_qml()
     frame = frame_settings(settings)
     font = ui_font(settings)
@@ -512,6 +559,9 @@ def main() -> int:
     text = set_key(text, "WidgetOpacity", runtime_opacity)
     text = set_key(text, "BackgroundBlur", str(runtime_blur))
     text = set_key(text, "ShowHostname", "false")
+    # Drop legacy thick-top keys so stale conf cannot revive bar-height bezels.
+    text = set_key(text, "BarHeight", "0")
+    text = set_key(text, "BarPosition", "top", quoted=True)
     if dest_name:
         text = set_key(text, "Background", dest_name, quoted=True)
         # Keep key for older greeter builds; both sides use Background in Main.qml.
@@ -529,9 +579,14 @@ def main() -> int:
         except OSError:
             return "missing"
 
+    live_main = THEME_DIR / "Main.qml"
+    live_ver = _theme_main_version(live_main)
+    src_ver = _theme_main_version(theme_dir / "Main.qml") if theme_dir else 0
+    qml_ok = any(item.startswith("Main.qml@") and "FAIL" not in item and "MISMATCH" not in item for item in qml_copied)
     qml_note = ",".join(qml_copied) if qml_copied else "unchanged"
+
     if dest_name:
-        print("OK")
+        print("OK" if qml_ok and live_ver >= 4 else "OK_QML_STALE")
         print(f"wallpaper={wallpaper}")
         print(f"background={THEME_DIR / dest_name} mode={_mode(THEME_DIR / dest_name)}")
         try:
@@ -545,14 +600,23 @@ def main() -> int:
         print(f"widget_opacity={runtime_opacity}")
         print(f"ui_font={font}")
         print(f"use_frame={frame['UseFrame']}")
+        print(f"frame_thickness={frame['FrameThickness']}")
+        print(f"theme_src={theme_dir}")
+        print(f"main_version_src={src_ver} live={live_ver}")
         print(f"qml={qml_note}")
     else:
-        print("OK_NO_WALLPAPER")
+        print("OK_NO_WALLPAPER" if qml_ok and live_ver >= 4 else "OK_QML_STALE")
         print(f"runtime_blur={runtime_blur}")
         print(f"widget_opacity={runtime_opacity}")
         print(f"ui_font={font}")
         print(f"use_frame={frame['UseFrame']}")
+        print(f"frame_thickness={frame['FrameThickness']}")
+        print(f"theme_src={theme_dir}")
+        print(f"main_version_src={src_ver} live={live_ver}")
         print(f"qml={qml_note}")
+    if not qml_ok or live_ver < 4:
+        print("hint=Main.qml was not refreshed; re-run Apply after sudoers allow cp into the theme dir")
+        return 2
     return 0
 
 

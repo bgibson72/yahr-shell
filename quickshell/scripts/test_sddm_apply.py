@@ -117,23 +117,26 @@ class SettingsSyncTests(unittest.TestCase):
         self.assertIn("FrameInnerRadius=18", out)
         self.assertIn('TimeFormat="HH:mm"', out)
 
-    def test_theme_components_exist(self):
+    def test_theme_main_v4_inline_frame_and_loader(self):
         theme = ROOT / "sddm" / "yahr-theme"
-        self.assertTrue((theme / "Main.qml").is_file())
-        self.assertTrue((theme / "Components" / "ScreenFrame.qml").is_file())
-        self.assertTrue((theme / "Components" / "FrameJoins.qml").is_file())
-        self.assertTrue((theme / "Components" / "qmldir").is_file())
         main = (theme / "Main.qml").read_text()
+        self.assertIn("YAHR_SDDM_MAIN_V=4", main)
         self.assertIn("resolveUiFont", main)
         self.assertIn("useFrame", main)
         self.assertIn("loginReveal", main)
-        self.assertIn("panelClip", main)
-        self.assertIn("loginHost", main)
+        self.assertIn("panelLoader", main)
+        self.assertIn("panelSlot", main)
+        self.assertIn("loginPanelComponent", main)
         self.assertIn("toggleLogin", main)
-        self.assertIn("ScreenFrame", main)
-        self.assertIn("FrameJoins", main)
-        frame = (theme / "Components" / "ScreenFrame.qml").read_text()
-        self.assertNotIn("barHeight", frame)
+        self.assertIn("frameCanvas", main)
+        self.assertNotIn('import "Components"', main)
+        self.assertNotIn("barHeight", main)
+        self.assertEqual(main.count("{"), main.count("}"))
+
+    def test_find_theme_dir_prefers_versioned_main(self):
+        theme = self.mod.find_theme_dir()
+        self.assertIsNotNone(theme)
+        self.assertGreaterEqual(self.mod._theme_main_version(theme / "Main.qml"), 4)
 
 
 if __name__ == "__main__":
