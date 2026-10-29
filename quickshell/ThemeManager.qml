@@ -129,7 +129,7 @@ Item {
         { key: "Roboto", label: "Roboto / Roboto Flex", families: ["Roboto Flex", "Roboto"] },
         { key: "Manrope", label: "Manrope", families: ["Manrope"] },
         { key: "Overpass", label: "Overpass", families: ["Overpass", "Overpass Nerd Font"] },
-        { key: "Space Grotesk", label: "Space Grotesk", families: ["Space Grotesk"] },
+        { key: "Space Grotesk", label: "Space Grotesk", families: ["Space Grotesk", "SpaceGrotesk"] },
         { key: "IBM Plex Sans", label: "IBM Plex Sans", families: ["IBM Plex Sans Var", "IBM Plex Sans"] }
     ]
     property string uiFont: "Inter"

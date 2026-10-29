@@ -2,24 +2,26 @@
 
 Login screen that follows the YAHR shell: full-bleed wallpaper, large clock, and a
 login plate tinted from the active palette. When the desktop bar is **docked**
-(solid + picture frame), the greeter draws the same screen bezel and joins the
-login plate into the bottom edge with inverse corners — matching docked
-Quickshell widgets. When the bar is floating, the plate stays a floating dock
-strip. Background blur is fixed at FastBlur radius 40.
+(solid + picture frame), the greeter draws an even picture-frame bezel on all
+four sides and joins a **Login** tab into the bottom edge; click the tab to
+slide the login plate up. When the bar is floating, the same tab/plate pattern
+is used without the bezel. Background blur is fixed at FastBlur radius 40.
 
-Typography uses the **UI Font** chosen in Settings (resolved against installed
-families the same way the shell does).
+Typography uses the **UI Font** chosen in Settings (resolved via fontconfig to
+the same installed family the shell uses). Changing the UI font syncs the
+greeter automatically.
 
 ## Sync
 
 Theme apply (`yahr-theme apply` or Settings → SDDM → Apply) writes the current
-palette from `~/.config/yahr/current.json`, the Settings UI font, clock/date
-formats, and framed-bar geometry (`UseFrame`, thickness, rounding, bar height /
-position) into `theme.conf`. It also copies `Main.qml` and `Components/` into
-`/usr/share/sddm/themes/yahr-theme` and copies the desktop wallpaper as
-`login-background.png` (or `.jpg`). Colors and wallpaper are never hard-coded to
-a specific theme — every `yahr-theme apply` and every desktop wallpaper change
-(with **Match desktop** on) refreshes the greeter.
+palette from `~/.config/yahr/current.json`, the Settings UI font (plus
+fontconfig-resolved family), clock/date formats, and framed-bar geometry
+(`UseFrame`, thickness, rounding) into `theme.conf`. It also copies `Main.qml`
+and `Components/` into `/usr/share/sddm/themes/yahr-theme` and copies the
+desktop wallpaper as `login-background.png` (or `.jpg`). Colors and wallpaper
+are never hard-coded to a specific theme — every `yahr-theme apply`, UI font
+change, and desktop wallpaper change (with **Match desktop** on) refreshes the
+greeter.
 
 ```bash
 # Manual sync / debug

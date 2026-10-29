@@ -290,6 +290,18 @@ exec python3 "$SCRIPT" "$@"`
         ])
     }
 
+    function syncSddmThemeQuiet() {
+        // Push font / frame / palette without flipping the SDDM tab status UI.
+        Settings.save()
+        const wallpaper = Settings.sddmFollowDesktop ? "desktop" : (root.sddmWallpaperPath() || "none")
+        Quickshell.execDetached([
+            "bash", "-c",
+            root.resolveRepoScript("sddm-apply.py"),
+            "_",
+            "--wallpaper", wallpaper
+        ])
+    }
+
     function applyWallpaper(path) {
         Settings.currentWallpaper = path
         Settings.save()
@@ -811,7 +823,7 @@ exec python3 "$SCRIPT" "$@"`
                 SettingsCard {
                     SettingsSubcard {
                         Text {
-                            text: "Fonts used by the shell, independent of other system fonts. Apply under SDDM to push the same choice to the login screen."
+                            text: "Fonts used by the shell and the SDDM login screen. Changing a font syncs the greeter automatically."
                             color: ThemeManager.fgTertiary
                             font.family: ThemeManager.uiFont
                             font.pixelSize: 12
@@ -823,6 +835,7 @@ exec python3 "$SCRIPT" "$@"`
                             onPicked: key => {
                                 Settings.uiFont = key
                                 Settings.save()
+                                root.syncSddmThemeQuiet()
                             }
                         }
                     }
@@ -2307,7 +2320,7 @@ exec python3 "$SCRIPT" "$@"`
                     SettingsCard {
                         SettingsSubcard {
                             Text {
-                                text: "Match the desktop wallpaper, or pick a different image. Theme colors follow Settings → Theme (any palette). The greeter uses the UI Font from General, and when the bar is docked it draws the same picture-frame bezel with the login plate joined into the bottom edge. Background blur is fixed at radius 40. Wallpaper, colors, font, and frame geometry refresh when wallpaper changes (if Match desktop is on) or when you Apply."
+                                text: "Match the desktop wallpaper, or pick a different image. Theme colors follow Settings → Theme (any palette). The greeter uses the UI Font from General. When the bar is docked it draws an even picture-frame bezel; a Login tab on the bottom edge slides the login plate up. Background blur is fixed at radius 40. Wallpaper, colors, font, and frame geometry refresh when the UI font or wallpaper changes (if Match desktop is on) or when you Apply."
                                 color: ThemeManager.fgTertiary
                                 font.family: ThemeManager.uiFont
                                 font.pixelSize: 12

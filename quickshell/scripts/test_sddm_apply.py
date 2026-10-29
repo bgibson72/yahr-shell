@@ -59,8 +59,10 @@ class SettingsSyncTests(unittest.TestCase):
         cls.mod = load_apply()
 
     def test_ui_font_from_settings(self):
-        self.assertEqual(self.mod.ui_font({"general": {"uiFont": "Manrope"}}), "Manrope")
-        self.assertEqual(self.mod.ui_font({}), "Inter")
+        self.assertEqual(self.mod.ui_font_key({"general": {"uiFont": "Manrope"}}), "Manrope")
+        self.assertEqual(self.mod.ui_font_key({}), "Inter")
+        self.assertEqual(self.mod.ui_font_key({"general": {"uiFont": "Space Grostek"}}), "Space Grotesk")
+        self.assertEqual(self.mod.resolve_ui_font({"general": {"uiFont": "Space Grotesk"}}), "Space Grotesk")
 
     def test_frame_settings_docked_default(self):
         frame = self.mod.frame_settings({
@@ -70,8 +72,8 @@ class SettingsSyncTests(unittest.TestCase):
         self.assertEqual(frame["UseFrame"], "true")
         self.assertEqual(frame["FrameThickness"], "14")
         self.assertEqual(frame["FrameInnerRadius"], "16")
-        self.assertEqual(frame["BarHeight"], "48")
-        self.assertEqual(frame["BarPosition"], "top")
+        self.assertNotIn("BarHeight", frame)
+        self.assertNotIn("BarPosition", frame)
 
     def test_frame_settings_floating_disables_frame(self):
         frame = self.mod.frame_settings({
@@ -87,21 +89,17 @@ class SettingsSyncTests(unittest.TestCase):
         })
         self.assertEqual(frame["UseFrame"], "false")
 
-    def test_frame_settings_large_bar_bottom(self):
+    def test_frame_settings_opaque_fill(self):
         frame = self.mod.frame_settings({
             "bar": {
                 "barStyle": "single",
                 "floating": False,
-                "position": "bottom",
-                "barSize": "large",
                 "backgroundStyle": "opaque",
             },
             "hypr": {"gapsOut": 8, "rounding": 10},
         })
         self.assertEqual(frame["UseFrame"], "true")
         self.assertEqual(frame["FrameThickness"], "10")  # max(10, gaps)
-        self.assertEqual(frame["BarHeight"], "58")
-        self.assertEqual(frame["BarPosition"], "bottom")
         self.assertEqual(frame["FrameOpacity"], "1.00")
 
     def test_apply_palette_writes_font_and_frame(self):
@@ -112,11 +110,11 @@ class SettingsSyncTests(unittest.TestCase):
             "hypr": {"gapsOut": 12, "rounding": 18},
         })
         self.assertIn('Font="Space Grotesk"', out)
+        self.assertIn('FontKey="Space Grotesk"', out)
         self.assertIn('TitleFont="Space Grotesk"', out)
         self.assertIn("UseFrame=true", out)
         self.assertIn("FrameThickness=12", out)
         self.assertIn("FrameInnerRadius=18", out)
-        self.assertIn('BarPosition="top"', out)
         self.assertIn('TimeFormat="HH:mm"', out)
 
     def test_theme_components_exist(self):
@@ -128,8 +126,11 @@ class SettingsSyncTests(unittest.TestCase):
         main = (theme / "Main.qml").read_text()
         self.assertIn("resolveUiFont", main)
         self.assertIn("useFrame", main)
+        self.assertIn("loginReveal", main)
         self.assertIn("ScreenFrame", main)
         self.assertIn("FrameJoins", main)
+        frame = (theme / "Components" / "ScreenFrame.qml").read_text()
+        self.assertNotIn("barHeight", frame)
 
 
 if __name__ == "__main__":
