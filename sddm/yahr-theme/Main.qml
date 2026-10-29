@@ -183,7 +183,8 @@ Rectangle {
     }
 
     property bool loginOpen: false
-    property real loginReveal: loginOpen ? 1 : 0
+    // Driven explicitly from open/close (not a binding) so the greeter always animates.
+    property real loginReveal: 0
     Behavior on loginReveal {
         NumberAnimation {
             duration: 420
@@ -197,11 +198,13 @@ Rectangle {
 
     function openLogin() {
         loginOpen = true
+        loginReveal = 1
         openFocusTimer.restart()
     }
 
     function closeLogin() {
         loginOpen = false
+        loginReveal = 0
     }
 
     function toggleLogin() {
@@ -351,23 +354,21 @@ Rectangle {
         }
     }
 
-    // Clip-reveal host: collapsed shows only the Login tab; open slides the plate up.
+    // Login host: tab always visible; panel lives in a height-animated clip above it.
+    // (Clipping a tall bottom-anchored stack is unreliable in the SDDM greeter.)
     Item {
-        id: clipper
+        id: loginHost
         anchors.horizontalCenter: parent.horizontalCenter
         anchors.bottom: parent.bottom
         anchors.bottomMargin: root.useFrame ? root.holeInset : Math.max(48, parent.height * 0.07)
         width: root.dockWidth + (root.useFrame ? root.joinR * 2 : 0)
-        height: {
-            const panelH = dockBody.implicitHeight + (root.enableAvatars && root.loginReveal > 0.02 ? root.avatarSize * 0.52 : 0)
-            return root.tabHeight + panelH * root.loginReveal + (root.useFrame ? root.joinR * root.loginReveal : 0)
-        }
-        clip: true
+        height: root.tabHeight + panelClip.height
+            + (root.enableAvatars ? Math.round(root.avatarSize * 0.52 * root.loginReveal) : 0)
         z: 6
 
         DropShadow {
-            anchors.fill: stack
-            source: stack
+            anchors.fill: dockBody
+            source: dockBody
             horizontalOffset: 0
             verticalOffset: 18
             radius: 32
@@ -375,105 +376,106 @@ Rectangle {
             color: Qt.rgba(0, 0, 0, 0.5)
             cached: true
             visible: !root.useFrame && root.loginReveal > 0.05
+            z: 0
         }
 
+        FrameJoins {
+            x: chromeX - root.joinR
+            y: chromeY - root.joinR
+            z: 1
+            joinR: root.joinR
+            contentW: chromeW
+            contentH: chromeH
+            joinBottom: root.useFrame
+            joinTop: false
+            fill: root.frameFill
+            readonly property int chromeX: root.useFrame ? root.joinR : loginTab.x
+            readonly property int chromeY: loginTab.y - panelClip.height
+            readonly property int chromeW: root.useFrame ? root.dockWidth : loginTab.width
+            readonly property int chromeH: root.tabHeight + panelClip.height
+        }
+
+        // Avatar rides above the plate while revealed.
+        Rectangle {
+            id: avatarFrame
+            z: 3
+            width: root.avatarSize
+            height: root.avatarSize
+            radius: width / 2
+            anchors.horizontalCenter: parent.horizontalCenter
+            anchors.bottom: panelClip.top
+            anchors.bottomMargin: -root.avatarSize * 0.48
+            color: root.cardColor
+            border.width: 4
+            border.color: Qt.rgba(root.themeColor.r, root.themeColor.g, root.themeColor.b, 0.55)
+            visible: root.enableAvatars && root.loginReveal > 0.02
+            opacity: root.loginReveal
+            scale: 0.85 + 0.15 * root.loginReveal
+
+            Image {
+                id: avatar
+                property int faceTry: 0
+                readonly property var faceCandidates: root.homeFace !== "" ? [root.homeFace, root.systemFace] : []
+                anchors.fill: parent
+                anchors.margins: 4
+                source: faceTry < faceCandidates.length ? faceCandidates[faceTry] : ""
+                fillMode: Image.PreserveAspectCrop
+                visible: false
+                cache: false
+                onStatusChanged: {
+                    if (status === Image.Error && faceTry < faceCandidates.length - 1)
+                        faceTry++
+                }
+            }
+
+            Rectangle {
+                id: avatarMask
+                anchors.fill: avatar
+                radius: width / 2
+                visible: false
+            }
+
+            OpacityMask {
+                anchors.fill: avatar
+                source: avatar
+                maskSource: avatarMask
+                visible: avatar.status === Image.Ready
+            }
+
+            Text {
+                anchors.centerIn: parent
+                visible: avatar.status !== Image.Ready
+                text: {
+                    const name = usernameField.text || root.lastUser
+                    if (name !== "")
+                        return name.charAt(0).toUpperCase()
+                    return "\uf007"
+                }
+                font.family: (usernameField.text || root.lastUser) !== "" ? root.fontFamily : "Symbols Nerd Font"
+                font.pixelSize: (usernameField.text || root.lastUser) !== "" ? 56 : 40
+                font.weight: Font.DemiBold
+                color: root.themeColor
+            }
+        }
+
+        // Height-animated clip: 0 when collapsed, full panel when open.
         Item {
-            id: stack
+            id: panelClip
             anchors.left: parent.left
             anchors.right: parent.right
-            anchors.bottom: parent.bottom
-            height: dockBody.implicitHeight
-                + root.tabHeight
-                + (root.enableAvatars ? root.avatarSize * 0.52 : 0)
-                + (root.useFrame ? root.joinR : 0)
-
-            FrameJoins {
-                // Join the visible chrome (tab, or tab + sliding plate) into the bezel.
-                x: chromeX - root.joinR
-                y: chromeY - root.joinR
-                z: 1
-                joinR: root.joinR
-                contentW: chromeW
-                contentH: chromeH
-                joinBottom: root.useFrame
-                joinTop: false
-                fill: root.frameFill
-                readonly property int chromeX: root.useFrame ? root.joinR : loginTab.x
-                readonly property int chromeY: loginTab.y - Math.round(dockBody.height * root.loginReveal)
-                readonly property int chromeW: root.useFrame ? root.dockWidth : loginTab.width
-                readonly property int chromeH: root.tabHeight + Math.round(dockBody.height * root.loginReveal)
-            }
-
-            // Avatar rides above the plate while revealed.
-            Rectangle {
-                id: avatarFrame
-                z: 3
-                width: root.avatarSize
-                height: root.avatarSize
-                radius: width / 2
-                anchors.horizontalCenter: parent.horizontalCenter
-                anchors.bottom: dockBody.top
-                anchors.bottomMargin: -root.avatarSize * 0.48
-                color: root.cardColor
-                border.width: 4
-                border.color: Qt.rgba(root.themeColor.r, root.themeColor.g, root.themeColor.b, 0.55)
-                visible: root.enableAvatars
-                opacity: root.loginReveal
-                scale: 0.85 + 0.15 * root.loginReveal
-
-                Image {
-                    id: avatar
-                    property int faceTry: 0
-                    readonly property var faceCandidates: root.homeFace !== "" ? [root.homeFace, root.systemFace] : []
-                    anchors.fill: parent
-                    anchors.margins: 4
-                    source: faceTry < faceCandidates.length ? faceCandidates[faceTry] : ""
-                    fillMode: Image.PreserveAspectCrop
-                    visible: false
-                    cache: false
-                    onStatusChanged: {
-                        if (status === Image.Error && faceTry < faceCandidates.length - 1)
-                            faceTry++
-                    }
-                }
-
-                Rectangle {
-                    id: avatarMask
-                    anchors.fill: avatar
-                    radius: width / 2
-                    visible: false
-                }
-
-                OpacityMask {
-                    anchors.fill: avatar
-                    source: avatar
-                    maskSource: avatarMask
-                    visible: avatar.status === Image.Ready
-                }
-
-                Text {
-                    anchors.centerIn: parent
-                    visible: avatar.status !== Image.Ready
-                    text: {
-                        const name = usernameField.text || root.lastUser
-                        if (name !== "")
-                            return name.charAt(0).toUpperCase()
-                        return "\uf007"
-                    }
-                    font.family: (usernameField.text || root.lastUser) !== "" ? root.fontFamily : "Symbols Nerd Font"
-                    font.pixelSize: (usernameField.text || root.lastUser) !== "" ? 56 : 40
-                    font.weight: Font.DemiBold
-                    color: root.themeColor
-                }
-            }
+            anchors.bottom: loginTab.top
+            anchors.leftMargin: root.useFrame ? root.joinR : 0
+            anchors.rightMargin: root.useFrame ? root.joinR : 0
+            height: Math.round(dockBody.implicitHeight * root.loginReveal)
+            clip: true
+            visible: height > 0
+            enabled: root.loginOpen
 
             Rectangle {
                 id: dockBody
                 anchors.left: parent.left
                 anchors.right: parent.right
-                anchors.bottom: loginTab.top
-                anchors.leftMargin: root.useFrame ? root.joinR : 0
-                anchors.rightMargin: root.useFrame ? root.joinR : 0
+                anchors.bottom: parent.bottom
                 implicitHeight: dockColumn.implicitHeight + 40
                 height: implicitHeight
                 radius: root.dockRadius
@@ -484,7 +486,7 @@ Rectangle {
                 color: root.dockColor
                 border.width: root.useFrame ? 0 : 1
                 border.color: Qt.rgba(root.themeColor.r, root.themeColor.g, root.themeColor.b, 0.22)
-                // Swallow clicks so wallpaper dismiss doesn't steal them.
+
                 MouseArea {
                     anchors.fill: parent
                     acceptedButtons: Qt.LeftButton
@@ -726,65 +728,63 @@ Rectangle {
                     }
                 }
             }
+        }
 
-            // Persistent tab on the frame edge — click to reveal / hide the plate.
-            // Framed mode uses a full-width strip so joins stay flush with the plate.
-            Rectangle {
-                id: loginTab
-                anchors.horizontalCenter: parent.horizontalCenter
-                anchors.bottom: parent.bottom
-                anchors.left: root.useFrame ? parent.left : undefined
-                anchors.right: root.useFrame ? parent.right : undefined
-                anchors.leftMargin: root.useFrame ? root.joinR : 0
-                anchors.rightMargin: root.useFrame ? root.joinR : 0
-                width: root.useFrame ? undefined : Math.max(148, tabRow.implicitWidth + 36)
-                height: root.tabHeight
-                radius: root.useFrame ? root.dockRadius : 18
-                topLeftRadius: root.useFrame ? (root.loginOpen ? 0 : root.dockRadius) : 18
-                topRightRadius: root.useFrame ? (root.loginOpen ? 0 : root.dockRadius) : 18
-                bottomLeftRadius: root.useFrame ? 0 : 18
-                bottomRightRadius: root.useFrame ? 0 : 18
-                color: tabMouse.containsMouse
-                    ? Qt.rgba(root.themeColor.r, root.themeColor.g, root.themeColor.b, 0.22)
-                    : root.dockColor
-                border.width: root.useFrame ? 0 : 1
-                border.color: Qt.rgba(root.themeColor.r, root.themeColor.g, root.themeColor.b, 0.28)
-                z: 4
+        // Persistent tab on the frame edge — click to reveal / hide the plate.
+        Rectangle {
+            id: loginTab
+            anchors.horizontalCenter: parent.horizontalCenter
+            anchors.bottom: parent.bottom
+            anchors.left: root.useFrame ? parent.left : undefined
+            anchors.right: root.useFrame ? parent.right : undefined
+            anchors.leftMargin: root.useFrame ? root.joinR : 0
+            anchors.rightMargin: root.useFrame ? root.joinR : 0
+            width: root.useFrame ? undefined : Math.max(120, tabRow.implicitWidth + 36)
+            height: root.tabHeight
+            radius: root.useFrame ? root.dockRadius : 18
+            topLeftRadius: root.useFrame ? (root.loginOpen ? 0 : root.dockRadius) : 18
+            topRightRadius: root.useFrame ? (root.loginOpen ? 0 : root.dockRadius) : 18
+            bottomLeftRadius: root.useFrame ? 0 : 18
+            bottomRightRadius: root.useFrame ? 0 : 18
+            color: tabMouse.containsMouse
+                ? Qt.rgba(root.themeColor.r, root.themeColor.g, root.themeColor.b, 0.22)
+                : root.dockColor
+            border.width: root.useFrame ? 0 : 1
+            border.color: Qt.rgba(root.themeColor.r, root.themeColor.g, root.themeColor.b, 0.28)
+            z: 4
 
-                Row {
-                    id: tabRow
-                    anchors.centerIn: parent
-                    spacing: loginLabel.visible ? 10 : 0
+            Row {
+                id: tabRow
+                anchors.centerIn: parent
+                spacing: loginLabel.visible ? 10 : 0
 
-                    Text {
-                        id: loginLabel
-                        anchors.verticalCenter: parent.verticalCenter
-                        // Label only while collapsed; open state keeps the chevron alone.
-                        visible: !root.loginOpen
-                        text: root.translateLogin
-                        font.family: root.fontFamily
-                        font.pixelSize: root.fontSize + 2
-                        font.weight: Font.DemiBold
-                        color: root.fgPrimary
-                    }
-
-                    Text {
-                        anchors.verticalCenter: parent.verticalCenter
-                        // Up chevron when collapsed, down when open.
-                        text: root.loginOpen ? "\uf078" : "\uf077"
-                        font.family: "Symbols Nerd Font"
-                        font.pixelSize: root.fontSize + 1
-                        color: root.themeColor
-                    }
+                Text {
+                    id: loginLabel
+                    anchors.verticalCenter: parent.verticalCenter
+                    visible: !root.loginOpen
+                    text: root.translateLogin
+                    font.family: root.fontFamily
+                    font.pixelSize: root.fontSize + 2
+                    font.weight: Font.DemiBold
+                    color: root.fgPrimary
                 }
 
-                MouseArea {
-                    id: tabMouse
-                    anchors.fill: parent
-                    hoverEnabled: true
-                    cursorShape: Qt.PointingHandCursor
-                    onClicked: root.toggleLogin()
+                Text {
+                    anchors.verticalCenter: parent.verticalCenter
+                    text: root.loginOpen ? "\uf078" : "\uf077"
+                    font.family: "Symbols Nerd Font"
+                    font.pixelSize: root.fontSize + 1
+                    color: root.themeColor
                 }
+            }
+
+            MouseArea {
+                id: tabMouse
+                anchors.fill: parent
+                hoverEnabled: true
+                cursorShape: Qt.PointingHandCursor
+                z: 2
+                onClicked: root.toggleLogin()
             }
         }
     }
