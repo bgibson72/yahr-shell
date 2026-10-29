@@ -390,7 +390,7 @@ def clear_stale_wallpaper_assets(keep: set[str]) -> None:
         sudo_rm(path)
 
 
-MAIN_VERSION_MARK = "YAHR_SDDM_MAIN_V=4"
+MAIN_VERSION_MARK = "YAHR_SDDM_MAIN_V=5"
 
 
 def _theme_main_version(path: Path) -> int:
@@ -445,7 +445,7 @@ def _file_digest(path: Path) -> str:
 def copy_theme_qml() -> list[str]:
     """Refresh greeter Main.qml from the best source tree.
 
-    Frame/joins live inside Main.qml (V4+) so a single top-level copy is enough
+    Frame/joins live inside Main.qml (V5+) so a single top-level copy is enough
     for the sudoers rule that only allows paths under yahr-theme/*.
     Also refreshes ~/.local/share so later applies do not pick a stale copy.
     """
@@ -586,7 +586,7 @@ def main() -> int:
     qml_note = ",".join(qml_copied) if qml_copied else "unchanged"
 
     if dest_name:
-        print("OK" if qml_ok and live_ver >= 4 else "OK_QML_STALE")
+        print("OK" if qml_ok and live_ver >= 5 else "OK_QML_STALE")
         print(f"wallpaper={wallpaper}")
         print(f"background={THEME_DIR / dest_name} mode={_mode(THEME_DIR / dest_name)}")
         try:
@@ -605,7 +605,7 @@ def main() -> int:
         print(f"main_version_src={src_ver} live={live_ver}")
         print(f"qml={qml_note}")
     else:
-        print("OK_NO_WALLPAPER" if qml_ok and live_ver >= 4 else "OK_QML_STALE")
+        print("OK_NO_WALLPAPER" if qml_ok and live_ver >= 5 else "OK_QML_STALE")
         print(f"runtime_blur={runtime_blur}")
         print(f"widget_opacity={runtime_opacity}")
         print(f"ui_font={font}")
@@ -614,7 +614,7 @@ def main() -> int:
         print(f"theme_src={theme_dir}")
         print(f"main_version_src={src_ver} live={live_ver}")
         print(f"qml={qml_note}")
-    if not qml_ok or live_ver < 4:
+    if not qml_ok or live_ver < 5:
         print("hint=Main.qml was not refreshed; re-run Apply after sudoers allow cp into the theme dir")
         return 2
     return 0
