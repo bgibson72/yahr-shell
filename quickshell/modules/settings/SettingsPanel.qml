@@ -811,7 +811,7 @@ exec python3 "$SCRIPT" "$@"`
                 SettingsCard {
                     SettingsSubcard {
                         Text {
-                            text: "Fonts used by the shell, independent of other system fonts."
+                            text: "Fonts used by the shell, independent of other system fonts. Apply under SDDM to push the same choice to the login screen."
                             color: ThemeManager.fgTertiary
                             font.family: ThemeManager.uiFont
                             font.pixelSize: 12
@@ -2307,7 +2307,7 @@ exec python3 "$SCRIPT" "$@"`
                     SettingsCard {
                         SettingsSubcard {
                             Text {
-                                text: "Match the desktop wallpaper, or pick a different image. Theme colors follow Settings → Theme (any palette). Background blur is fixed at radius 40. Wallpaper and colors refresh when either changes (if Match desktop is on) or when you Apply."
+                                text: "Match the desktop wallpaper, or pick a different image. Theme colors follow Settings → Theme (any palette). The greeter uses the UI Font from General, and when the bar is docked it draws the same picture-frame bezel with the login plate joined into the bottom edge. Background blur is fixed at radius 40. Wallpaper, colors, font, and frame geometry refresh when wallpaper changes (if Match desktop is on) or when you Apply."
                                 color: ThemeManager.fgTertiary
                                 font.family: ThemeManager.uiFont
                                 font.pixelSize: 12
@@ -2431,7 +2431,7 @@ exec python3 "$SCRIPT" "$@"`
                         }
                         SettingsSubcard {
                             Text {
-                                text: "Apply writes theme colors and wallpaper into the greeter. Passwordless apply needs the yahr-sddm sudoers rule."
+                                text: "Apply writes theme colors, UI font, framed-bar geometry, and wallpaper into the greeter. Passwordless apply needs the yahr-sddm sudoers rule."
                                 color: ThemeManager.fgTertiary
                                 font.family: ThemeManager.uiFont
                                 font.pixelSize: 12
