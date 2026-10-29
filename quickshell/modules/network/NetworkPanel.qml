@@ -15,6 +15,8 @@ Panel {
     entranceScale: 0.9
 
     property bool wifiRadio: true
+    property string connectingSsid: ""
+    property string connectError: ""
 
     readonly property string connectionType: NetworkState.connectionType
     readonly property string connectionName: {
@@ -32,8 +34,12 @@ Panel {
     Keys.onEscapePressed: root.requestClose()
 
     onIsVisibleChanged: {
-        if (isVisible)
+        if (isVisible) {
+            root.connectError = ""
             root.refresh()
+        } else {
+            root.connectingSsid = ""
+        }
     }
 
     function refresh() {
@@ -42,6 +48,28 @@ Panel {
         statusProc.running = true
         wifiListProc.running = false
         wifiListProc.running = true
+    }
+
+    function connectTo(ssid) {
+        if (!ssid || ssid === root.connectingSsid)
+            return
+        root.connectError = ""
+        root.connectingSsid = ssid
+        wifiConnect.running = false
+        wifiConnect.command = [
+            "bash",
+            `${Quickshell.shellDir}/scripts/wifi-connect.sh`,
+            ssid
+        ]
+        wifiConnect.running = true
+    }
+
+    function openNetworkSettings() {
+        Quickshell.execDetached([
+            "bash",
+            `${Quickshell.shellDir}/scripts/launch-network-settings.sh`
+        ])
+        root.requestClose()
     }
 
     MouseArea {
@@ -126,7 +154,22 @@ Panel {
         id: wifiConnect
         running: false
         command: ["true"]
-        onExited: root.refresh()
+        stdout: StdioCollector {}
+        stderr: StdioCollector {
+            id: wifiConnectErr
+        }
+        onExited: code => {
+            const target = root.connectingSsid
+            root.connectingSsid = ""
+            if (code === 0) {
+                root.connectError = ""
+                root.refresh()
+                return
+            }
+            const detail = (wifiConnectErr.text || "").trim().split("\n").pop() || "Connection failed"
+            root.connectError = target ? `${target}: ${detail}` : detail
+            root.refresh()
+        }
     }
 
     ColumnLayout {
@@ -221,10 +264,15 @@ Panel {
                 required property string ssid
                 required property int signal
                 required property string security
+
+                readonly property bool isConnecting: root.connectingSsid === ssid
+
                 width: ListView.view.width
                 height: 32
                 radius: 8
+                opacity: root.connectingSsid.length > 0 && !isConnecting && !active ? 0.55 : 1.0
                 color: netMouse.containsMouse ? ThemeManager.surface2 : (active ? Qt.rgba(ThemeManager.accentBlue.r, ThemeManager.accentBlue.g, ThemeManager.accentBlue.b, 0.18) : ThemeManager.surface1)
+                Behavior on opacity { NumberAnimation { duration: 120 } }
 
                 RowLayout {
                     anchors.fill: parent
@@ -234,6 +282,8 @@ Panel {
 
                     Text {
                         text: {
+                            if (isConnecting)
+                                return "󰔟"
                             const s = signal
                             if (s >= 80) return "󰤨"
                             if (s >= 55) return "󰤥"
@@ -242,18 +292,18 @@ Panel {
                         }
                         font.family: "Symbols Nerd Font"
                         font.pixelSize: 14
-                        color: active ? ThemeManager.accentBlue : ThemeManager.fgSecondary
+                        color: active || isConnecting ? ThemeManager.accentBlue : ThemeManager.fgSecondary
                     }
                     Text {
                         Layout.fillWidth: true
                         elide: Text.ElideRight
-                        text: ssid
+                        text: isConnecting ? `${ssid}…` : ssid
                         color: ThemeManager.fgPrimary
                         font.family: ThemeManager.uiFont
                         font.pixelSize: 12
                     }
                     Text {
-                        visible: security && security !== "--"
+                        visible: security && security !== "--" && !isConnecting
                         text: "󰌾"
                         font.family: "Symbols Nerd Font"
                         font.pixelSize: 12
@@ -265,15 +315,23 @@ Panel {
                     id: netMouse
                     anchors.fill: parent
                     hoverEnabled: true
-                    cursorShape: Qt.PointingHandCursor
-                    onClicked: {
-                        if (active)
-                            return
-                        wifiConnect.command = ["nmcli", "-w", "12", "device", "wifi", "connect", ssid]
-                        wifiConnect.running = true
-                    }
+                    enabled: !active && root.connectingSsid.length === 0
+                    cursorShape: enabled ? Qt.PointingHandCursor : Qt.ArrowCursor
+                    onClicked: root.connectTo(ssid)
                 }
             }
+        }
+
+        Text {
+            Layout.fillWidth: true
+            visible: root.connectError.length > 0
+            text: root.connectError
+            color: ThemeManager.accentRed
+            font.family: ThemeManager.uiFont
+            font.pixelSize: 11
+            wrapMode: Text.Wrap
+            maximumLineCount: 2
+            elide: Text.ElideRight
         }
 
         Rectangle {
@@ -298,10 +356,7 @@ Panel {
                 anchors.fill: parent
                 hoverEnabled: true
                 cursorShape: Qt.PointingHandCursor
-                onClicked: {
-                    Quickshell.execDetached(["nm-connection-editor"])
-                    root.requestClose()
-                }
+                onClicked: root.openNetworkSettings()
             }
         }
     }
