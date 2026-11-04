@@ -823,7 +823,7 @@ exec python3 "$SCRIPT" "$@"`
                 SettingsCard {
                     SettingsSubcard {
                         Text {
-                            text: "Fonts used by the shell and the SDDM login screen. Changing a font syncs the greeter automatically."
+                            text: "Fonts used by the shell, lock screen, and SDDM login screen. Changing a font syncs hyprlock and the greeter automatically."
                             color: ThemeManager.fgTertiary
                             font.family: ThemeManager.uiFont
                             font.pixelSize: 12

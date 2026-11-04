@@ -1021,7 +1021,13 @@ def cursor_token_customizations(palette: dict) -> dict:
     }
 
 
-def hyprlock_conf(palette: dict) -> str:
+def hyprlock_conf(palette: dict, ui_font: str = "Inter") -> str:
+    """Render hyprlock.conf using the Settings UI font for labels and the input field.
+
+    Bold dashboard figures use ``$uiBold`` (``{ui_font} ExtraBold``), matching the
+    previous Inter ExtraBold emphasis while tracking the selected family.
+    """
+    font = (ui_font or "Inter").strip() or "Inter"
     bg = strip_hash(palette["bgBase"])
     surface = strip_hash(palette["surface0"])
     acc = strip_hash(palette["accentBlue"])
@@ -1039,7 +1045,8 @@ def hyprlock_conf(palette: dict) -> str:
 #            system 1x1 | battery 1x1 | avatar 2x2
 #            weather 1x2              | avatar 2x2
 $font = Maple Mono NF
-$ui = Inter
+$ui = {font}
+$uiBold = {font} ExtraBold
 $icons = Symbols Nerd Font
 $plate = rgba({bg}F2)
 $card = rgba({surface}E6)
@@ -1163,7 +1170,7 @@ label {{
     text = cmd[update:1000] python3 {lock_py} time
     color = rgba({fg}FF)
     font_size = 74
-    font_family = Inter ExtraBold
+    font_family = $uiBold
     position = 70, 272
     halign = center
     valign = center
@@ -1212,7 +1219,7 @@ label {{
     text = cmd[update:60000] python3 {lock_py} date-day
     color = rgba({fg}FF)
     font_size = 64
-    font_family = Inter ExtraBold
+    font_family = $uiBold
     position = -354, 272
     halign = center
     valign = center
@@ -1262,7 +1269,7 @@ label {{
     text = cmd[update:60000] cat {lock_str}/weather-temp
     color = rgba({fg}FF)
     font_size = 26
-    font_family = Inter ExtraBold
+    font_family = $uiBold
     position = -400, -208
     halign = center
     valign = center
@@ -1438,7 +1445,7 @@ label {{
     text = cmd[update:20000] python3 {lock_py} battery-pct
     color = rgba({green}FF)
     font_size = 28
-    font_family = Inter ExtraBold
+    font_family = $uiBold
     position = -118, 24
     halign = center
     valign = center

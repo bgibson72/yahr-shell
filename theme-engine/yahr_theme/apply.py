@@ -99,8 +99,38 @@ def _settings() -> dict:
         return {}
 
 
+# Catalog keys from Settings → UI Font (ThemeManager.uiFontCatalog). Map to the
+# preferred installed family name so hyprlock/mako match the shell, not the chip key.
+_UI_FONT_FAMILIES: dict[str, str] = {
+    "Inter": "Inter",
+    "Source Sans": "Source Sans 3",
+    "Roboto": "Roboto",
+    "Manrope": "Manrope",
+    "Overpass": "Overpass",
+    "Space Grotesk": "Space Grotesk",
+    "IBM Plex Sans": "IBM Plex Sans",
+}
+
+
+def resolve_ui_font(settings: dict | None = None) -> str:
+    """Resolve Settings UI font to a family name for hyprlock and similar clients."""
+    data = settings if settings is not None else _settings()
+    raw = str((data.get("general") or {}).get("uiFont") or "Inter").strip()
+    if not raw:
+        return "Inter"
+    if raw in _UI_FONT_FAMILIES:
+        return _UI_FONT_FAMILIES[raw]
+    # Already a concrete family (or typo) — keep as stored.
+    for key, family in _UI_FONT_FAMILIES.items():
+        if raw == family or raw.startswith(family + " "):
+            return family
+        if raw.lower() == key.lower():
+            return family
+    return raw
+
+
 def _ui_font() -> str:
-    return str(_settings().get("general", {}).get("uiFont") or "Inter")
+    return resolve_ui_font()
 
 
 _IMAGE_EXTS = {".png", ".jpg", ".jpeg", ".webp", ".gif"}
@@ -513,7 +543,7 @@ def apply_palette(palette: dict, *, reload: bool = True) -> None:
     _write(paths.starship_toml(), templates.starship_toml(palette))
     _write(paths.mako_config(), templates.mako_config(palette, **templates.mako_style(palette, _settings())))
     _install_lock_info()
-    _write(paths.hyprlock_conf(), templates.hyprlock_conf(palette))
+    _write(paths.hyprlock_conf(), templates.hyprlock_conf(palette, ui_font=_ui_font()))
     css = templates.gtk_css(palette)
     _write(paths.gtk3_css(), css)
     _write(paths.gtk4_css(), css)

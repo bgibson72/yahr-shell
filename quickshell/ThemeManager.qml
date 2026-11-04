@@ -328,10 +328,15 @@ Item {
     function syncUiFont() {
         uiFont = resolveUiFont(Settings.uiFont)
         syncMako()
+        syncHyprlock()
     }
 
     function syncMako() {
         Quickshell.execDetached(["python3", `${Quickshell.shellDir}/scripts/sync-mako.py`])
+    }
+
+    function syncHyprlock() {
+        Quickshell.execDetached(["python3", `${Quickshell.shellDir}/scripts/sync-hyprlock.py`])
     }
 
     Connections {
