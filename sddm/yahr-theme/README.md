@@ -19,7 +19,7 @@ fontconfig-resolved family), clock/date formats, and framed-bar geometry
 (`UseFrame`, thickness, rounding) into `theme.conf`. It also copies `Main.qml`
 (frame + login panel are inlined there) into `/usr/share/sddm/themes/yahr-theme`
 and copies the desktop wallpaper as `login-background.png` (or `.jpg`). Check
-apply output for `main_version_src=… live=4` — if you see `OK_QML_STALE`, the
+apply output for `main_version_src=… live=5` — if you see `OK_QML_STALE`, the
 sudoers `cp` rule did not refresh the greeter QML. Colors and wallpaper are
 never hard-coded to a specific theme — every `yahr-theme apply`, UI font
 change, and desktop wallpaper change (with **Match desktop** on) refreshes the

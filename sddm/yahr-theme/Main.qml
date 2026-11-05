@@ -3,8 +3,10 @@ import QtQuick.Controls 2.15
 import Qt5Compat.GraphicalEffects
 import SddmComponents 2.0
 
-// YAHR_SDDM_MAIN_V=4 equal-frame + loader-panel
+// YAHR_SDDM_MAIN_V=5 equal-frame + loader-panel
 // Frame + joins are inlined so sddm-apply only needs to copy this one QML file.
+// V5: uniform radius only (per-corner props need Qt 6.7+) and no anchors/width
+// reset via undefined (those abort the greeter → embedded default theme).
 
 Rectangle {
     id: root
@@ -440,14 +442,13 @@ Rectangle {
             property alias userField: usernameField
             property alias passField: passwordField
             property alias sessionIndex: sessionCombo.index
-            width: panelSlot.width
+            // Parent is the Loader; bind to its width (avoid outer-id timing / zero width).
+            anchors.left: parent.left
+            anchors.right: parent.right
             implicitHeight: dockColumn.implicitHeight + 40
             height: implicitHeight
+            // Uniform radius only — per-corner radius props need Qt 6.7+ and crash older greeters.
             radius: root.dockRadius
-            topLeftRadius: root.dockRadius
-            topRightRadius: root.dockRadius
-            bottomLeftRadius: 0
-            bottomRightRadius: 0
             color: root.dockColor
             border.width: root.useFrame ? 0 : 1
             border.color: Qt.rgba(root.themeColor.r, root.themeColor.g, root.themeColor.b, 0.22)
@@ -859,19 +860,20 @@ Rectangle {
 
         Rectangle {
             id: loginTab
+            // Width-only layout: never mix horizontalCenter with left/right, and never
+            // assign anchors/width to undefined (greeter treats that as a load error).
             anchors.horizontalCenter: parent.horizontalCenter
             anchors.bottom: parent.bottom
-            anchors.left: root.useFrame ? parent.left : undefined
-            anchors.right: root.useFrame ? parent.right : undefined
-            anchors.leftMargin: root.useFrame ? root.joinR : 0
-            anchors.rightMargin: root.useFrame ? root.joinR : 0
-            width: root.useFrame ? undefined : Math.max(120, tabRow.implicitWidth + 36)
+            width: root.useFrame
+                ? Math.max(0, parent.width - 2 * root.joinR)
+                : Math.max(120, tabRow.implicitWidth + 36)
             height: root.tabHeight
-            radius: root.useFrame ? root.dockRadius : 18
-            topLeftRadius: root.useFrame ? (root.loginOpen ? 0 : root.dockRadius) : 18
-            topRightRadius: root.useFrame ? (root.loginOpen ? 0 : root.dockRadius) : 18
-            bottomLeftRadius: root.useFrame ? 0 : 18
-            bottomRightRadius: root.useFrame ? 0 : 18
+            // Flat when open so the plate joins cleanly; rounded when collapsed.
+            radius: {
+                if (!root.useFrame)
+                    return 18
+                return root.loginOpen ? 0 : root.dockRadius
+            }
             color: tabMouse.containsMouse
                 ? Qt.rgba(root.themeColor.r, root.themeColor.g, root.themeColor.b, 0.22)
                 : root.dockColor

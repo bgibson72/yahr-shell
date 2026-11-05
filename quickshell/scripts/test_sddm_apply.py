@@ -117,10 +117,10 @@ class SettingsSyncTests(unittest.TestCase):
         self.assertIn("FrameInnerRadius=18", out)
         self.assertIn('TimeFormat="HH:mm"', out)
 
-    def test_theme_main_v4_inline_frame_and_loader(self):
+    def test_theme_main_v5_inline_frame_and_loader(self):
         theme = ROOT / "sddm" / "yahr-theme"
         main = (theme / "Main.qml").read_text()
-        self.assertIn("YAHR_SDDM_MAIN_V=4", main)
+        self.assertIn("YAHR_SDDM_MAIN_V=5", main)
         self.assertIn("resolveUiFont", main)
         self.assertIn("useFrame", main)
         self.assertIn("loginReveal", main)
@@ -131,12 +131,16 @@ class SettingsSyncTests(unittest.TestCase):
         self.assertIn("frameCanvas", main)
         self.assertNotIn('import "Components"', main)
         self.assertNotIn("barHeight", main)
+        # Per-corner radii need Qt 6.7+; greeter must stay on uniform radius.
+        self.assertNotRegex(main, r"(?m)^\s*topLeftRadius:")
+        self.assertNotRegex(main, r"(?m)^\s*bottomLeftRadius:")
+        self.assertNotIn(": undefined", main)
         self.assertEqual(main.count("{"), main.count("}"))
 
     def test_find_theme_dir_prefers_versioned_main(self):
         theme = self.mod.find_theme_dir()
         self.assertIsNotNone(theme)
-        self.assertGreaterEqual(self.mod._theme_main_version(theme / "Main.qml"), 4)
+        self.assertGreaterEqual(self.mod._theme_main_version(theme / "Main.qml"), 5)
 
 
 if __name__ == "__main__":
