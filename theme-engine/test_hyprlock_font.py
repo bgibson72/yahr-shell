@@ -31,10 +31,10 @@ class HyprlockFontTests(unittest.TestCase):
         }
         text = templates.hyprlock_conf(palette, ui_font="Manrope")
         self.assertIn("$ui = Manrope", text)
-        self.assertIn("$uiBold = Manrope ExtraBold", text)
+        self.assertIn("$uiBold = Manrope", text)
         self.assertIn("font_family = $uiBold", text)
         self.assertIn("font_family = $ui", text)
-        self.assertNotIn("Inter ExtraBold", text)
+        self.assertNotIn("ExtraBold", text)
         self.assertNotIn("$ui = Inter", text)
 
 

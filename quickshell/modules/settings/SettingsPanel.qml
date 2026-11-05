@@ -836,6 +836,9 @@ exec python3 "$SCRIPT" "$@"`
                                 Settings.uiFont = key
                                 Settings.save()
                                 root.syncSddmThemeQuiet()
+                                // ThemeManager also syncs on uiFontChanged; call again
+                                // after save so hyprlock always sees the new font.
+                                ThemeManager.syncHyprlock()
                             }
                         }
                     }
