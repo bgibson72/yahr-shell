@@ -28,7 +28,8 @@ hl.bind(MOD .. " + SHIFT + G", hl.dsp.exec_cmd(qs .. "/toggle-gamemode.sh"))
 hl.bind(MOD .. " + Print", hl.dsp.exec_cmd(qs .. "/take-screenshot.sh region --from-settings"))
 hl.bind("Print", hl.dsp.exec_cmd(qs .. "/take-screenshot.sh output --from-settings"))
 
-hl.bind(MOD .. " + L", hl.dsp.exec_cmd("hyprlock"))
+-- Sync Settings UI font into hyprlock.conf, then lock (see yahr-lock).
+hl.bind(MOD .. " + L", hl.dsp.exec_cmd(qs .. "/yahr-lock"))
 hl.bind(MOD .. " + Z", hl.dsp.exec_cmd(restart))
 hl.bind(MOD .. " + K", hl.dsp.exec_cmd(ipc .. " toggleKeybinds"))
 

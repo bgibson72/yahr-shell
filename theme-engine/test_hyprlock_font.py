@@ -13,6 +13,7 @@ class HyprlockFontTests(unittest.TestCase):
         self.assertEqual(apply.resolve_ui_font({"general": {"uiFont": "Manrope"}}), "Manrope")
         self.assertEqual(apply.resolve_ui_font({"general": {"uiFont": "Source Sans"}}), "Source Sans 3")
         self.assertEqual(apply.resolve_ui_font({"general": {"uiFont": "Space Grotesk"}}), "Space Grotesk")
+        self.assertEqual(apply.resolve_ui_font({"general": {"uiFont": "Space Grostek"}}), "Space Grotesk")
         self.assertEqual(apply.resolve_ui_font({}), "Inter")
 
     def test_hyprlock_conf_uses_ui_font(self) -> None:

@@ -121,10 +121,17 @@ def resolve_ui_font(settings: dict | None = None) -> str:
     if raw in _UI_FONT_FAMILIES:
         return _UI_FONT_FAMILIES[raw]
     # Already a concrete family (or typo) — keep as stored.
+    norm = "".join(ch for ch in raw.lower() if ch.isalnum())
+    # Common typo: Grostek → Grotesk (same as sddm-apply).
+    if "grostek" in norm and "space" in norm:
+        return _UI_FONT_FAMILIES["Space Grotesk"]
     for key, family in _UI_FONT_FAMILIES.items():
         if raw == family or raw.startswith(family + " "):
             return family
         if raw.lower() == key.lower():
+            return family
+        key_norm = "".join(ch for ch in key.lower() if ch.isalnum())
+        if norm == key_norm:
             return family
     return raw
 

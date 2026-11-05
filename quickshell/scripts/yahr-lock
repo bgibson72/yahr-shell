@@ -1,0 +1,26 @@
+#!/usr/bin/env bash
+# Sync hyprlock.conf from Settings UI font, then lock.
+# Used by keybinds / hypridle / the power menu so a stale Quickshell session
+# (git pull without Super+Z) cannot leave the lock screen on Inter.
+set -euo pipefail
+
+script_dir="$(cd "$(dirname "$0")" && pwd)"
+repo_root_file="${HOME}/.config/yahr/repo-root"
+sync=""
+
+if [[ -f "$repo_root_file" ]]; then
+    root="$(tr -d '[:space:]' < "$repo_root_file" || true)"
+    if [[ -n "$root" && -f "$root/quickshell/scripts/sync-hyprlock.py" ]]; then
+        sync="$root/quickshell/scripts/sync-hyprlock.py"
+    fi
+fi
+if [[ -z "$sync" && -f "$script_dir/sync-hyprlock.py" ]]; then
+    sync="$script_dir/sync-hyprlock.py"
+fi
+
+if [[ -n "$sync" ]]; then
+    # Best-effort: still lock even if sync fails (missing palette, etc.).
+    python3 "$sync" || true
+fi
+
+exec hyprlock "$@"
