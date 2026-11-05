@@ -111,6 +111,8 @@ class SyncHyprlockTests(unittest.TestCase):
 
             env = os.environ.copy()
             env["HOME"] = str(home)
+            # Hide any installed yahr-theme so this exercises the pure patch path.
+            env["PATH"] = "/usr/bin:/bin"
             # Run from /tmp so Path(__file__).parents[2] is not the real repo
             # when the script is the repo copy — use a relocated script.
             relocated = Path(tmp) / "relocated" / "scripts"
@@ -129,7 +131,10 @@ class SyncHyprlockTests(unittest.TestCase):
             self.assertIn("$uiBold = Roboto", text)
             self.assertIn("font_family = $uiBold", text)
             self.assertNotIn("Inter ExtraBold", text)
-            self.assertIn("patched", result.stdout)
+            self.assertTrue(
+                "patched" in result.stdout or "wrote" in result.stdout,
+                result.stdout,
+            )
 
 
 if __name__ == "__main__":

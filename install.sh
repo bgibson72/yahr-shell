@@ -446,6 +446,7 @@ WRAP
     install -m 0755 "$REPO_ROOT/quickshell/scripts/yahr-calendar" "$HOME/.local/bin/yahr-calendar"
     install -m 0755 "$REPO_ROOT/quickshell/scripts/yahr-calculator" "$HOME/.local/bin/yahr-calculator"
     install -m 0755 "$REPO_ROOT/quickshell/scripts/yahr-keybinds" "$HOME/.local/bin/yahr-keybinds"
+    install -m 0755 "$REPO_ROOT/quickshell/scripts/yahr-lock" "$HOME/.local/bin/yahr-lock"
     install -m 0755 "$REPO_ROOT/quickshell/scripts/sync-quickshell-cli" "$HOME/.local/bin/yahr-sync-quickshell"
     # Ensure the live Quickshell tree tracks this clone (repairs stale copies).
     if [ -f "$REPO_ROOT/quickshell/scripts/sync-quickshell-from-repo.py" ]; then

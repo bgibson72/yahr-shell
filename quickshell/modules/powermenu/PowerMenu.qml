@@ -19,7 +19,7 @@ Panel {
     function go(action) {
         root.requestClose()
         Qt.callLater(() => {
-            if (action === "lock") Quickshell.execDetached(["hyprlock"])
+            if (action === "lock") Quickshell.execDetached([`${Quickshell.shellDir}/scripts/yahr-lock`])
             else if (action === "logout") Quickshell.execDetached(["hyprctl", "dispatch", "hl.dsp.exit()"])
             else if (action === "suspend") Quickshell.execDetached(["systemctl", "suspend"])
             else if (action === "reboot") Quickshell.execDetached(["systemctl", "reboot"])

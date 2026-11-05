@@ -332,6 +332,28 @@ Item {
     function save() {
         normalizeBarLayout()
         settingsFile.setText(JSON.stringify(toObject(), null, 2) + "\n")
+        // Refresh hyprlock.conf from this in-memory UI font. Does not depend on
+        // ThemeManager (which may still be an older in-memory singleton after
+        // git pull until Super+Z) and avoids racing the FileView write.
+        Quickshell.execDetached([
+            "bash", "-c",
+            `FONT="$1"
+# Prefer installed CLI — works even when repo-root points at a stale checkout.
+if command -v yahr-theme >/dev/null 2>&1; then
+  yahr-theme sync-hyprlock --ui-font "$FONT" && exit 0
+fi
+if [ -x "$HOME/.local/bin/yahr-theme" ]; then
+  "$HOME/.local/bin/yahr-theme" sync-hyprlock --ui-font "$FONT" && exit 0
+fi
+ROOT=$(tr -d '[:space:]' < "$HOME/.config/yahr/repo-root" 2>/dev/null || true)
+SCRIPT=""
+[ -n "$ROOT" ] && [ -f "$ROOT/quickshell/scripts/sync-hyprlock.py" ] && SCRIPT="$ROOT/quickshell/scripts/sync-hyprlock.py"
+[ -z "$SCRIPT" ] && SCRIPT="${Quickshell.shellDir}/scripts/sync-hyprlock.py"
+[ -f "$SCRIPT" ] && exec python3 "$SCRIPT" --ui-font "$FONT"
+exit 0`,
+            "_",
+            uiFont || "Inter"
+        ])
     }
 
     function patch(mutator) {

@@ -121,16 +121,73 @@ def resolve_ui_font(settings: dict | None = None) -> str:
     if raw in _UI_FONT_FAMILIES:
         return _UI_FONT_FAMILIES[raw]
     # Already a concrete family (or typo) — keep as stored.
+    norm = "".join(ch for ch in raw.lower() if ch.isalnum())
+    # Common typo: Grostek → Grotesk (same as sddm-apply).
+    if "grostek" in norm and "space" in norm:
+        return _UI_FONT_FAMILIES["Space Grotesk"]
     for key, family in _UI_FONT_FAMILIES.items():
         if raw == family or raw.startswith(family + " "):
             return family
         if raw.lower() == key.lower():
+            return family
+        key_norm = "".join(ch for ch in key.lower() if ch.isalnum())
+        if norm == key_norm:
             return family
     return raw
 
 
 def _ui_font() -> str:
     return resolve_ui_font()
+
+
+def patch_hyprlock_font(conf: Path, ui_font: str) -> bool:
+    """Update $ui / $uiBold in an existing hyprlock.conf without regenerating."""
+    if not conf.is_file():
+        return False
+    try:
+        text = conf.read_text()
+    except OSError:
+        return False
+    if not re.search(r"(?m)^\$ui\s*=", text):
+        return False
+    font = (ui_font or "Inter").strip() or "Inter"
+    text = re.sub(r"(?m)^\$ui\s*=\s*.*$", f"$ui = {font}", text, count=1)
+    if re.search(r"(?m)^\$uiBold\s*=", text):
+        text = re.sub(r"(?m)^\$uiBold\s*=\s*.*$", f"$uiBold = {font}", text, count=1)
+    else:
+        text = re.sub(r"(?m)^(\$ui\s*=\s*.*)$", rf"\1\n$uiBold = {font}", text, count=1)
+    text = text.replace("font_family = Inter ExtraBold", "font_family = $uiBold")
+    conf.write_text(text)
+    return True
+
+
+def sync_hyprlock_conf(ui_font: str | None = None) -> tuple[Path, str, str]:
+    """Rewrite or patch hyprlock.conf to match Settings UI font.
+
+    Returns ``(conf_path, font, mode)`` where mode is ``wrote`` or ``patched``.
+    """
+    settings = _settings()
+    font = (ui_font or "").strip() or resolve_ui_font(settings)
+    conf = paths.hyprlock_conf()
+    palette_path = paths.current_json()
+    if palette_path.is_file():
+        try:
+            palette = _read_json(palette_path)
+            if isinstance(palette, dict) and palette.get("bgBase"):
+                conf.parent.mkdir(parents=True, exist_ok=True)
+                try:
+                    conf.write_text(templates.hyprlock_conf(palette, ui_font=font))
+                    return conf, font, "wrote"
+                except TypeError:
+                    # Older templates without ui_font= — fall through to patch.
+                    pass
+        except (OSError, json.JSONDecodeError, TypeError, ValueError):
+            pass
+    if patch_hyprlock_font(conf, font):
+        return conf, font, "patched"
+    raise FileNotFoundError(
+        f"cannot sync hyprlock font: missing palette or patchable {conf}"
+    )
 
 
 _IMAGE_EXTS = {".png", ".jpg", ".jpeg", ".webp", ".gif"}
