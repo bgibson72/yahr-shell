@@ -337,11 +337,19 @@ Item {
         // git pull until Super+Z) and avoids racing the FileView write.
         Quickshell.execDetached([
             "bash", "-c",
-            `ROOT=$(tr -d '[:space:]' < "$HOME/.config/yahr/repo-root" 2>/dev/null || true)
+            `FONT="$1"
+# Prefer installed CLI — works even when repo-root points at a stale checkout.
+if command -v yahr-theme >/dev/null 2>&1; then
+  yahr-theme sync-hyprlock --ui-font "$FONT" && exit 0
+fi
+if [ -x "$HOME/.local/bin/yahr-theme" ]; then
+  "$HOME/.local/bin/yahr-theme" sync-hyprlock --ui-font "$FONT" && exit 0
+fi
+ROOT=$(tr -d '[:space:]' < "$HOME/.config/yahr/repo-root" 2>/dev/null || true)
 SCRIPT=""
 [ -n "$ROOT" ] && [ -f "$ROOT/quickshell/scripts/sync-hyprlock.py" ] && SCRIPT="$ROOT/quickshell/scripts/sync-hyprlock.py"
 [ -z "$SCRIPT" ] && SCRIPT="${Quickshell.shellDir}/scripts/sync-hyprlock.py"
-[ -f "$SCRIPT" ] && exec python3 "$SCRIPT" --ui-font "$1"
+[ -f "$SCRIPT" ] && exec python3 "$SCRIPT" --ui-font "$FONT"
 exit 0`,
             "_",
             uiFont || "Inter"

@@ -88,6 +88,13 @@ def cmd_derive(args: argparse.Namespace) -> int:
     return 0
 
 
+def cmd_sync_hyprlock(args: argparse.Namespace) -> int:
+    """Rewrite ~/.config/hypr/hyprlock.conf to use the Settings UI font."""
+    conf, font, mode = apply.sync_hyprlock_conf(getattr(args, "ui_font", None) or None)
+    print(f"{mode} {conf} ui_font={font}")
+    return 0
+
+
 def build_parser() -> argparse.ArgumentParser:
     parser = argparse.ArgumentParser(
         prog="yahr-theme",
@@ -141,6 +148,17 @@ def build_parser() -> argparse.ArgumentParser:
     p_derive.add_argument("--teal", required=True)
     p_derive.add_argument("--papirus-folder", default="auto")
     p_derive.set_defaults(func=cmd_derive)
+
+    p_lock = sub.add_parser(
+        "sync-hyprlock",
+        help="rewrite hyprlock.conf to use the Settings UI font",
+    )
+    p_lock.add_argument(
+        "--ui-font",
+        default="",
+        help="font family override (default: general.uiFont from settings.json)",
+    )
+    p_lock.set_defaults(func=cmd_sync_hyprlock)
 
     return parser
 

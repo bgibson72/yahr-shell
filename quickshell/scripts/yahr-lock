@@ -6,21 +6,68 @@ set -euo pipefail
 
 script_dir="$(cd "$(dirname "$0")" && pwd)"
 repo_root_file="${HOME}/.config/yahr/repo-root"
-sync=""
 
-if [[ -f "$repo_root_file" ]]; then
-    root="$(tr -d '[:space:]' < "$repo_root_file" || true)"
-    if [[ -n "$root" && -f "$root/quickshell/scripts/sync-hyprlock.py" ]]; then
-        sync="$root/quickshell/scripts/sync-hyprlock.py"
+sync_hyprlock_font() {
+    # 1) Installed CLI (survives a missing/outdated repo-root checkout).
+    if command -v yahr-theme >/dev/null 2>&1; then
+        if yahr-theme sync-hyprlock >/dev/null 2>&1; then
+            return 0
+        fi
     fi
-fi
-if [[ -z "$sync" && -f "$script_dir/sync-hyprlock.py" ]]; then
-    sync="$script_dir/sync-hyprlock.py"
-fi
+    if [[ -x "${HOME}/.local/bin/yahr-theme" ]]; then
+        if "${HOME}/.local/bin/yahr-theme" sync-hyprlock >/dev/null 2>&1; then
+            return 0
+        fi
+    fi
 
-if [[ -n "$sync" ]]; then
-    # Best-effort: still lock even if sync fails (missing palette, etc.).
-    python3 "$sync" || true
-fi
+    # 2) Repo / live quickshell script.
+    local sync=""
+    if [[ -f "$repo_root_file" ]]; then
+        local root
+        root="$(tr -d '[:space:]' < "$repo_root_file" || true)"
+        if [[ -n "$root" && -f "$root/quickshell/scripts/sync-hyprlock.py" ]]; then
+            sync="$root/quickshell/scripts/sync-hyprlock.py"
+        fi
+    fi
+    if [[ -z "$sync" && -f "$script_dir/sync-hyprlock.py" ]]; then
+        sync="$script_dir/sync-hyprlock.py"
+    fi
+    if [[ -n "$sync" ]]; then
+        python3 "$sync" && return 0
+    fi
 
+    # 3) Last-resort in-place patch from settings.json (no repo script required).
+    python3 - <<'PY' || true
+import json, re
+from pathlib import Path
+home = Path.home()
+settings = {}
+try:
+    settings = json.loads((home / ".config/yahr/settings.json").read_text())
+except Exception:
+    pass
+font = str((settings.get("general") or {}).get("uiFont") or "Inter").strip() or "Inter"
+norm = "".join(c for c in font.lower() if c.isalnum())
+if "grostek" in norm and "space" in norm:
+    font = "Space Grotesk"
+elif font == "Source Sans":
+    font = "Source Sans 3"
+conf = home / ".config/hypr/hyprlock.conf"
+if not conf.is_file():
+    raise SystemExit(0)
+text = conf.read_text()
+if not re.search(r"(?m)^\$ui\s*=", text):
+    raise SystemExit(0)
+text = re.sub(r"(?m)^\$ui\s*=\s*.*$", f"$ui = {font}", text, count=1)
+if re.search(r"(?m)^\$uiBold\s*=", text):
+    text = re.sub(r"(?m)^\$uiBold\s*=\s*.*$", f"$uiBold = {font}", text, count=1)
+else:
+    text = re.sub(r"(?m)^(\$ui\s*=\s*.*)$", rf"\1\n$uiBold = {font}", text, count=1)
+text = text.replace("font_family = Inter ExtraBold", "font_family = $uiBold")
+conf.write_text(text)
+print(f"patched {conf} ui_font={font}")
+PY
+}
+
+sync_hyprlock_font || true
 exec hyprlock "$@"
