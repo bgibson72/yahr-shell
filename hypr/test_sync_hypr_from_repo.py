@@ -63,6 +63,8 @@ class SyncHyprFromRepoTest(unittest.TestCase):
         (self.live / "rules.lua").write_text("stale\n")
         (self.live / "theme.lua").write_text("-- keep me\n")
         (self.live / "nvidia.lua").write_text("-- nvidia\n")
+        (self.live / "hyprlock.conf").write_text("$ui = Manrope\n")
+        (self.repo_hypr / "hyprlock.conf").write_text("$ui = Inter\n")
 
         os.environ["HOME"] = str(self.home)
         result = sync.copy_tracked(self.repo_hypr)
@@ -73,6 +75,7 @@ class SyncHyprFromRepoTest(unittest.TestCase):
         )
         self.assertEqual((self.live / "theme.lua").read_text(), "-- keep me\n")
         self.assertEqual((self.live / "nvidia.lua").read_text(), "-- nvidia\n")
+        self.assertEqual((self.live / "hyprlock.conf").read_text(), "$ui = Manrope\n")
         self.assertTrue(sync.live_matches_repo(self.live, self.repo_hypr))
 
     def test_force_symlink_preserves_locals(self) -> None:

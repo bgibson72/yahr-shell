@@ -328,10 +328,28 @@ Item {
     function syncUiFont() {
         uiFont = resolveUiFont(Settings.uiFont)
         syncMako()
+        syncHyprlock()
     }
 
     function syncMako() {
         Quickshell.execDetached(["python3", `${Quickshell.shellDir}/scripts/sync-mako.py`])
+    }
+
+    // Prefer the git-checkout script via repo-root so a stale ~/.config/quickshell
+    // copy still runs the current sync-hyprlock.py. Pass the resolved family so
+    // we do not race Settings.FileView writing settings.json.
+    function syncHyprlock() {
+        const font = uiFont || "Inter"
+        Quickshell.execDetached([
+            "bash", "-c",
+            `ROOT=$(tr -d '[:space:]' < "$HOME/.config/yahr/repo-root" 2>/dev/null || true)
+SCRIPT=""
+[ -n "$ROOT" ] && [ -f "$ROOT/quickshell/scripts/sync-hyprlock.py" ] && SCRIPT="$ROOT/quickshell/scripts/sync-hyprlock.py"
+[ -z "$SCRIPT" ] && SCRIPT="${Quickshell.shellDir}/scripts/sync-hyprlock.py"
+exec python3 "$SCRIPT" --ui-font "$1"`,
+            "_",
+            font
+        ])
     }
 
     Connections {

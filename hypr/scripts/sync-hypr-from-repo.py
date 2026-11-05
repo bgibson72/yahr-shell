@@ -30,8 +30,8 @@ LIVE = HOME / ".config/hypr"
 REPO_ROOT_FILE = HOME / ".config/yahr/repo-root"
 
 # Written by yahr-theme apply / the installer; never overwrite from the clone
-# when copying into a live directory tree.
-LOCAL_ONLY = frozenset({"theme.lua", "nvidia.lua"})
+# when copying into a live directory tree. hyprlock.conf tracks Settings UI font.
+LOCAL_ONLY = frozenset({"theme.lua", "nvidia.lua", "hyprlock.conf"})
 
 SKIP_DIR_NAMES = frozenset({"__pycache__", ".git"})
 
